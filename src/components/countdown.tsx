@@ -25,12 +25,18 @@ export function Countdown({
     () => (typeof to === "string" ? new Date(to) : to).getTime(),
     [to]
   );
+  const [mounted, setMounted] = useState(false);
   const [t, setT] = useState(() => parts(targetMs));
 
   useEffect(() => {
+    setMounted(true);
     const id = setInterval(() => setT(parts(targetMs)), 1000);
     return () => clearInterval(id);
   }, [targetMs]);
+
+  if (!mounted) {
+    return <span className={cn("tabular-nums font-semibold text-slate-500", className)}>{label} …</span>;
+  }
 
   if (t.ms <= 0) {
     return <span className={cn("text-amber-700 font-semibold", className)}>Nu starten</span>;
