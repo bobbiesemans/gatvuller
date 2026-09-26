@@ -52,6 +52,7 @@ export async function POST(req: Request) {
   });
 
   if (!stripeConfigured()) {
+    // Demo mode: mark paid immediately so MVP is demoable without Stripe keys
     await prisma.$transaction([
       prisma.booking.update({
         where: { id: booking.id },
@@ -59,7 +60,7 @@ export async function POST(req: Request) {
       }),
       prisma.slot.update({
         where: { id: slot.id },
-        data: { status: "BOOKED" },
+        data: { status: "BOOKED", spotsLeft: 0 },
       }),
     ]);
     return NextResponse.json({ demoPaid: true, bookingId: booking.id });
