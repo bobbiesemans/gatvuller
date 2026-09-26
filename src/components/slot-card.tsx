@@ -113,7 +113,7 @@ export function SlotCard({
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
           <span className="inline-flex items-center gap-1">
             <Clock className="h-3.5 w-3.5 text-violet-500" />
-            {format(start, "EEE d MMM · HH:mm", { locale: nlBE })}–{format(end, "HH:mm", { locale: nlBE })}
+            {format(start, "EEE d MMM · HH:mm", { locale: nlBE })}–{format(end, "HH:mm", { locale: nlBE })} · aankomst
           </span>
           {dist && (
             <span className="inline-flex items-center gap-1">
