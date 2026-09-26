@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SlotCard } from "@/components/slot-card";
-import { SpotsMapDynamic, type MapSlot } from "@/components/map/slots-map-dynamic";
+import { SlotsMapDynamic, type MapSlot } from "@/components/map/slots-map-dynamic";
 import { Button } from "@/components/ui/button";
 import { distanceKm } from "@/lib/utils";
 import { getStoredLocation, requestUserLocation, type LatLng } from "@/lib/geo";
