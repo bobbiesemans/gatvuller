@@ -9,7 +9,7 @@
 
 @theme inline {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 html { scroll-behavior: smooth; }
@@ -46,4 +46,23 @@ body {
   transform: translateY(-3px);
   box-shadow: 0 16px 40px -20px rgba(109,40,217,.35);
   border-color: #c4b5fd;
+}
+
+/* Leaflet fixes inside Next layout */
+.leaflet-container {
+  font: inherit;
+  z-index: 0;
+  background: #e2e8f0;
+}
+.leaflet-pane,
+.leaflet-control {
+  z-index: auto !important;
+}
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 10 !important;
+}
+.leaflet-div-icon {
+  background: transparent;
+  border: none;
 }

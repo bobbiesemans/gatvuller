@@ -6,7 +6,7 @@ export async function Header() {
   const session = await auth();
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2.5 font-extrabold text-xl tracking-tight">
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white text-sm shadow-md shadow-violet-600/30">
             GV
@@ -17,7 +17,10 @@ export async function Header() {
         </Link>
         <nav className="hidden items-center gap-7 text-sm font-medium text-slate-600 md:flex">
           <Link href="/slots" className="hover:text-violet-700 transition">
-            Last-minute slots
+            Surprise slots
+          </Link>
+          <Link href="/#hoe" className="hover:text-violet-700 transition">
+            Hoe het werkt
           </Link>
           {(session?.user?.role === "SALON_OWNER" || session?.user?.role === "ADMIN") && (
             <Link href="/dashboard" className="hover:text-violet-700 transition">
