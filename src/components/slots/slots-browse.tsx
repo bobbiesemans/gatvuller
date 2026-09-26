@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SlotCard } from "@/components/slot-card";
-import { SlotsMapDynamic, type MapSlot } from "@/components/map/slots-map-dynamic";
+import { SpotsMapDynamic, type MapSlot } from "@/components/map/slots-map-dynamic";
 import { Button } from "@/components/ui/button";
 import { distanceKm } from "@/lib/utils";
 import { getStoredLocation, requestUserLocation, type LatLng } from "@/lib/geo";
@@ -11,7 +11,7 @@ import { List, Map as MapIcon, LocateFixed, Heart } from "lucide-react";
 
 type Slot = MapSlot;
 
-export function SlotsBrowse({ slots }: { slots: Slot[] }) {
+export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity?: string }) {
   const [view, setView] = useState<"split" | "list" | "map">("split");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [userLoc, setUserLoc] = useState<LatLng | null>(null);
@@ -26,7 +26,6 @@ export function SlotsBrowse({ slots }: { slots: Slot[] }) {
     const sync = () => setFavorites(getFavorites());
     sync();
     window.addEventListener("gv-favorites", sync);
-    // desktop default split, mobile list
     const mq = window.matchMedia("(min-width: 1024px)");
     const apply = () => setView(mq.matches ? "split" : "list");
     apply();
@@ -77,74 +76,40 @@ export function SlotsBrowse({ slots }: { slots: Slot[] }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
-          <button
-            type="button"
-            onClick={() => setView("list")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${
-              view === "list" ? "bg-violet-600 text-white" : "text-slate-600 hover:bg-slate-50"
-            }`}
-          >
+          <button type="button" onClick={() => setView("list")} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${view === "list" ? "bg-violet-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
             <List className="h-4 w-4" /> Lijst
           </button>
-          <button
-            type="button"
-            onClick={() => setView("map")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${
-              view === "map" ? "bg-violet-600 text-white" : "text-slate-600 hover:bg-slate-50"
-            }`}
-          >
+          <button type="button" onClick={() => setView("map")} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${view === "map" ? "bg-violet-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
             <MapIcon className="h-4 w-4" /> Kaart
           </button>
-          <button
-            type="button"
-            onClick={() => setView("split")}
-            className={`hidden sm:inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${
-              view === "split" ? "bg-violet-600 text-white" : "text-slate-600 hover:bg-slate-50"
-            }`}
-          >
+          <button type="button" onClick={() => setView("split")} className={`hidden sm:inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${view === "split" ? "bg-violet-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
             Beide
           </button>
         </div>
-
         <Button type="button" variant="outline" size="sm" onClick={nearMe} disabled={locLoading}>
           <LocateFixed className="h-4 w-4" />
           {locLoading ? "Bezig…" : "Bij mij in de buurt"}
         </Button>
-
-        <Button
-          type="button"
-          variant={favOnly ? "default" : "outline"}
-          size="sm"
-          onClick={() => setFavOnly((v) => !v)}
-        >
+        <Button type="button" variant={favOnly ? "default" : "outline"} size="sm" onClick={() => setFavOnly((v) => !v)}>
           <Heart className={`h-4 w-4 ${favOnly ? "fill-white" : ""}`} />
           Favorieten{favorites.length ? ` (${favorites.length})` : ""}
         </Button>
-
         <p className="ml-auto text-sm text-slate-500">{visible.length} surprise slots</p>
       </div>
-
       <div className="flex items-center gap-2 text-sm">
         <label className="text-slate-500" htmlFor="sort">Sorteer</label>
-        <select
-          id="sort"
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700"
-        >
+        <select id="sort" value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700">
           <option value="time">Tijdvenster</option>
           <option value="distance">Afstand</option>
           <option value="discount">Hoogste korting</option>
         </select>
       </div>
-
       {locError && <p className="text-sm text-rose-600">{locError}</p>}
       {userLoc && (
         <p className="text-xs text-slate-500">
           Gesorteerd op afstand vanaf jouw locatie ({userLoc.lat.toFixed(3)}, {userLoc.lng.toFixed(3)})
         </p>
       )}
-
       {(view === "list" || view === "split") && view === "list" && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {visible.map((s) => (
@@ -154,53 +119,30 @@ export function SlotsBrowse({ slots }: { slots: Slot[] }) {
           ))}
         </div>
       )}
-
       {view === "map" && (
         <div className="h-[70vh] min-h-[420px]">
-          <SlotsMapDynamic
-            slots={visible}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            userLocation={userLoc}
-            className="h-full w-full rounded-2xl overflow-hidden border border-slate-200"
-          />
+          <SlotsMapDynamic slots={visible} selectedId={selectedId} onSelect={setSelectedId} userLocation={userLoc} initialCity={initialCity} className="h-full w-full rounded-2xl overflow-hidden border border-slate-200" />
         </div>
       )}
-
       {view === "split" && (
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="max-h-[70vh] space-y-3 overflow-y-auto pr-1">
             {visible.map((s) => (
-              <div
-                key={s.id}
-                onMouseEnter={() => setSelectedId(s.id)}
-                onClick={() => setSelectedId(s.id)}
-              >
+              <div key={s.id} onMouseEnter={() => setSelectedId(s.id)} onClick={() => setSelectedId(s.id)}>
                 <SlotCard {...s} selected={selectedId === s.id} />
               </div>
             ))}
             {visible.length === 0 && (
-              <div className="rounded-2xl border border-dashed p-10 text-center text-slate-500">
-                Geen slots voor deze filters.
-              </div>
+              <div className="rounded-2xl border border-dashed p-10 text-center text-slate-500">Geen slots voor deze filters.</div>
             )}
           </div>
           <div className="sticky top-20 h-[70vh] min-h-[420px]">
-            <SlotsMapDynamic
-              slots={visible}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-              userLocation={userLoc}
-              className="h-full w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm"
-            />
+            <SlotsMapDynamic slots={visible} selectedId={selectedId} onSelect={setSelectedId} userLocation={userLoc} initialCity={initialCity} className="h-full w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm" />
           </div>
         </div>
       )}
-
       {view === "list" && visible.length === 0 && (
-        <div className="rounded-2xl border border-dashed p-10 text-center text-slate-500">
-          Geen slots voor deze filters.
-        </div>
+        <div className="rounded-2xl border border-dashed p-10 text-center text-slate-500">Geen slots voor deze filters.</div>
       )}
     </div>
   );
