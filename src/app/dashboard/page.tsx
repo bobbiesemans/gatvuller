@@ -14,13 +14,24 @@ export const metadata = { title: "Salon dashboard" };
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user) redirect("/login?callbackUrl=/dashboard");
-  if (session.user.role !== "SALON_OWNER" && session.user.role !== "ADMIN") redirect("/");
+  if (session.user.role !== "SALON_OWNER" && session.user.role !== "ADMIN") {
+    redirect("/");
+  }
 
   const salons = await prisma.salon.findMany({
     where: session.user.role === "ADMIN" ? {} : { ownerId: session.user.id },
-    include: { slots: { include: { booking: true }, orderBy: { startsAt: "desc" }, take: 40 } },
+    include: {
+      slots: {
+        include: { booking: true },
+        orderBy: { startsAt: "desc" },
+        take: 40,
+      },
+    },
   });
-  const allBookings = salons.flatMap((s) => s.slots.filter((sl) => sl.booking?.status === "PAID").map((sl) => sl.booking!));
+
+  const allBookings = salons.flatMap((s) =>
+    s.slots.filter((sl) => sl.booking?.status === "PAID").map((sl) => sl.booking!)
+  );
   const revenue = allBookings.reduce((a, b) => a + b.amount, 0);
   const openSlots = salons.reduce((a, s) => a + s.slots.filter((x) => x.status === "OPEN").length, 0);
 
@@ -28,32 +39,91 @@ export default async function DashboardPage() {
     <div className="mx-auto max-w-6xl px-4 py-10 space-y-8">
       <div>
         <h1 className="text-3xl font-extrabold">Salon dashboard</h1>
-        <p className="text-slate-500">Post last-minute gaten en bekijk boekingen</p>
+        <p className="text-slate-500">Post Surprise slots in <30s · originele + kortingsprijs · tijdvenster</p>
       </div>
+
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card><CardContent className="p-5"><p className="text-sm text-slate-500">Open slots</p><p className="text-3xl font-extrabold text-violet-700">{openSlots}</p></CardContent></Card>
-        <Card><CardContent className="p-5"><p className="text-sm text-slate-500">Betaalde boekingen</p><p className="text-3xl font-extrabold">{allBookings.length}</p></CardContent></Card>
-        <Card><CardContent className="p-5"><p className="text-sm text-slate-500">Omzet (bruto)</p><p className="text-3xl font-extrabold">{formatEuro(revenue)}</p></CardContent></Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-sm text-slate-500">Open slots</p>
+            <p className="text-3xl font-extrabold text-violet-700">{openSlots}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-sm text-slate-500">Betaalde boekingen</p>
+            <p className="text-3xl font-extrabold">{allBookings.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-sm text-slate-500">Omzet (bruto)</p>
+            <p className="text-3xl font-extrabold">{formatEuro(revenue)}</p>
+          </CardContent>
+        </Card>
       </div>
+
       {salons.length === 0 ? (
-        <Card><CardContent className="p-6 text-slate-500">Nog geen salon. Gebruik salon@gatvuller.be / demo1234</CardContent></Card>
+        <Card>
+          <CardContent className="p-6 text-slate-500">
+            Nog geen salon. Registreer als salon-eigenaar of gebruik demo account salon@gatvuller.be.
+          </CardContent>
+        </Card>
       ) : (
         <>
           <Card>
-            <CardHeader><CardTitle>Nieuw last-minute slot</CardTitle></CardHeader>
-            <CardContent><CreateSlotForm salons={salons.map((s) => ({ id: s.id, name: s.name }))} /></CardContent>
+            <CardHeader>
+              <CardTitle>Nieuw Surprise slot</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CreateSlotForm salons={salons.map((s) => ({ id: s.id, name: s.name }))} />
+            </CardContent>
           </Card>
+
           {salons.map((salon) => (
             <Card key={salon.id}>
-              <CardHeader><CardTitle>{salon.name} <span className="text-sm font-normal text-slate-400">· {salon.city}</span></CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle>
+                  {salon.name}{" "}
+                  <span className="text-sm font-normal text-slate-400">
+                    · {salon.city}
+                  </span>
+                </CardTitle>
+              </CardHeader>
               <CardContent className="space-y-2">
+                {salon.slots.length === 0 && (
+                  <p className="text-sm text-slate-500">Nog geen slots.</p>
+                )}
                 {salon.slots.map((slot) => (
-                  <div key={slot.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 px-3 py-2 text-sm">
+                  <div
+                    key={slot.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 px-3 py-2 text-sm"
+                  >
                     <div>
                       <p className="font-semibold">{slot.title}</p>
-                      <p className="text-slate-500">{format(slot.startsAt, "EEE d MMM HH:mm", { locale: nlBE })} · {formatEuro(slot.discountPrice)}</p>
+                      <p className="text-slate-500">
+                        {format(slot.startsAt, "EEE d MMM HH:mm", { locale: nlBE })} ·{" "}
+                        {formatEuro(slot.discountPrice)}
+                      </p>
                     </div>
-                    <Badge variant={slot.status === "OPEN" ? "success" : slot.status === "BOOKED" ? "violet" : "default"}>{slot.status}</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={
+                          slot.status === "OPEN"
+                            ? "success"
+                            : slot.status === "BOOKED"
+                              ? "violet"
+                              : "default"
+                        }
+                      >
+                        {slot.status}
+                      </Badge>
+                      {slot.booking?.status === "PAID" && (
+                        <span className="text-xs text-slate-500">
+                          geboekt door {slot.booking.customerName}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </CardContent>
