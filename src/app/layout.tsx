@@ -17,11 +17,23 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "GatVuller — Surprise slots voor afspraken (Too Good To Go voor diensten)",
+    default: "GatVuller — Too Good To Go voor afspraken",
     template: "%s · GatVuller",
   },
   description:
-    "Ontdek last-minute Surprise slots bij kapper, schoonheid, fysio, tandarts & meer in BE/NL. Kaart + lijst, korting tot 50%. Salons vullen gaten.",
+    "Surprise slots bij kapper, schoonheid, fysio, tandarts & meer. Last-minute gaten vullen — jij bespaart tot 50%. België & Nederland.",
+  metadataBase: new URL("https://gatvuller-validee-s-projects.vercel.app"),
+  openGraph: {
+    title: "GatVuller — Too Good To Go voor afspraken",
+    description: "Ontdek last-minute Surprise slots op de kaart. Niet voor eten — voor lege stoelen.",
+    locale: "nl_BE",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GatVuller — Surprise slots",
+    description: "Too Good To Go voor afspraken. Kaart + korting + countdown.",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
