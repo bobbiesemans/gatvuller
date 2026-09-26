@@ -63,8 +63,20 @@ export function SlotCard({
       <div className="relative h-28 bg-gradient-to-br from-violet-600 via-fuchsia-500 to-amber-400">
         <div className="absolute inset-0 opacity-30 mix-blend-overlay bg-[radial-gradient(circle_at_30%_20%,white,transparent_50%)]" />
         <div className="absolute left-3 top-3 flex items-center gap-2">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-xl shadow-md">
-            {emoji}
+          <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-xl shadow-md overflow-hidden">
+            {salon.imageUrl ? (
+              <img src={salon.imageUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="font-extrabold text-violet-700 text-sm tracking-tight">
+                {salon.name
+                  .split(" ")
+                  .map((w) => w[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </span>
+            )}
+            <span className="absolute -bottom-1 -right-1 text-[11px] leading-none">{emoji}</span>
           </span>
           <Badge className="bg-black/40 text-white border-0 backdrop-blur">
             {CATEGORY_LABELS[salon.category] || salon.category}
