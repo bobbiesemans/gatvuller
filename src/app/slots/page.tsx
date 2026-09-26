@@ -156,7 +156,7 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
       </div>
 
       <div className="mt-6">
-        <SlotsBrowse slots={payload} />
+        <SlotsBrowse slots={payload} initialCity={sp.stad} />
       </div>
     </div>
   );
