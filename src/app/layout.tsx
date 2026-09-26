@@ -29,6 +29,7 @@ export const metadata: Metadata = {
     locale: "nl_BE",
     type: "website",
   },
+  manifest: "/manifest.webmanifest",
   twitter: {
     card: "summary_large_image",
     title: "GatVuller — Surprise slots",
