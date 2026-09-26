@@ -10,8 +10,9 @@ export function Footer() {
           </p>
           <p className="mt-1 max-w-md">
             Too Good To Go voor afspraken — niet voor eten. Surprise slots bij kapper, schoonheid,
-            fysio, tandarts &amp; meer in België &amp; Nederland.
+            fysio, tandarts & meer in België & Nederland.
           </p>
+          <p className="mt-3 text-xs text-slate-400">© 2026 GatVuller · Privacy & voorwaarden (demo)</p>
         </div>
         <div className="flex flex-wrap gap-6">
           <Link href="/slots" className="hover:text-violet-700">
