@@ -1,20 +1,33 @@
 # GatVuller
 
+**Too Good To Go voor afspraken — niet voor eten.**
+
 Last-minute marketplace voor lokale diensten in **België & Nederland**.
-Salons posten lege gaten (vanavond/morgen) met korting → klanten boeken & betalen online → platform neemt **18% fee**.
+Salons posten Surprise slots (vanavond/morgen) met korting → klanten ontdekken op **kaart + lijst** → boeken & betalen → bevestiging met QR, adres en pin.
+
+## Product UX (TGTG-mental model)
+
+- Kaart + lijst toggle (Leaflet / OSM)
+- Surprise cards: kortingsbadge, tijdvenster, afstand, countdown, favorieten
+- "Bij mij in de buurt" (geolocatie)
+- Marker clustering bij veel slots
+- How it works (ontdek → reserveer → ga)
+- Salon post in <30s (presets + origineel/Surprise prijs)
+- Boekingsbevestiging met QR/code, kaartpin, annuleringsregels
+- Demo book zonder Stripe
 
 ## Stack
 
-- Next.js 15 (App Router) + TypeScript + Tailwind
+- Next.js 15 (App Router) + TypeScript + Tailwind 4
 - Auth.js (NextAuth v5) — credentials
-- Prisma + Postgres (Prisma Postgres / Neon)
-- Stripe Checkout (met demo-fallback zonder keys)
-- Deploy: Vercel
+- Prisma + Postgres
+- Leaflet + react-leaflet (OSM tiles)
+- Stripe Checkout (demo-fallback zonder keys)
+- Deploy: Vercel (`prj_S3ikJoawd56TAyHXX8AsjwBfz5dW`)
 
-## Lokaal runnen
+## Lokaal
 
 ```bash
-cd /workspace/gatvuller
 cp .env.example .env
 npm install
 npx prisma db push
@@ -22,9 +35,7 @@ npm run db:seed
 npm run dev
 ```
 
-Open http://localhost:3000
-
-### Demo accounts (na seed)
+### Demo accounts
 
 | Rol   | E-mail              | Wachtwoord |
 |-------|---------------------|------------|
@@ -32,18 +43,4 @@ Open http://localhost:3000
 | Klant | klant@gatvuller.be  | demo1234   |
 | Admin | admin@gatvuller.be  | demo1234   |
 
-## Env vars
-
-Zie `.env.example`. Zonder Stripe keys werkt boeken in demo-modus.
-
-## Claim database
-
-Tijdelijke Prisma Postgres claimen vóór expiry — of Neon URL plakken.
-
-## Verdienmodel
-
-1. Marketplace fee 18% op elke succesvolle last-minute boeking
-2. Salons posten gratis lege slots
-3. Klanten betalen online via Stripe
-4. Focus vandaag/morgen only
-5. Upsell later: featured, SMS, Connect payouts
+Seed: 20 salons met geo-accurate coords in Antwerpen / Brussel / Gent / Amsterdam.
