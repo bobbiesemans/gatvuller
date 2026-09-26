@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { CITY_CENTERS } from "@/lib/utils";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -50,6 +51,9 @@ export async function POST(req: Request) {
     while (await prisma.salon.findUnique({ where: { slug } })) {
       slug = `${base}-${i++}`;
     }
+    const center = CITY_CENTERS[data.city] || CITY_CENTERS.ALL;
+    // slight jitter so new salons don't stack on city center pin
+    const jitter = () => (Math.random() - 0.5) * 0.02;
     await prisma.salon.create({
       data: {
         ownerId: user.id,
@@ -57,8 +61,10 @@ export async function POST(req: Request) {
         slug,
         city: data.city,
         category: data.category as never,
-        description: `${data.salonName} op GatVuller — last-minute slots welkom.`,
+        description: `${data.salonName} op GatVuller — Surprise slots welkom.`,
         address: data.address,
+        lat: center.lat + jitter(),
+        lng: center.lng + jitter(),
       },
     });
   }
