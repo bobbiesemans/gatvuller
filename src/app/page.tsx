@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { SlotCard } from "@/components/slot-card";
 import { Badge } from "@/components/ui/badge";
 import { HowItWorks } from "@/components/how-it-works";
+import { Testimonials } from "@/components/testimonials";
 import { CATEGORY_LABELS, CITIES, formatEuro } from "@/lib/utils";
 import { MapPinned, Sparkles, ShieldCheck, TrendingDown } from "lucide-react";
 
@@ -45,7 +46,7 @@ export default async function HomePage() {
         <div className="absolute -left-10 bottom-0 h-64 w-64 rounded-full bg-violet-300/20 blur-3xl" />
         <div className="relative mx-auto max-w-6xl px-4 py-16 md:py-24">
           <div className="flex flex-wrap items-center gap-2 mb-6">
-            <Badge className="bg-white/20 text-white border-0 backdrop-blur">BE &amp; NL</Badge>
+            <Badge className="bg-white/20 text-white border-0 backdrop-blur">BE & NL</Badge>
             <Badge className="bg-emerald-400/20 text-emerald-100 border-0">Live Surprise slots</Badge>
             <Badge className="bg-white/10 text-violet-100 border-0">{openCount}+ open vandaag/morgen</Badge>
           </div>
@@ -54,13 +55,13 @@ export default async function HomePage() {
             <span className="block text-violet-200">voor afspraken — niet voor eten.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-violet-100/95 leading-relaxed">
-            Ontdek last-minute Surprise slots bij kapper, schoonheid, fysio, tandarts, nagels &amp; autodienst.
+            Ontdek last-minute Surprise slots bij kapper, schoonheid, fysio, tandarts, nagels & autodienst.
             Salons vullen gaten. Jij bespaart tot 50%.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg" className="bg-white text-violet-800 hover:bg-violet-50 shadow-lg shadow-violet-950/20">
               <Link href="/slots">
-                <MapPinned className="h-5 w-5" /> Bekijk kaart &amp; slots
+                <MapPinned className="h-5 w-5" /> Bekijk kaart & slots
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="border-white/40 bg-transparent text-white hover:bg-white/10">
@@ -117,7 +118,7 @@ export default async function HomePage() {
             <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Surprise slots in jouw buurt</h2>
           </div>
           <Button asChild variant="secondary">
-            <Link href="/slots">Kaart &amp; alles</Link>
+            <Link href="/slots">Kaart & alles</Link>
           </Button>
         </div>
         {slots.length === 0 ? (
@@ -150,11 +151,13 @@ export default async function HomePage() {
 
       <HowItWorks dark />
 
+      <Testimonials />
+
       <section className="mx-auto max-w-6xl px-4 py-16">
         <div className="grid gap-8 md:grid-cols-2 items-center">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wider text-violet-600">Vertrouwen</p>
-            <h2 className="mt-2 text-3xl font-extrabold tracking-tight">Ratings, adres &amp; duidelijke regels</h2>
+            <h2 className="mt-2 text-3xl font-extrabold tracking-tight">Ratings, adres & duidelijke regels</h2>
             <ul className="mt-6 space-y-3 text-slate-600">
               <li className="flex gap-3">
                 <span className="mt-1 h-2 w-2 rounded-full bg-violet-600" />
@@ -203,7 +206,7 @@ export default async function HomePage() {
           <div className="relative">
             <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">Lege stoel vanavond?</h2>
             <p className="mt-3 text-violet-100 max-w-xl mx-auto">
-              Post hem op GatVuller in &lt;30 seconden. Originele prijs + Surprise-prijs + tijdvenster. Klaar.
+              Post hem op GatVuller in <30 seconden. Originele prijs + Surprise-prijs + tijdvenster. Klaar.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button asChild size="lg" className="bg-white text-violet-800 hover:bg-violet-50">
