@@ -16,6 +16,7 @@ export function SlotsBrowse({ slots }: { slots: Slot[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [userLoc, setUserLoc] = useState<LatLng | null>(null);
   const [favOnly, setFavOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<"time" | "distance" | "discount">("time");
   const [favorites, setFavorites] = useState<string[]>([]);
   const [locError, setLocError] = useState<string | null>(null);
   const [locLoading, setLocLoading] = useState(false);
@@ -25,6 +26,7 @@ export function SlotsBrowse({ slots }: { slots: Slot[] }) {
     const sync = () => setFavorites(getFavorites());
     sync();
     window.addEventListener("gv-favorites", sync);
+    // desktop default split, mobile list
     const mq = window.matchMedia("(min-width: 1024px)");
     const apply = () => setView(mq.matches ? "split" : "list");
     apply();
@@ -44,10 +46,17 @@ export function SlotsBrowse({ slots }: { slots: Slot[] }) {
           : null,
       }))
       .sort((a, b) => {
-        if (a.distanceKm != null && b.distanceKm != null) return a.distanceKm - b.distanceKm;
+        if (sortBy === "distance" && a.distanceKm != null && b.distanceKm != null) {
+          return a.distanceKm - b.distanceKm;
+        }
+        if (sortBy === "discount") {
+          const da = (a.originalPrice - a.discountPrice) / a.originalPrice;
+          const db = (b.originalPrice - b.discountPrice) / b.originalPrice;
+          return db - da;
+        }
         return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
       });
-  }, [slots, userLoc]);
+  }, [slots, userLoc, sortBy]);
 
   const visible = favOnly ? enriched.filter((s) => favorites.includes(s.id)) : enriched;
 
@@ -113,6 +122,20 @@ export function SlotsBrowse({ slots }: { slots: Slot[] }) {
         </Button>
 
         <p className="ml-auto text-sm text-slate-500">{visible.length} surprise slots</p>
+      </div>
+
+      <div className="flex items-center gap-2 text-sm">
+        <label className="text-slate-500" htmlFor="sort">Sorteer</label>
+        <select
+          id="sort"
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700"
+        >
+          <option value="time">Tijdvenster</option>
+          <option value="distance">Afstand</option>
+          <option value="discount">Hoogste korting</option>
+        </select>
       </div>
 
       {locError && <p className="text-sm text-rose-600">{locError}</p>}
