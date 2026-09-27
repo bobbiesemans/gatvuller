@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Heart, MapPinned, Home, Store } from "lucide-react";
+import { Heart, MapPinned, Home, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [
   { href: "/", label: "Home", icon: Home },
   { href: "/slots", label: "Kaart", icon: MapPinned },
+  { href: "/boekingen", label: "Orders", icon: Ticket },
   { href: "/favorieten", label: "Favorieten", icon: Heart },
-  { href: "/dashboard", label: "Salon", icon: Store },
 ];
 
 export function MobileNav() {

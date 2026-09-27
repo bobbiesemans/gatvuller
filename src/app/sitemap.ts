@@ -10,6 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/login",
     "/register",
     "/dashboard",
+    "/boekingen",
   ];
   return paths.map((p) => ({
     url: `${base}${p}`,
