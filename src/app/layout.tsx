@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { MobileNav } from "@/components/mobile-nav";
 import { Providers } from "@/components/providers";
 
 const geistSans = Geist({
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />
+          <MobileNav />
         </Providers>
       </body>
     </html>

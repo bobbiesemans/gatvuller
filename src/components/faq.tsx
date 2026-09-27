@@ -15,6 +15,14 @@ const QA = [
     q: "Wat kost het voor salons?",
     a: "Geen abonnement. 18% fee per geslaagde boeking. Posten van slots is gratis.",
   },
+  {
+    q: "Kan ik annuleren?",
+    a: "In de demo: gratis annuleren tot 2 uur voor start. Daarna volgt het salonbeleid.",
+  },
+  {
+    q: "Werkt de kaart zonder Google Maps key?",
+    a: "Ja. We gebruiken Leaflet + OpenStreetMap — gratis, geen API-key nodig.",
+  },
 ];
 
 export function Faq() {
