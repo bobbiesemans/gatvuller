@@ -1,30 +1,23 @@
 # GatVuller op Vercel zetten
 
-Dit document vervangt de eerdere instructie die bij elke build de database migreerde. Een Vercel-build voert alleen `prisma generate && next build` uit. Schemawijzigingen gebeuren als aparte stap.
+De productiedatabase is alleen bereikbaar vanuit Vercel. Daarom voert de deploy dit uit:
 
-## Eenmalig, na een merge die een nieuwe migratie bevat
+```bash
+prisma migrate deploy && prisma generate && next build
+```
 
-Productie heeft al `0_init` en `20260927060000_marketplace_v2`. Daarna komen, in deze volgorde:
+`prisma migrate deploy` past alleen migraties toe die in git staan en nog niet in `_prisma_migrations` zitten. Als de database bij is, stopt het commando meteen. Er wordt niet geseed en het oude `scripts/upgrade-db.mjs` draait niet mee.
+
+Al toegepast op de live database vóór deze ronde: `0_init` en `20260927060000_marketplace_v2`. Deze ronde voegt toe:
 
 - `20260927150000_salon_ops` — openingstijden, behandelsjablonen, referralcode
 - `20260927160000_slot_paused` — status `PAUSED`
 
+Lokaal, met een eigen `DATABASE_URL`:
+
 ```bash
-# DATABASE_URL is de productie-Postgres. Zet die alleen in je shell, nooit in git.
 npx prisma migrate deploy
 ```
-
-`migrate deploy` past alleen migraties toe die nog niet in `_prisma_migrations` staan. Het seeden of `db push` hoort hier niet bij. Bestaande salons en boekingen blijven staan.
-
-## Build
-
-`vercel.json` en `package.json` gebruiken:
-
-```bash
-prisma generate && next build
-```
-
-`scripts/upgrade-db.mjs` blijft in de repo als noodoplossing voor een oude database zonder migratiehistorie. Hang die niet aan de Vercel-build.
 
 ## Secrets
 
