@@ -19,6 +19,9 @@ export async function Header() {
           <Link href="/slots" className="hover:text-violet-700 transition">
             Surprise slots
           </Link>
+          <Link href="/favorieten" className="hover:text-violet-700 transition">
+            Favorieten
+          </Link>
           <Link href="/#hoe" className="hover:text-violet-700 transition">
             Hoe het werkt
           </Link>
