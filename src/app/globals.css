@@ -70,3 +70,11 @@ body {
 .safe-pb {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+@keyframes gv-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+.gv-urgent {
+  animation: gv-pulse 1.6s ease-in-out infinite;
+}
