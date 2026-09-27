@@ -22,6 +22,11 @@ export async function Header() {
           <Link href="/favorieten" className="hover:text-violet-700 transition">
             Favorieten
           </Link>
+          {session?.user && (
+            <Link href="/boekingen" className="hover:text-violet-700 transition">
+              Mijn boekingen
+            </Link>
+          )}
           <Link href="/#hoe" className="hover:text-violet-700 transition">
             Hoe het werkt
           </Link>
