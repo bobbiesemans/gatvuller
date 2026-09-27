@@ -1,25 +1,22 @@
 import { NextResponse } from "next/server";
-import { getStripe } from "@/lib/stripe";
-import { prisma } from "@/lib/prisma";
-import Stripe from "stripe";
+import type Stripe from "stripe";
+import { getStripe, stripeWebhookSecret } from "@/lib/stripe";
+import { markPaid, releaseHoldBySession } from "@/lib/bookings";
 
 export async function POST(req: Request) {
   const stripe = getStripe();
-  if (!stripe) return NextResponse.json({ error: "Stripe niet geconfigureerd" }, { status: 500 });
+  const secret = stripeWebhookSecret();
+  if (!stripe || !secret) return NextResponse.json({ error: "stripe_not_configured" }, { status: 500 });
 
   const sig = req.headers.get("stripe-signature");
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!sig || !secret || secret.includes("REPLACE_ME")) {
-    return NextResponse.json({ error: "Webhook secret ontbreekt" }, { status: 400 });
-  }
+  if (!sig) return NextResponse.json({ error: "missing_signature" }, { status: 400 });
 
-  const raw = await req.text();
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(raw, sig, secret);
+    event = stripe.webhooks.constructEvent(await req.text(), sig, secret);
   } catch (err) {
     return NextResponse.json(
-      { error: `Webhook signature: ${err instanceof Error ? err.message : "fail"}` },
+      { error: err instanceof Error ? err.message : "bad_signature" },
       { status: 400 }
     );
   }
@@ -27,27 +24,13 @@ export async function POST(req: Request) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const bookingId = session.metadata?.bookingId;
-    if (bookingId) {
-      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
-      if (booking && booking.status !== "PAID") {
-        await prisma.$transaction([
-          prisma.booking.update({
-            where: { id: bookingId },
-            data: {
-              status: "PAID",
-              stripePaymentId:
-                typeof session.payment_intent === "string"
-                  ? session.payment_intent
-                  : session.id,
-            },
-          }),
-          prisma.slot.update({
-            where: { id: booking.slotId },
-            data: { status: "BOOKED" },
-          }),
-        ]);
-      }
-    }
+    const paymentId = typeof session.payment_intent === "string" ? session.payment_intent : session.id;
+    if (bookingId && session.payment_status === "paid") await markPaid(bookingId, paymentId);
+  }
+
+  if (event.type === "checkout.session.expired") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    if (session.id) await releaseHoldBySession(session.id);
   }
 
   return NextResponse.json({ received: true });

@@ -24,6 +24,12 @@ enum Category {
   ANDERS
 }
 
+enum SalonStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+/// BOOKED means every spot is taken (sold out).
 enum SlotStatus {
   OPEN
   BOOKED
@@ -31,47 +37,77 @@ enum SlotStatus {
   EXPIRED
 }
 
+/// PENDING holds a spot until `holdExpiresAt` while the customer pays.
 enum BookingStatus {
   PENDING
   PAID
   CANCELLED
   REFUNDED
+  EXPIRED
+  NO_SHOW
+}
+
+enum EmailStatus {
+  SENT
+  LOGGED
+  FAILED
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String?
-  name         String
-  role         Role      @default(CUSTOMER)
-  phone        String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  salons       Salon[]
-  bookings     Booking[]
+  id              String               @id @default(cuid())
+  email           String               @unique
+  passwordHash    String?
+  name            String
+  role            Role                 @default(CUSTOMER)
+  phone           String?
+  locale          String               @default("nl")
+  marketingOptIn  Boolean              @default(false)
+  termsAcceptedAt DateTime?
+  anonymizedAt    DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  salons          Salon[]
+  bookings        Booking[]
+  reviews         Review[]
+  favorites       FavoriteSalon[]
+  alerts          SlotAlert[]
+  resetTokens     PasswordResetToken[]
 }
 
 model Salon {
-  id          String   @id @default(cuid())
-  ownerId     String
-  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  name        String
-  slug        String   @unique
-  city        String
-  category    Category
-  description String
-  address     String
-  phone       String?
-  imageUrl    String?
-  rating      Float    @default(4.5)
-  lat         Float    @default(50.85)
-  lng         Float    @default(4.35)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  slots       Slot[]
+  id                   String          @id @default(cuid())
+  ownerId              String
+  owner                User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name                 String
+  slug                 String          @unique
+  city                 String
+  category             Category
+  description          String
+  address              String
+  postalCode           String?
+  country              String          @default("BE")
+  phone                String?
+  website              String?
+  imageUrl             String?
+  lat                  Float           @default(50.85)
+  lng                  Float           @default(4.35)
+  status               SalonStatus     @default(ACTIVE)
+  verified             Boolean         @default(false)
+  ratingAvg            Float           @default(0)
+  ratingCount          Int             @default(0)
+  cancellationHours    Int             @default(2)
+  stripeAccountId      String?         @unique
+  stripeChargesEnabled Boolean         @default(false)
+  stripePayoutsEnabled Boolean         @default(false)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  slots                Slot[]
+  reviews              Review[]
+  favoritedBy          FavoriteSalon[]
 
   @@index([city])
   @@index([category])
+  @@index([status])
   @@index([lat, lng])
 }
 
@@ -85,36 +121,140 @@ model Slot {
   endsAt        DateTime
   originalPrice Int
   discountPrice Int
+  capacity      Int        @default(1)
   spotsLeft     Int        @default(1)
   status        SlotStatus @default(OPEN)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
-  booking       Booking?
+  bookings      Booking[]
 
   @@index([startsAt, status])
-  @@index([salonId])
+  @@index([salonId, startsAt])
 }
 
 model Booking {
-  id               String        @id @default(cuid())
-  slotId           String        @unique
-  slot             Slot          @relation(fields: [slotId], references: [id], onDelete: Cascade)
-  customerId       String
-  customer         User          @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  amount           Int
-  feeAmount        Int
-  feePercent       Int           @default(18)
-  customerName     String
-  customerEmail    String
-  customerPhone    String?
-  confirmationCode String        @unique @default(cuid())
-  stripeSessionId  String?       @unique
-  stripePaymentId  String?
-  status           BookingStatus @default(PENDING)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  id                String        @id @default(cuid())
+  slotId            String
+  slot              Slot          @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  customerId        String
+  customer          User          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  amount            Int
+  feeAmount         Int
+  feePercent        Int           @default(18)
+  customerName      String
+  customerEmail     String
+  customerPhone     String?
+  locale            String        @default("nl")
+  confirmationCode  String        @unique
+  stripeSessionId   String?       @unique
+  stripePaymentId   String?
+  stripeRefundId    String?
+  refundAmount      Int?
+  status            BookingStatus @default(PENDING)
+  holdExpiresAt     DateTime?
+  paidAt            DateTime?
+  checkedInAt       DateTime?
+  cancelledAt       DateTime?
+  cancelledBy       String?
+  reviewRequestedAt DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  review            Review?
 
   @@index([customerId])
-  @@index([status])
-  @@index([confirmationCode])
+  @@index([slotId, status])
+  @@index([status, holdExpiresAt])
+  @@index([paidAt])
+}
+
+model Review {
+  id         String    @id @default(cuid())
+  bookingId  String    @unique
+  booking    Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  salonId    String
+  salon      Salon     @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   User      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  rating     Int
+  comment    String?
+  reply      String?
+  repliedAt  DateTime?
+  hidden     Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  @@index([salonId, createdAt])
+  @@index([rating])
+}
+
+model FavoriteSalon {
+  userId    String
+  salonId   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  salon     Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+
+  @@id([userId, salonId])
+  @@index([salonId])
+}
+
+model SlotAlert {
+  id         String    @id @default(cuid())
+  email      String
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  city       String?
+  category   Category?
+  locale     String    @default("nl")
+  token      String    @unique @default(cuid())
+  active     Boolean   @default(true)
+  lastSentAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([email])
+  @@index([active, city, category])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model EmailLog {
+  id         String      @id @default(cuid())
+  to         String
+  subject    String
+  template   String
+  status     EmailStatus
+  providerId String?
+  error      String?
+  html       String?
+  createdAt  DateTime    @default(now())
+
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model RateLimit {
+  key         String   @id
+  count       Int
+  windowStart DateTime
 }

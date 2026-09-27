@@ -54,6 +54,11 @@ function LoginForm() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Bezig…" : "Inloggen"}
           </Button>
+          <p className="text-right text-sm">
+            <Link href="/wachtwoord-vergeten" className="text-violet-700">
+              Wachtwoord vergeten
+            </Link>
+          </p>
         </form>
         <p className="mt-4 text-center text-sm text-slate-500">
           Nog geen account?{" "}

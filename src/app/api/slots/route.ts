@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { notifySlotAlerts } from "@/lib/alerts";
 
 const schema = z.object({
   salonId: z.string().min(1),
@@ -50,6 +51,7 @@ export async function POST(req: Request) {
     },
   });
 
+  await notifySlotAlerts(slot.id).catch((err) => console.error("[alerts]", err));
   return NextResponse.json({ slot });
 }
 

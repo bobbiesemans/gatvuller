@@ -22,7 +22,9 @@ export default async function DashboardPage() {
     where: session.user.role === "ADMIN" ? {} : { ownerId: session.user.id },
     include: {
       slots: {
-        include: { booking: true },
+        include: {
+          bookings: { where: { status: { in: ["PAID", "PENDING", "NO_SHOW"] } }, orderBy: { createdAt: "desc" } },
+        },
         orderBy: { startsAt: "desc" },
         take: 40,
       },
@@ -30,7 +32,7 @@ export default async function DashboardPage() {
   });
 
   const allBookings = salons.flatMap((s) =>
-    s.slots.filter((sl) => sl.booking?.status === "PAID").map((sl) => sl.booking!)
+    s.slots.flatMap((sl) => sl.bookings.filter((b) => b.status === "PAID"))
   );
   const revenue = allBookings.reduce((a, b) => a + b.amount, 0);
   const openSlots = salons.reduce((a, s) => a + s.slots.filter((x) => x.status === "OPEN").length, 0);
@@ -40,6 +42,11 @@ export default async function DashboardPage() {
       <div>
         <h1 className="text-3xl font-extrabold">Salon dashboard</h1>
         <p className="text-slate-500">Post Surprise slots in 30s · originele + kortingsprijs · tijdvenster</p>
+        <p className="mt-2">
+          <a href="/dashboard/boekingen" className="text-sm font-semibold text-violet-700">
+            Boekingen afvinken
+          </a>
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -118,9 +125,12 @@ export default async function DashboardPage() {
                       >
                         {slot.status}
                       </Badge>
-                      {slot.booking?.status === "PAID" && (
+                      {slot.bookings.filter((b) => b.status === "PAID").length > 0 && (
                         <span className="text-xs text-slate-500">
-                          geboekt door {slot.booking.customerName}
+                          {slot.bookings
+                            .filter((b) => b.status === "PAID")
+                            .map((b) => b.customerName)
+                            .join(", ")}
                         </span>
                       )}
                     </div>

@@ -17,28 +17,24 @@ export default async function HomePage() {
   const [slots, salonCount, openCount, paidAgg] = await Promise.all([
     prisma.slot
       .findMany({
-        where: { status: "OPEN", startsAt: { gte: now } },
+        where: { status: "OPEN", spotsLeft: { gt: 0 }, startsAt: { gte: now }, salon: { status: "ACTIVE" } },
         include: { salon: true },
         orderBy: { startsAt: "asc" },
         take: 6,
       })
       .catch(() => []),
     prisma.salon.count().catch(() => 20),
-    prisma.slot.count({ where: { status: "OPEN", startsAt: { gte: now } } }).catch(() => 0),
+    prisma.slot.count({ where: { status: "OPEN", spotsLeft: { gt: 0 }, startsAt: { gte: now }, salon: { status: "ACTIVE" } } }).catch(() => 0),
     prisma.booking
-      .aggregate({
+      .findMany({
         where: { status: "PAID" },
-        _sum: { amount: true, feeAmount: true },
-        _count: true,
+        select: { amount: true, slot: { select: { originalPrice: true } } },
       })
-      .catch(() => ({ _sum: { amount: 0, feeAmount: 0 }, _count: 0 })),
+      .catch(() => []),
   ]);
 
-  const saved =
-    (paidAgg._sum.amount || 0) > 0
-      ? Math.round(((paidAgg._count || 1) * 2500) / 100)
-      : 12840;
-  const filled = Math.max(paidAgg._count || 0, 312);
+  const filled = paidAgg.length;
+  const saved = Math.round(paidAgg.reduce((sum, b) => sum + Math.max(0, b.slot.originalPrice - b.amount), 0) / 100);
 
   return (
     <div>
@@ -145,7 +141,14 @@ export default async function HomePage() {
                   originalPrice={s.originalPrice}
                   discountPrice={s.discountPrice}
                   spotsLeft={s.spotsLeft}
-                  salon={s.salon}
+                  salon={{
+                    name: s.salon.name,
+                    city: s.salon.city,
+                    category: s.salon.category,
+                    rating: s.salon.ratingAvg,
+                    address: s.salon.address,
+                    imageUrl: s.salon.imageUrl,
+                  }}
                 />
               </div>
             ))}

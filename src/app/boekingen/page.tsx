@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BookingQr } from "@/components/booking-qr";
 import { CancelBookingButton } from "@/components/cancel-booking-button";
+import { ReviewForm } from "@/components/review-form";
 import { MapPin, Clock, Ticket } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export default async function BoekingenPage() {
 
   const bookings = await prisma.booking.findMany({
     where: { customerId: session.user.id },
-    include: { slot: { include: { salon: true } } },
+    include: { slot: { include: { salon: true } }, review: true },
     orderBy: { createdAt: "desc" },
     take: 50,
   });
@@ -81,7 +82,7 @@ export default async function BoekingenPage() {
                   <div className="flex-1 space-y-2 text-sm text-slate-600">
                     <p className="text-lg font-bold text-slate-900">{b.slot.title}</p>
                     <p>
-                      {b.slot.salon.name} · ★ {b.slot.salon.rating.toFixed(1)}
+                      {b.slot.salon.name} · ★ {b.slot.salon.ratingCount > 0 ? b.slot.salon.ratingAvg.toFixed(1) : "Nieuw"}
                     </p>
                     <p className="flex items-start gap-2">
                       <MapPin className="h-4 w-4 mt-0.5 text-violet-600 shrink-0" />
@@ -105,6 +106,9 @@ export default async function BoekingenPage() {
                         <Link href={`/boeking/succes?bookingId=${b.id}`}>Bon bekijken</Link>
                       </Button>
                       {canCancel && <CancelBookingButton bookingId={b.id} />}
+                      {b.status === "PAID" && b.slot.endsAt < new Date() && !b.review && (
+                        <ReviewForm bookingId={b.id} />
+                      )}
                     </div>
                   </div>
                 </CardContent>
