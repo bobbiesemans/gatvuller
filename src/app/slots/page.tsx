@@ -31,15 +31,18 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
           }
         : { gte: now };
 
-  const salonFilter: { city?: string; category?: string } = {};
-  if (sp.stad) salonFilter.city = sp.stad;
-  if (sp.categorie) salonFilter.category = sp.categorie;
-
   const slots = await prisma.slot.findMany({
     where: {
       status: "OPEN",
       startsAt: whenFilter,
-      ...(Object.keys(salonFilter).length ? { salon: salonFilter } : {}),
+      ...(sp.stad || sp.categorie
+        ? {
+            salon: {
+              ...(sp.stad ? { city: sp.stad } : {}),
+              ...(sp.categorie ? { category: sp.categorie as never } : {}),
+            },
+          }
+        : {}),
       ...(sp.q
         ? {
             OR: [
