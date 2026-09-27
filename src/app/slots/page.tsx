@@ -31,9 +31,9 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
           }
         : { gte: now };
 
-  const salonFilter: { city?: string; category?: never } = {};
+  const salonFilter: { city?: string; category?: string } = {};
   if (sp.stad) salonFilter.city = sp.stad;
-  if (sp.categorie) salonFilter.category = sp.categorie as never;
+  if (sp.categorie) salonFilter.category = sp.categorie;
 
   const slots = await prisma.slot.findMany({
     where: {

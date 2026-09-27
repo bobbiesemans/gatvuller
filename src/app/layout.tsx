@@ -31,6 +31,7 @@ export const metadata: Metadata = {
     type: "website",
   },
   manifest: "/manifest.webmanifest",
+  themeColor: "#6d28d9",
   twitter: {
     card: "summary_large_image",
     title: "GatVuller — Surprise slots",
