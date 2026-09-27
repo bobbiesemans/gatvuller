@@ -7,13 +7,17 @@ export const metadata = { title: "Impact" };
 
 export default async function ImpactPage() {
   const now = new Date();
-  const [salons, openSlots, paid] = await Promise.all([
+  const [salons, openSlots, paidBookings] = await Promise.all([
     prisma.salon.count().catch(() => 0),
-    prisma.slot.count({ where: { status: "OPEN", startsAt: { gte: now } } }).catch(() => 0),
-    prisma.booking.count({ where: { status: "PAID" } }).catch(() => 0),
+    prisma.slot.count({ where: { status: "OPEN", spotsLeft: { gt: 0 }, startsAt: { gte: now } } }).catch(() => 0),
+    prisma.booking
+      .findMany({ where: { status: "PAID" }, select: { amount: true, slot: { select: { originalPrice: true } } } })
+      .catch(() => []),
   ]);
-  const filled = Math.max(paid, 312);
-  const saved = Math.max(paid * 25, 12840);
+  const filled = paidBookings.length;
+  const saved = Math.round(
+    paidBookings.reduce((sum, b) => sum + Math.max(0, b.slot.originalPrice - b.amount), 0) / 100
+  );
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-14">

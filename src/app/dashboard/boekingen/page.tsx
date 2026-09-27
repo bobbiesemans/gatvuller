@@ -1,0 +1,72 @@
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { format } from "date-fns";
+import { nlBE } from "date-fns/locale";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { formatEuro } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { CheckInForm } from "./check-in-form";
+
+export const dynamic = "force-dynamic";
+export const metadata = { title: "Salonboekingen" };
+
+export default async function SalonBoekingenPage() {
+  const session = await auth();
+  if (!session?.user) redirect("/login?callbackUrl=/dashboard/boekingen");
+  if (session.user.role !== "SALON_OWNER" && session.user.role !== "ADMIN") redirect("/");
+
+  const bookings = await prisma.booking.findMany({
+    where: {
+      status: { in: ["PAID", "PENDING", "NO_SHOW", "CANCELLED", "REFUNDED"] },
+      ...(session.user.role === "ADMIN" ? {} : { slot: { salon: { ownerId: session.user.id } } }),
+    },
+    include: { slot: { include: { salon: true } } },
+    orderBy: { slot: { startsAt: "asc" } },
+    take: 80,
+  });
+
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-10 space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight">Boekingen</h1>
+          <p className="text-slate-500 mt-1">Vink een klant af met de code op de bon.</p>
+        </div>
+        <Link href="/dashboard" className="text-sm font-semibold text-violet-700">
+          Terug naar dashboard
+        </Link>
+      </div>
+      <CheckInForm />
+      {bookings.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-sm text-slate-500">Nog geen boekingen.</CardContent>
+        </Card>
+      ) : (
+        <ul className="space-y-3">
+          {bookings.map((b) => (
+            <li key={b.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="font-bold text-slate-900">{b.slot.title}</p>
+                  <p className="text-sm text-slate-500">
+                    {b.slot.salon.name} · {format(b.slot.startsAt, "EEE d MMM HH:mm", { locale: nlBE })}
+                  </p>
+                  <p className="mt-1 text-sm">
+                    {b.customerName} · <span className="font-mono tracking-wider">{b.confirmationCode}</span>
+                  </p>
+                </div>
+                <div className="text-right">
+                  <Badge variant={b.status === "PAID" ? "success" : "default"}>{b.status}</Badge>
+                  <p className="mt-1 text-sm font-semibold">{formatEuro(b.amount)}</p>
+                  {b.checkedInAt && <p className="text-xs text-emerald-700">Aanwezig</p>}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

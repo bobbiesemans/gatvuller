@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { nlBE } from "date-fns/locale";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { verifyBookingToken } from "@/lib/tokens";
 import { formatEuro, shortCode, discountPercent } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,15 +20,23 @@ export const metadata = { title: "Boeking bevestigd" };
 export default async function SuccesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ bookingId?: string; demo?: string }>;
+  searchParams: Promise<{ bookingId?: string; demo?: string; t?: string }>;
 }) {
   const sp = await searchParams;
+  const session = await auth();
   const booking = sp.bookingId
     ? await prisma.booking.findUnique({
         where: { id: sp.bookingId },
-        include: { slot: { include: { salon: true } } },
+        include: { slot: { include: { salon: true } }, review: true },
       })
     : null;
+  if (booking) {
+    const allowed =
+      session?.user?.id === booking.customerId ||
+      session?.user?.role === "ADMIN" ||
+      verifyBookingToken(booking.id, sp.t);
+    if (!allowed) redirect("/login?callbackUrl=/boekingen");
+  }
 
   const code = booking ? shortCode(booking.confirmationCode) : null;
   const qrValue = booking
@@ -66,7 +77,7 @@ export default async function SuccesPage({
               <div className="space-y-2 text-sm text-slate-600 flex-1">
                 <p className="text-lg font-bold text-slate-900">{booking.slot.title}</p>
                 <p>
-                  {booking.slot.salon.name} · ★ {booking.slot.salon.rating.toFixed(1)}
+                  {booking.slot.salon.name} · ★ {booking.slot.salon.ratingCount > 0 ? booking.slot.salon.ratingAvg.toFixed(1) : "Nieuw"}
                 </p>
                 <p className="flex items-start gap-2">
                   <MapPin className="h-4 w-4 mt-0.5 text-violet-600 shrink-0" />
@@ -122,6 +133,9 @@ export default async function SuccesPage({
           <div className="flex flex-wrap gap-3">
             <Button asChild>
               <Link href="/slots">Meer Surprise slots</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <a href={`/api/bookings/${booking.id}/ics${sp.t ? `?t=${sp.t}` : ""}`}>Zet in agenda</a>
             </Button>
             <Button asChild variant="outline">
               <a

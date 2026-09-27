@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { expireStaleHolds } from "@/lib/bookings";
 import { CATEGORY_LABELS, CITIES } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { SlotsBrowse } from "@/components/slots/slots-browse";
@@ -16,6 +17,7 @@ type SearchParams = Promise<{
 
 export default async function SlotsPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
+  await expireStaleHolds();
   const now = new Date();
   const tomorrowEnd = new Date(now);
   tomorrowEnd.setDate(tomorrowEnd.getDate() + 2);
@@ -34,15 +36,13 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
   const slots = await prisma.slot.findMany({
     where: {
       status: "OPEN",
+      spotsLeft: { gt: 0 },
       startsAt: whenFilter,
-      ...(sp.stad || sp.categorie
-        ? {
-            salon: {
-              ...(sp.stad ? { city: sp.stad } : {}),
-              ...(sp.categorie ? { category: sp.categorie as never } : {}),
-            },
-          }
-        : {}),
+      salon: {
+        status: "ACTIVE",
+        ...(sp.stad ? { city: sp.stad } : {}),
+        ...(sp.categorie ? { category: sp.categorie as never } : {}),
+      },
       ...(sp.q
         ? {
             OR: [
@@ -69,7 +69,7 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
       name: s.salon.name,
       city: s.salon.city,
       category: s.salon.category,
-      rating: s.salon.rating,
+      rating: s.salon.ratingAvg,
       address: s.salon.address,
       lat: s.salon.lat,
       lng: s.salon.lng,

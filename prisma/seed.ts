@@ -374,7 +374,10 @@ async function main() {
         category: s.category,
         description: s.description,
         address: s.address,
-        rating: s.rating,
+        ratingAvg: s.rating,
+        ratingCount: 8,
+        verified: true,
+        country: s.city === "Amsterdam" ? "NL" : "BE",
         lat: s.lat,
         lng: s.lng,
         phone: "+32 3 000 00 00",
@@ -403,6 +406,54 @@ async function main() {
       });
       slotCount++;
     }
+  }
+
+  const first = await prisma.salon.findFirst({ orderBy: { name: "asc" } });
+  if (first) {
+    const startsAt = new Date(Date.now() - 26 * 60 * 60 * 1000);
+    const endsAt = new Date(startsAt.getTime() + 40 * 60 * 1000);
+    const past = await prisma.slot.create({
+      data: {
+        salonId: first.id,
+        title: "Herenknip + baard",
+        description: "Afgerond bezoek voor de demo-review.",
+        startsAt,
+        endsAt,
+        originalPrice: 4000,
+        discountPrice: 2500,
+        capacity: 1,
+        spotsLeft: 0,
+        status: "BOOKED",
+      },
+    });
+    const visit = await prisma.booking.create({
+      data: {
+        slotId: past.id,
+        customerId: customer.id,
+        amount: 2500,
+        feeAmount: 450,
+        feePercent: 18,
+        customerName: customer.name,
+        customerEmail: customer.email,
+        confirmationCode: "DEMO0001",
+        status: "PAID",
+        paidAt: startsAt,
+        locale: "nl",
+      },
+    });
+    await prisma.review.create({
+      data: {
+        bookingId: visit.id,
+        salonId: first.id,
+        customerId: customer.id,
+        rating: 5,
+        comment: "Snel binnen en een nette knip. Zo werkt een Surprise slot.",
+      },
+    });
+    await prisma.salon.update({
+      where: { id: first.id },
+      data: { ratingAvg: 4.9, ratingCount: 9 },
+    });
   }
 
   console.log({

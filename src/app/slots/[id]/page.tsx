@@ -25,13 +25,13 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const slot = await prisma.slot.findUnique({
     where: { id },
-    include: { salon: true, booking: true },
+    include: { salon: { include: { reviews: { where: { hidden: false }, orderBy: { createdAt: "desc" }, take: 6, include: { customer: { select: { name: true } } } } } } },
   });
   if (!slot) notFound();
   const session = await auth();
   const pct = discountPercent(slot.originalPrice, slot.discountPrice);
   const save = saveAmount(slot.originalPrice, slot.discountPrice);
-  const open = slot.status === "OPEN" && slot.startsAt > new Date();
+  const open = slot.status === "OPEN" && slot.spotsLeft > 0 && slot.startsAt > new Date() && slot.salon.status === "ACTIVE";
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -53,7 +53,7 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
             <span className="font-semibold text-slate-800">{slot.salon.name}</span>
             <span className="inline-flex items-center gap-1">
               <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-              {slot.salon.rating.toFixed(1)}
+              {slot.salon.ratingCount > 0 ? slot.salon.ratingAvg.toFixed(1) : "Nieuw"}
             </span>
             <span className="inline-flex items-center gap-1">
               <MapPin className="h-4 w-4 text-violet-600" />
@@ -89,6 +89,23 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
               className="h-56 w-full overflow-hidden rounded-2xl border border-slate-200"
             />
           </div>
+
+          {slot.salon.reviews.length > 0 && (
+            <div>
+              <h2 className="font-bold mb-2">Reviews</h2>
+              <ul className="space-y-2">
+                {slot.salon.reviews.map((review) => (
+                  <li key={review.id} className="rounded-2xl border border-slate-200 bg-white p-4 text-sm">
+                    <p className="font-semibold text-slate-900">
+                      {"★".repeat(review.rating)}
+                      {"☆".repeat(5 - review.rating)} · {review.customer.name}
+                    </p>
+                    {review.comment && <p className="mt-1 text-slate-600">{review.comment}</p>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         <div className="md:col-span-2">

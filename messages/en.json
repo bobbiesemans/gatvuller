@@ -1,0 +1,88 @@
+{
+  "emails": {
+    "greeting": "Hi {name},",
+    "footer": "You are receiving this because you have a GatVuller booking or account.",
+    "details": {
+      "what": "Treatment",
+      "salon": "Salon",
+      "when": "When",
+      "where": "Address",
+      "paid": "Paid",
+      "code": "Code",
+      "customer": "Customer",
+      "contact": "Contact",
+      "fee": "Platform fee ({percent}%)",
+      "net": "For you",
+      "price": "Surprise price"
+    },
+    "bookingConfirmed": {
+      "subject": "Confirmed: {title} at {salon}",
+      "preheader": "Your code is {code}. Show it when you arrive.",
+      "title": "Your surprise slot is booked",
+      "intro": "This is your confirmation. Show the code at the desk.",
+      "policy": "Free cancellation until {hours} hours before the start.",
+      "demo": "This was a demo payment: nothing was charged.",
+      "cta": "View your voucher",
+      "calendar": "Add to calendar"
+    },
+    "bookingReceived": {
+      "subject": "New booking: {title} · {time}",
+      "preheader": "{customer} booked a surprise slot.",
+      "title": "New booking",
+      "intro": "{customer} booked at {salon}.",
+      "checkin": "Ask for the code and mark the visit in your dashboard.",
+      "cta": "Open bookings"
+    },
+    "bookingCancelled": {
+      "subject": "Cancelled: {title} at {salon}",
+      "title": "Booking cancelled",
+      "byCustomer": "You cancelled this booking.",
+      "bySalon": "{salon} cancelled this booking.",
+      "byAdmin": "GatVuller cancelled this booking.",
+      "expired": "Payment was not completed. The slot is free again.",
+      "refunded": "We are refunding {amount}. Card refunds take a few days.",
+      "noCharge": "Nothing was charged.",
+      "cta": "Browse other slots"
+    },
+    "bookingCancelledSalon": {
+      "subject": "Cancellation: {title} · {time}",
+      "title": "A booking was cancelled",
+      "intro": "{customer} will not come for {title}. The slot is open again.",
+      "cta": "Open bookings"
+    },
+    "passwordReset": {
+      "subject": "Reset your GatVuller password",
+      "title": "Choose a new password",
+      "intro": "Use the button to set a new password. The link works for 1 hour.",
+      "ignore": "If you did not ask for this, you can ignore this email.",
+      "cta": "Set a new password"
+    },
+    "slotAlert": {
+      "subject": "New surprise slot: {title} (−{percent}%)",
+      "title": "A slot just opened",
+      "intro": "{salon} posted a last-minute slot that matches your alert.",
+      "cta": "View the slot",
+      "unsubscribe": "Turn off this alert"
+    },
+    "reviewRequest": {
+      "subject": "How was {salon}?",
+      "title": "A one-minute review",
+      "intro": "Your visit at {salon} is over. A rating helps the next customer.",
+      "cta": "Write a review"
+    },
+    "welcomeCustomer": {
+      "subject": "Welcome to GatVuller",
+      "title": "Your account is ready",
+      "intro": "Find last-minute slots at salons, clinics and more.",
+      "steps": "Pick a slot, pay, and show your code when you arrive.",
+      "cta": "Browse slots"
+    },
+    "welcomeSalon": {
+      "subject": "Welcome, {salon}",
+      "title": "Your salon is on GatVuller",
+      "intro": "Post a surprise slot whenever a gap opens in the diary.",
+      "steps": "Pick a time, the normal price and the surprise price, then publish.",
+      "cta": "Go to your dashboard"
+    }
+  }
+}

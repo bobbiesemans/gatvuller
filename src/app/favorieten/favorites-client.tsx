@@ -20,7 +20,7 @@ type SlotRow = {
     name: string;
     city: string;
     category: string;
-    rating: number;
+    ratingAvg: number;
     address: string;
     lat: number;
     lng: number;
@@ -110,7 +110,7 @@ export function FavoritesClient() {
             originalPrice={s.originalPrice}
             discountPrice={s.discountPrice}
             spotsLeft={s.spotsLeft}
-            salon={s.salon}
+            salon={{ ...s.salon, rating: s.salon.ratingAvg }}
           />
         </div>
       ))}

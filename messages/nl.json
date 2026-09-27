@@ -1,0 +1,88 @@
+{
+  "emails": {
+    "greeting": "Hallo {name},",
+    "footer": "Je krijgt deze mail omdat je een boeking of account bij GatVuller hebt.",
+    "details": {
+      "what": "Behandeling",
+      "salon": "Salon",
+      "when": "Wanneer",
+      "where": "Adres",
+      "paid": "Betaald",
+      "code": "Code",
+      "customer": "Klant",
+      "contact": "Contact",
+      "fee": "Platformfee ({percent}%)",
+      "net": "Voor jou",
+      "price": "Surprise-prijs"
+    },
+    "bookingConfirmed": {
+      "subject": "Bevestigd: {title} bij {salon}",
+      "preheader": "Je code is {code}. Toon die bij aankomst.",
+      "title": "Je Surprise slot is geboekt",
+      "intro": "Dit is je bevestiging. Toon de code aan de balie.",
+      "policy": "Gratis annuleren tot {hours} uur voor de start. Daarna is de boeking definitief.",
+      "demo": "Dit is een demobetaling: er is niets afgeschreven.",
+      "cta": "Bekijk je bon",
+      "calendar": "Zet in je agenda"
+    },
+    "bookingReceived": {
+      "subject": "Nieuwe boeking: {title} · {time}",
+      "preheader": "{customer} heeft een Surprise slot geboekt.",
+      "title": "Nieuwe boeking",
+      "intro": "{customer} heeft geboekt bij {salon}.",
+      "checkin": "Laat de klant de code zien en vink die af in je dashboard.",
+      "cta": "Open boekingen"
+    },
+    "bookingCancelled": {
+      "subject": "Geannuleerd: {title} bij {salon}",
+      "title": "Boeking geannuleerd",
+      "byCustomer": "Je hebt deze boeking zelf geannuleerd.",
+      "bySalon": "{salon} heeft deze boeking geannuleerd.",
+      "byAdmin": "GatVuller heeft deze boeking geannuleerd.",
+      "expired": "De betaling is niet afgerond. Het slot is weer vrij.",
+      "refunded": "We betalen {amount} terug. Bij een kaartbetaling zie je dat binnen enkele dagen.",
+      "noCharge": "Er is niets afgeschreven.",
+      "cta": "Bekijk andere slots"
+    },
+    "bookingCancelledSalon": {
+      "subject": "Annulering: {title} · {time}",
+      "title": "Een boeking is geannuleerd",
+      "intro": "{customer} komt niet voor {title}. Het slot staat weer open.",
+      "cta": "Open boekingen"
+    },
+    "passwordReset": {
+      "subject": "Nieuw wachtwoord voor GatVuller",
+      "title": "Wachtwoord opnieuw instellen",
+      "intro": "Via de knop kies je een nieuw wachtwoord. De link werkt 1 uur.",
+      "ignore": "Geen aanvraag gedaan? Dan mag je deze mail negeren.",
+      "cta": "Kies een nieuw wachtwoord"
+    },
+    "slotAlert": {
+      "subject": "Nieuw Surprise slot: {title} (−{percent}%)",
+      "title": "Er is een slot vrij",
+      "intro": "{salon} heeft een last-minute slot geplaatst dat bij je melding past.",
+      "cta": "Bekijk het slot",
+      "unsubscribe": "Melding uitzetten"
+    },
+    "reviewRequest": {
+      "subject": "Hoe was het bij {salon}?",
+      "title": "Een minuut voor een review",
+      "intro": "Je afspraak bij {salon} is voorbij. Een score helpt andere klanten.",
+      "cta": "Schrijf een review"
+    },
+    "welcomeCustomer": {
+      "subject": "Welkom bij GatVuller",
+      "title": "Je account staat klaar",
+      "intro": "Ontdek last-minute slots bij kappers, schoonheid, fysio en meer.",
+      "steps": "Kies een slot, betaal, en toon je code bij aankomst.",
+      "cta": "Bekijk slots"
+    },
+    "welcomeSalon": {
+      "subject": "Welkom, {salon}",
+      "title": "Je salon staat op GatVuller",
+      "intro": "Post een Surprise slot wanneer er een gat in de agenda valt.",
+      "steps": "Kies een tijd, zet de normale prijs en de Surprise-prijs, en publiceer.",
+      "cta": "Naar je dashboard"
+    }
+  }
+}
