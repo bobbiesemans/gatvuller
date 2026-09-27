@@ -26,6 +26,9 @@ export function Footer() {
             <Link href="/#hoe" className="hover:text-violet-700">
               Hoe het werkt
             </Link>
+            <Link href="/impact" className="hover:text-violet-700">
+              Impact
+            </Link>
             <Link href="/register" className="hover:text-violet-700">
               Voor salons
             </Link>
