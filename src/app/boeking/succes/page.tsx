@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { BookingQr } from "@/components/booking-qr";
 import { MiniMap } from "@/components/map/mini-map";
 import { MapPin, Clock, Info } from "lucide-react";
+import { CopyCodeButton } from "@/components/copy-code-button";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Boeking bevestigd" };
@@ -58,6 +59,7 @@ export default async function SuccesPage({
               <p className="text-sm text-violet-100">Bevestigingscode</p>
               <p className="mt-1 text-3xl font-extrabold tracking-[0.2em]">{code}</p>
               <p className="mt-1 text-xs text-violet-200/90">Volledig: {booking.confirmationCode}</p>
+              <div className="mt-3"><CopyCodeButton code={booking.confirmationCode} /></div>
             </div>
             <CardContent className="p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
               <BookingQr value={qrValue} />
@@ -92,7 +94,7 @@ export default async function SuccesPage({
           </Card>
 
           <div>
-            <h2 className="font-bold text-slate-900 mb-2">Locatie &amp; aankomstvenster</h2>
+            <h2 className="font-bold text-slate-900 mb-2">Locatie & aankomstvenster</h2>
             <MiniMap
               lat={booking.slot.salon.lat}
               lng={booking.slot.salon.lng}
