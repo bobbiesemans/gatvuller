@@ -23,6 +23,9 @@ export function Footer() {
             <Link href="/favorieten" className="hover:text-violet-700">
               Favorieten
             </Link>
+            <Link href="/boekingen" className="hover:text-violet-700">
+              Mijn boekingen
+            </Link>
             <Link href="/#hoe" className="hover:text-violet-700">
               Hoe het werkt
             </Link>
