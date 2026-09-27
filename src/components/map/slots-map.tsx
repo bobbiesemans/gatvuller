@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker } from "re
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import Link from "next/link";
-import { formatEuro, discountPercent, CATEGORY_EMOJI, formatDistance } from "@/lib/utils";
+import { formatEuro, discountPercent, CATEGORY_EMOJI, formatDistance, CITY_CENTERS } from "@/lib/utils";
 import { format } from "date-fns";
 import { nlBE } from "date-fns/locale";
 export type MapSlot = {
@@ -153,20 +153,23 @@ export function SlotsMap({
   selectedId,
   onSelect,
   userLocation,
+  initialCity,
   className,
 }: {
   slots: MapSlot[];
   selectedId?: string | null;
   onSelect?: (id: string) => void;
   userLocation?: { lat: number; lng: number } | null;
+  initialCity?: string;
   className?: string;
 }) {
   const selected = slots.find((s) => s.id === selectedId) || null;
+  const cityCenter = initialCity && CITY_CENTERS[initialCity] ? CITY_CENTERS[initialCity] : null;
   const center = selected
     ? { lat: selected.salon.lat, lng: selected.salon.lng }
     : slots[0]
       ? { lat: slots[0].salon.lat, lng: slots[0].salon.lng }
-      : userLocation || { lat: 51.2, lng: 4.4 };
+      : userLocation || cityCenter || { lat: 51.2, lng: 4.4 };
   const points = slots.map((s) => ({ lat: s.salon.lat, lng: s.salon.lng }));
   const fixed = useRef(false);
   if (!fixed.current && typeof window !== "undefined") {
