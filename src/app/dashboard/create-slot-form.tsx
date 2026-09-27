@@ -81,7 +81,7 @@ export function CreateSlotForm({ salons }: { salons: { id: string; name: string 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
-        <p className="text-sm font-semibold text-violet-900">Post een Surprise slot in <30 seconden</p>
+        <p className="text-sm font-semibold text-violet-900">Post een Surprise slot in minder dan 30 seconden</p>
         <p className="text-xs text-violet-700/80 mt-1">
           Kies preset → titel → originele + Surprise-prijs → publiceren.
         </p>
