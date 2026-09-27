@@ -4,10 +4,33 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getFavorites } from "@/lib/favorites";
 import { Button } from "@/components/ui/button";
+import { SlotCard } from "@/components/slot-card";
 import { Heart } from "lucide-react";
+
+type SlotRow = {
+  id: string;
+  title: string;
+  startsAt: string;
+  endsAt: string;
+  originalPrice: number;
+  discountPrice: number;
+  spotsLeft: number;
+  status: string;
+  salon: {
+    name: string;
+    city: string;
+    category: string;
+    rating: number;
+    address: string;
+    lat: number;
+    lng: number;
+  };
+};
 
 export function FavoritesClient() {
   const [ids, setIds] = useState<string[]>([]);
+  const [slots, setSlots] = useState<SlotRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const sync = () => setIds(getFavorites());
@@ -20,7 +43,32 @@ export function FavoritesClient() {
     };
   }, []);
 
-  if (ids.length === 0) {
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!ids.length) {
+        setSlots([]);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/slots/batch?ids=${encodeURIComponent(ids.join(","))}`);
+        const data = await res.json();
+        if (!cancelled) setSlots(data.slots || []);
+      } catch {
+        if (!cancelled) setSlots([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [ids]);
+
+  if (!loading && ids.length === 0) {
     return (
       <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center">
         <Heart className="mx-auto h-10 w-10 text-slate-300" />
@@ -33,22 +81,39 @@ export function FavoritesClient() {
     );
   }
 
-  return (
-    <ul className="space-y-3">
-      {ids.map((id) => (
-        <li
-          key={id}
-          className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3"
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <Heart className="h-5 w-5 shrink-0 fill-rose-500 text-rose-500" />
-            <span className="truncate text-sm font-medium text-slate-700">Slot {id.slice(-8).toUpperCase()}</span>
-          </div>
-          <Button asChild size="sm" variant="secondary">
-            <Link href={`/slots/${id}`}>Open</Link>
+  if (loading) {
+    return <p className="text-sm text-slate-500">Favorieten laden…</p>;
+  }
+
+  if (!slots.length) {
+    return (
+      <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500">
+        Opgeslagen slots zijn niet meer beschikbaar (al geboekt of verlopen).
+        <div className="mt-4">
+          <Button asChild variant="secondary">
+            <Link href="/slots">Nieuwe Surprise slots</Link>
           </Button>
-        </li>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {slots.map((s) => (
+        <div key={s.id} className="gv-card-hover rounded-2xl">
+          <SlotCard
+            id={s.id}
+            title={s.title}
+            startsAt={new Date(s.startsAt)}
+            endsAt={new Date(s.endsAt)}
+            originalPrice={s.originalPrice}
+            discountPrice={s.discountPrice}
+            spotsLeft={s.spotsLeft}
+            salon={s.salon}
+          />
+        </div>
       ))}
-    </ul>
+    </div>
   );
 }
