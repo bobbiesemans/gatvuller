@@ -98,7 +98,8 @@ export const CATEGORY_EMOJI: Record<string, string> = {
   ANDERS: "⭐",
 };
 
-export const CITIES = CITY_LIST.map((c) => c.name);
+/** Cities with live supply; the catalog lists upcoming launch cities too. */
+export const CITIES = ["Antwerpen", "Brussel", "Gent", "Amsterdam"] as const;
 
 export const CITY_CENTERS: Record<string, { lat: number; lng: number; zoom: number }> = {
   ...Object.fromEntries(CITY_LIST.map((c) => [c.name, { lat: c.lat, lng: c.lng, zoom: c.zoom }])),
