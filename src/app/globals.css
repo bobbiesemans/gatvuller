@@ -66,3 +66,7 @@ body {
   background: transparent;
   border: none;
 }
+
+.safe-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
