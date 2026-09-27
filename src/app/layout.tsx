@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/header";
@@ -31,12 +31,15 @@ export const metadata: Metadata = {
     type: "website",
   },
   manifest: "/manifest.webmanifest",
-  themeColor: "#6d28d9",
   twitter: {
     card: "summary_large_image",
     title: "GatVuller — Surprise slots",
     description: "Too Good To Go voor afspraken. Kaart + korting + countdown.",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#6d28d9",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
