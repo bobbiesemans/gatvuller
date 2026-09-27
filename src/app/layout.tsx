@@ -5,6 +5,7 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { MobileNav } from "@/components/mobile-nav";
 import { Providers } from "@/components/providers";
+import { appUrl } from "@/lib/config";
 
 const geistSans = Geist({
   subsets: ["latin"],
@@ -16,30 +17,34 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
 });
 
+const site = appUrl();
+
 export const metadata: Metadata = {
   title: {
-    default: "GatVuller — Too Good To Go voor afspraken",
+    default: "GatVuller — lege uren, last-minute omzet",
     template: "%s · GatVuller",
   },
   description:
-    "Surprise slots bij kapper, schoonheid, fysio, tandarts & meer. Last-minute gaten vullen — jij bespaart tot 50%. België & Nederland.",
-  metadataBase: new URL("https://gatvuller-validee-s-projects.vercel.app"),
+    "Lokale kappers, schoonheidssalons en masseurs zetten een vrij uur om in omzet. Klanten in Antwerpen boeken vandaag of morgen met korting.",
+  metadataBase: new URL(site),
+  alternates: { canonical: "/" },
   openGraph: {
-    title: "GatVuller — Too Good To Go voor afspraken",
-    description: "Ontdek last-minute Surprise slots op de kaart. Niet voor eten — voor lege stoelen.",
+    title: "GatVuller — lege uren worden omzet",
+    description: "Last-minute afspraken bij betrouwbare zaken in je buurt. Eerst beauty in Antwerpen.",
     locale: "nl_BE",
     type: "website",
+    url: site,
   },
   manifest: "/manifest.webmanifest",
   twitter: {
     card: "summary_large_image",
-    title: "GatVuller — Surprise slots",
-    description: "Too Good To Go voor afspraken. Kaart + korting + countdown.",
+    title: "GatVuller",
+    description: "Vrije uren bij lokale zaken, meteen te boeken.",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#6d28d9",
+  themeColor: "#1c1917",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,13 +1,15 @@
+import { isDemoMode, PLATFORM_FEE_PERCENT } from "@/lib/config";
+
 export function TrustBar() {
+  const demo = isDemoMode();
   return (
-    <div className="border-y border-slate-200 bg-white">
-      <div className="mx-auto max-w-6xl px-4 py-4 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-        <span>Leaflet · OpenStreetMap</span>
-        <span>Demo zonder Stripe</span>
-        <span>BE &amp; NL steden</span>
-        <span>18% fee · geen abo</span>
-        <span>QR-bevestiging</span>
-      </div>
+    <div className="border-y border-stone-200 bg-white">
+      <ul className="mx-auto flex max-w-6xl flex-wrap gap-x-6 gap-y-2 px-4 py-3 text-xs font-medium text-stone-500">
+        <li>{demo ? "Testmodus — betalingen zijn gesimuleerd" : "Betaling via Stripe"}</li>
+        <li>Platformkosten {PLATFORM_FEE_PERCENT}% voor de zaak</li>
+        <li>Beoordelingen pas na een bezoek</li>
+        <li>OpenStreetMap</li>
+      </ul>
     </div>
   );
 }

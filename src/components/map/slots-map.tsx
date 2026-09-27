@@ -32,7 +32,7 @@ function priceIcon(pct: number, selected: boolean) {
     iconSize: [54, 32],
     iconAnchor: [27, 32],
     popupAnchor: [0, -28],
-    html: `<div style="background:${selected ? "#5b21b6" : "#6d28d9"};color:white;font-weight:800;font-size:12px;padding:6px 10px;border-radius:999px;box-shadow:0 8px 20px rgba(91,33,182,.35);border:2px solid white;white-space:nowrap;transform:${selected ? "scale(1.08)" : "none"}">-${pct}%</div>`,
+    html: `<div style="background:${selected ? "#1c1917" : "#44403c"};color:white;font-weight:700;font-size:12px;padding:6px 10px;border-radius:999px;box-shadow:0 6px 16px rgba(28,25,23,.25);border:2px solid white;white-space:nowrap">-${pct}%</div>`,
   });
 }
 function clusterIcon(count: number) {

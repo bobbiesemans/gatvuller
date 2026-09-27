@@ -14,11 +14,8 @@ export async function POST(req: Request) {
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(await req.text(), sig, secret);
-  } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "bad_signature" },
-      { status: 400 }
-    );
+  } catch {
+    return NextResponse.json({ error: "bad_signature" }, { status: 400 });
   }
 
   if (event.type === "checkout.session.completed") {

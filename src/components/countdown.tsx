@@ -39,13 +39,11 @@ export function Countdown({
   }
 
   if (t.ms <= 0) {
-    return <span className={cn("text-amber-700 font-semibold", className)}>Nu starten</span>;
+    return <span className={cn("font-semibold text-stone-800", className)}>Het uur is begonnen</span>;
   }
 
-  const urgent = t.ms < 2 * 60 * 60 * 1000;
-
   return (
-    <span className={cn("tabular-nums font-semibold", urgent ? "text-rose-600 gv-urgent" : "text-slate-700", className)}>
+    <span className={cn("tabular-nums font-semibold text-stone-700", className)}>
       {label}{" "}
       {t.h > 0 ? `${t.h}u ` : ""}
       {String(t.m).padStart(2, "0")}:{String(t.s).padStart(2, "0")}

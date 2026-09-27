@@ -14,6 +14,9 @@ import {
   saveAmount,
 } from "@/lib/utils";
 import { BookForm } from "./book-form";
+import { TrackOnMount } from "@/components/track-on-mount";
+import { isDemoMode, PLATFORM_FEE_PERCENT } from "@/lib/config";
+import Link from "next/link";
 import { Countdown } from "@/components/countdown";
 import { FavoriteButton } from "@/components/favorite-button";
 import { MiniMap } from "@/components/map/mini-map";
@@ -35,6 +38,7 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
+      <TrackOnMount name="offer_viewed" entityId={slot.id} />
       <div className="grid gap-6 md:grid-cols-5">
         <div className="md:col-span-3 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -50,7 +54,8 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
             {slot.title}
           </h1>
           <p className="text-slate-600 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="font-semibold text-slate-800">{slot.salon.name}</span>
+            <Link href={`/salon/${slot.salon.slug}`} className="font-semibold text-slate-800 underline underline-offset-2">{slot.salon.name}</Link>
+            <span>{slot.salon.verified ? "Geverifieerd" : "Nog niet geverifieerd"}</span>
             <span className="inline-flex items-center gap-1">
               <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
               {slot.salon.ratingCount > 0 ? slot.salon.ratingAvg.toFixed(1) : "Nieuw"}
@@ -76,7 +81,8 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
               </p>
               {slot.description && <p>{slot.description}</p>}
               <p className="text-slate-500">{slot.salon.description}</p>
-              <p className="font-semibold text-emerald-700">Je bespaart {formatEuro(save)}</p>
+              <p className="font-semibold text-emerald-800">Je bespaart {formatEuro(save)} tegenover de normale prijs.</p>
+              <p>Annuleren kan tot {slot.salon.cancellationHours} uur voor de start. No-show wordt niet terugbetaald.</p>
             </CardContent>
           </Card>
 
@@ -129,6 +135,10 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
                 <BookForm
                   slotId={slot.id}
                   price={slot.discountPrice}
+                  originalPrice={slot.originalPrice}
+                  feePercent={PLATFORM_FEE_PERCENT}
+                  cancellationHours={slot.salon.cancellationHours}
+                  demoMode={isDemoMode()}
                   defaultName={session?.user?.name || ""}
                   defaultEmail={session?.user?.email || ""}
                   loggedIn={Boolean(session?.user)}

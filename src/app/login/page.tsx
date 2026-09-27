@@ -8,11 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { safeCallbackPath } from "@/lib/safe-path";
+import { isDemoMode } from "@/lib/config";
 
 function LoginForm() {
   const router = useRouter();
   const sp = useSearchParams();
-  const callbackUrl = sp.get("callbackUrl") || "/";
+  const callbackUrl = safeCallbackPath(sp.get("callbackUrl"));
+  const demo = isDemoMode();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -64,9 +67,11 @@ function LoginForm() {
           Nog geen account?{" "}
           <Link href="/register" className="font-semibold text-violet-700">Registreren</Link>
         </p>
-        <div className="mt-4 rounded-xl bg-violet-50 p-3 text-xs text-slate-600">
-          Demo: salon@gatvuller.be · klant@gatvuller.be · admin@gatvuller.be — wachtwoord <strong>demo1234</strong>
-        </div>
+        {demo && (
+          <div className="mt-4 rounded-xl bg-amber-50 p-3 text-xs text-amber-950">
+            Testmodus. Demo-accounts: salon@, klant@ en admin@gatvuller.be — wachtwoord demo1234. Die accounts werken niet in productie.
+          </div>
+        )}
       </CardContent>
     </Card>
   );

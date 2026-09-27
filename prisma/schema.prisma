@@ -29,10 +29,11 @@ enum SalonStatus {
   SUSPENDED
 }
 
-/// BOOKED means every spot is taken (sold out).
+/// BOOKED means every spot is taken. PAUSED hides the offer without deleting paid bookings.
 enum SlotStatus {
   OPEN
   BOOKED
+  PAUSED
   CANCELLED
   EXPIRED
 }
@@ -64,6 +65,8 @@ model User {
   marketingOptIn  Boolean              @default(false)
   termsAcceptedAt DateTime?
   anonymizedAt    DateTime?
+  referralCode    String?              @unique
+  referredById    String?
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
   salons          Salon[]
@@ -104,6 +107,8 @@ model Salon {
   slots                Slot[]
   reviews              Review[]
   favoritedBy          FavoriteSalon[]
+  hours                OpeningHour[]
+  templates            ServiceTemplate[]
 
   @@index([city])
   @@index([category])
@@ -257,4 +262,30 @@ model RateLimit {
   key         String   @id
   count       Int
   windowStart DateTime
+}
+
+model OpeningHour {
+  id        String  @id @default(cuid())
+  salonId   String
+  salon     Salon   @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  weekday   Int
+  openMin   Int
+  closeMin  Int
+  closed    Boolean @default(false)
+
+  @@unique([salonId, weekday])
+}
+
+model ServiceTemplate {
+  id            String  @id @default(cuid())
+  salonId       String
+  salon         Salon   @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  title         String
+  durationMin   Int
+  originalPrice Int
+  discountPrice Int
+  active        Boolean @default(true)
+  createdAt     DateTime @default(now())
+
+  @@index([salonId])
 }

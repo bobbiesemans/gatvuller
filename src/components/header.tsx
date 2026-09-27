@@ -8,16 +8,14 @@ export async function Header() {
     <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2.5 font-extrabold text-xl tracking-tight">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white text-sm shadow-md shadow-violet-600/30">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-stone-900 text-white text-sm">
             GV
           </span>
-          <span>
-            Gat<span className="text-violet-600">Vuller</span>
-          </span>
+          <span>GatVuller</span>
         </Link>
         <nav className="hidden items-center gap-7 text-sm font-medium text-slate-600 md:flex">
           <Link href="/slots" className="hover:text-violet-700 transition">
-            Surprise slots
+            Open uren
           </Link>
           <Link href="/favorieten" className="hover:text-violet-700 transition">
             Favorieten
