@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { nlBE } from "date-fns/locale";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { ShareButton } from "@/components/share-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -43,6 +44,7 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
             <Badge variant="success">-{pct}% Surprise</Badge>
             <Badge>Nog {slot.spotsLeft} beschikbaar</Badge>
             <FavoriteButton slotId={slot.id} />
+            <ShareButton title={slot.title} />
           </div>
           <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
             {slot.title}
@@ -61,7 +63,7 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
 
           <Card>
             <CardHeader>
-              <CardTitle>Tijdvenster &amp; details</CardTitle>
+              <CardTitle>Tijdvenster & details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-slate-600">
               <p className="flex items-center gap-2 text-base text-slate-800 font-medium">
