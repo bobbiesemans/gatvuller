@@ -1,43 +1,41 @@
+import { PLATFORM_FEE_PERCENT } from "@/lib/config";
+
 const QA = [
   {
-    q: "Is GatVuller hetzelfde als Too Good To Go?",
-    a: "De mentaliteit is hetzelfde — surplus last-minute — maar wij doen afspraken (kapper, fysio, tandarts…), geen voedsel.",
+    q: "Wat is GatVuller?",
+    a: "Een marktplaats waarop kappers, salons en masseurs een leeg uur met korting publiceren. Jij boekt dat uur, niet een willekeurige afspraak in een agenda.",
   },
   {
-    q: "Wat is een Surprise slot?",
-    a: "Een gat in de agenda van een salon dat goedkoper wordt aangeboden. Tijdvenster, prijs en adres ken je voor je boekt.",
+    q: "Zijn de kortingen echt?",
+    a: "De zaak vult zelf de normale prijs en de last-minute prijs in. GatVuller verzint geen percentage en geen aantal resterende plekken.",
   },
   {
-    q: "Moet ik Stripe hebben om te demo'en?",
-    a: "Nee. Zonder Stripe keys boekt de demo meteen als PAID met QR-code en bevestiging.",
+    q: "Wanneer is een boeking betaald?",
+    a: "Pas als Stripe de betaling bevestigt. Terugkeren naar de site is niet genoeg. Zonder Stripe-sleutels draait het platform in testmodus en staat dat op de bevestiging.",
   },
   {
-    q: "Wat kost het voor salons?",
-    a: "Geen abonnement. 18% fee per geslaagde boeking. Posten van slots is gratis.",
+    q: "Wat kost het een zaak?",
+    a: `Geen abonnement. ${PLATFORM_FEE_PERCENT}% van de last-minute prijs, berekend op de server. De klant betaalt geen extra toeslag.`,
   },
   {
     q: "Kan ik annuleren?",
-    a: "In de demo: gratis annuleren tot 2 uur voor start. Daarna volgt het salonbeleid.",
+    a: "Tot de termijn die de zaak instelt, standaard 2 uur voor de start. Daarna en bij no-show volgt geen terugbetaling.",
   },
   {
-    q: "Werkt de kaart zonder Google Maps key?",
-    a: "Ja. We gebruiken Leaflet + OpenStreetMap — gratis, geen API-key nodig.",
+    q: "Hoe werkt de kaart?",
+    a: "Met Leaflet en OpenStreetMap. Er is geen aparte kaartsleutel nodig.",
   },
 ];
 
 export function Faq() {
   return (
     <section className="mx-auto max-w-6xl px-4 py-16">
-      <p className="text-sm font-semibold uppercase tracking-wider text-violet-600">FAQ</p>
-      <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">Veelgestelde vragen</h2>
-      <div className="mt-8 divide-y divide-slate-200 rounded-3xl border border-slate-200 bg-white">
+      <h2 className="text-3xl font-extrabold tracking-tight text-stone-950">Vragen</h2>
+      <div className="mt-8 divide-y divide-stone-200 rounded-2xl border border-stone-200 bg-white">
         {QA.map((item) => (
           <details key={item.q} className="group px-6 py-4">
-            <summary className="cursor-pointer list-none font-semibold text-slate-900 flex items-center justify-between gap-4">
-              {item.q}
-              <span className="text-violet-600 group-open:rotate-45 transition text-xl leading-none">+</span>
-            </summary>
-            <p className="mt-2 text-sm text-slate-600 leading-relaxed">{item.a}</p>
+            <summary className="cursor-pointer list-none font-semibold text-stone-900">{item.q}</summary>
+            <p className="mt-2 text-sm text-stone-600 leading-relaxed">{item.a}</p>
           </details>
         ))}
       </div>

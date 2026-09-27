@@ -1,17 +1,25 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { expireStaleHolds } from "@/lib/bookings";
-import { CATEGORY_LABELS, CITIES } from "@/lib/utils";
+import { CATEGORY_LABELS, CITIES, discountPercent } from "@/lib/utils";
+import { brusselsDayStart, brusselsHour } from "@/lib/time";
 import { Button } from "@/components/ui/button";
 import { SlotsBrowse } from "@/components/slots/slots-browse";
-import Link from "next/link";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Surprise slots — kaart & lijst" };
+export const metadata = {
+  title: "Open uren",
+  description: "Kaart en lijst van last-minute afspraken. Filter op datum, tijdstip, categorie en prijs.",
+  alternates: { canonical: "/slots" },
+};
 
 type SearchParams = Promise<{
   stad?: string;
   categorie?: string;
   wanneer?: string;
+  dagdeel?: string;
+  max?: string;
+  korting?: string;
   q?: string;
 }>;
 
@@ -19,25 +27,23 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
   const sp = await searchParams;
   await expireStaleHolds();
   const now = new Date();
-  const tomorrowEnd = new Date(now);
-  tomorrowEnd.setDate(tomorrowEnd.getDate() + 2);
-  tomorrowEnd.setHours(0, 0, 0, 0);
-
+  const tomorrow = brusselsDayStart(1);
+  const dayAfter = brusselsDayStart(2);
   const whenFilter =
     sp.wanneer === "vandaag"
-      ? { gte: now, lt: new Date(new Date(now).setHours(23, 59, 59, 999)) }
+      ? { gte: now, lt: tomorrow }
       : sp.wanneer === "morgen"
-        ? {
-            gte: new Date(new Date(now).setHours(24, 0, 0, 0)),
-            lt: tomorrowEnd,
-          }
+        ? { gte: tomorrow, lt: dayAfter }
         : { gte: now };
 
+  const maxEuro = Number(sp.max);
+  const minDiscount = Number(sp.korting);
   const slots = await prisma.slot.findMany({
     where: {
       status: "OPEN",
       spotsLeft: { gt: 0 },
       startsAt: whenFilter,
+      ...(Number.isFinite(maxEuro) && maxEuro > 0 ? { discountPrice: { lte: Math.round(maxEuro * 100) } } : {}),
       salon: {
         status: "ACTIVE",
         ...(sp.stad ? { city: sp.stad } : {}),
@@ -46,8 +52,8 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
       ...(sp.q
         ? {
             OR: [
-              { title: { contains: sp.q, mode: "insensitive" } },
-              { salon: { name: { contains: sp.q, mode: "insensitive" } } },
+              { title: { contains: sp.q, mode: "insensitive" as const } },
+              { salon: { name: { contains: sp.q, mode: "insensitive" as const } } },
             ],
           }
         : {}),
@@ -57,7 +63,15 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
     take: 80,
   });
 
-  const payload = slots.map((s) => ({
+  const filtered = slots.filter((slot) => {
+    if (sp.dagdeel === "ochtend" && (brusselsHour(slot.startsAt) < 6 || brusselsHour(slot.startsAt) >= 12)) return false;
+    if (sp.dagdeel === "middag" && (brusselsHour(slot.startsAt) < 12 || brusselsHour(slot.startsAt) >= 17)) return false;
+    if (sp.dagdeel === "avond" && (brusselsHour(slot.startsAt) < 17 || brusselsHour(slot.startsAt) >= 22)) return false;
+    if (Number.isFinite(minDiscount) && minDiscount > 0 && discountPercent(slot.originalPrice, slot.discountPrice) < minDiscount) return false;
+    return true;
+  });
+
+  const payload = filtered.map((s) => ({
     id: s.id,
     title: s.title,
     startsAt: s.startsAt.toISOString(),
@@ -70,6 +84,7 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
       city: s.salon.city,
       category: s.salon.category,
       rating: s.salon.ratingAvg,
+      ratingCount: s.salon.ratingCount,
       address: s.salon.address,
       lat: s.salon.lat,
       lng: s.salon.lng,
@@ -77,87 +92,49 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
     },
   }));
 
-  const mk = (key: string, val?: string) => {
-    const p = new URLSearchParams();
-    if (sp.stad && key !== "stad") p.set("stad", sp.stad);
-    if (sp.categorie && key !== "categorie") p.set("categorie", sp.categorie);
-    if (sp.wanneer && key !== "wanneer") p.set("wanneer", sp.wanneer);
-    if (sp.q) p.set("q", sp.q);
-    if (val) p.set(key, val);
-    const qs = p.toString();
-    return qs ? `/slots?${qs}` : "/slots";
-  };
-
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 md:py-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-violet-600">Surprise slots</p>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
-            Last-minute in jouw buurt
-          </h1>
-          <p className="mt-1 text-slate-500">
-            Kaart + lijst · afstand · korting · countdown — Too Good To Go voor afspraken
-          </p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-7xl px-4 py-8">
+      <h1 className="text-3xl font-extrabold tracking-tight text-stone-950">Open uren</h1>
+      <p className="mt-1 text-stone-600">Kaart of lijst. Tijden in België en Nederland. Alleen uren die nu echt vrij zijn.</p>
 
-      <form className="mt-6 flex flex-wrap gap-2" action="/slots" method="get">
-        <input
-          name="q"
-          defaultValue={sp.q || ""}
-          placeholder="Zoek salon, stad of behandeling…"
-          className="h-11 flex-1 min-w-[200px] rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm"
-        />
-        <select name="stad" defaultValue={sp.stad || ""} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm">
+      <form className="mt-6 grid gap-2 sm:grid-cols-3 lg:grid-cols-6" action="/slots">
+        <input name="q" defaultValue={sp.q || ""} placeholder="Zaak of behandeling" aria-label="Zoeken" className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm sm:col-span-2" />
+        <select name="stad" defaultValue={sp.stad || ""} aria-label="Stad" className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
           <option value="">Alle steden</option>
-          {CITIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
+          {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <select
-          name="categorie"
-          defaultValue={sp.categorie || ""}
-          className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm"
-        >
+        <select name="categorie" defaultValue={sp.categorie || ""} aria-label="Categorie" className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
           <option value="">Alle categorieën</option>
-          {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
-            <option key={k} value={k}>
-              {v}
-            </option>
-          ))}
+          {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <select
-          name="wanneer"
-          defaultValue={sp.wanneer || ""}
-          className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm"
-        >
-          <option value="">Vandaag + morgen</option>
+        <select name="wanneer" defaultValue={sp.wanneer || ""} aria-label="Datum" className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
+          <option value="">Alle datums</option>
           <option value="vandaag">Vandaag</option>
           <option value="morgen">Morgen</option>
         </select>
-        <Button type="submit">Filter</Button>
+        <select name="dagdeel" defaultValue={sp.dagdeel || ""} aria-label="Tijdstip" className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
+          <option value="">Hele dag</option>
+          <option value="ochtend">Ochtend</option>
+          <option value="middag">Middag</option>
+          <option value="avond">Avond</option>
+        </select>
+        <select name="max" defaultValue={sp.max || ""} aria-label="Maximumprijs" className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
+          <option value="">Elke prijs</option>
+          <option value="25">Tot €25</option>
+          <option value="40">Tot €40</option>
+          <option value="60">Tot €60</option>
+        </select>
+        <select name="korting" defaultValue={sp.korting || ""} aria-label="Minimale korting" className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
+          <option value="">Elke korting</option>
+          <option value="20">Minstens 20%</option>
+          <option value="30">Minstens 30%</option>
+          <option value="40">Minstens 40%</option>
+        </select>
+        <Button type="submit" className="lg:col-span-2">Toon uren</Button>
       </form>
-
-      <div className="mt-3 flex flex-wrap gap-2 text-xs">
-        <Link href="/slots" className="rounded-full bg-slate-100 px-3 py-1.5 font-medium hover:bg-violet-100">
-          Reset
-        </Link>
-        {CITIES.map((c) => (
-          <Link
-            key={c}
-            href={mk("stad", c)}
-            className={`rounded-full px-3 py-1.5 font-medium ${
-              sp.stad === c ? "bg-violet-600 text-white" : "bg-slate-100 hover:bg-violet-100"
-            }`}
-          >
-            {c}
-          </Link>
-        ))}
-      </div>
-
+      <p className="mt-3 text-sm">
+        <Link href="/slots" className="underline">Filters wissen</Link>
+      </p>
       <div className="mt-6">
         <SlotsBrowse slots={payload} initialCity={sp.stad} />
       </div>

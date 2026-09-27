@@ -13,6 +13,7 @@ import { BookingQr } from "@/components/booking-qr";
 import { MiniMap } from "@/components/map/mini-map";
 import { MapPin, Clock, Info } from "lucide-react";
 import { CopyCodeButton } from "@/components/copy-code-button";
+import { TrackOnMount } from "@/components/track-on-mount";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Boeking bevestigd" };
@@ -39,27 +40,28 @@ export default async function SuccesPage({
   }
 
   const code = booking ? shortCode(booking.confirmationCode) : null;
-  const qrValue = booking
-    ? `GATVULLER:${booking.confirmationCode}`
-    : "GATVULLER:DEMO";
+  const paid = booking?.status === "PAID";
+  const pending = booking?.status === "PENDING";
+  const qrValue = booking ? `GATVULLER:${booking.confirmationCode}` : "";
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
+      {paid && <TrackOnMount name="payment_completed" entityId={booking.id} />}
       <div className="text-center mb-8">
-        <Badge variant="success" className="mb-3">
-          Bevestigd
+        <Badge variant={paid ? "success" : "default"} className="mb-3">
+          {paid ? "Betaald" : pending ? "Betaling nog niet bevestigd" : "Status onbekend"}
         </Badge>
         <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-          Je Surprise slot is geboekt ✓
+          {paid ? "Je afspraak is gereserveerd" : pending ? "We wachten op de betaalbevestiging" : "Boeking"}
         </h1>
         <p className="mt-2 text-slate-500">
-          Toon deze code bij aankomst — net zoals een TGTG-order.
+          {paid ? "Toon de code bij aankomst." : "Een redirect alleen is geen betaling. Vernieuw deze pagina zodra Stripe bevestigt."}
         </p>
       </div>
 
-      {sp.demo === "1" && (
-        <p className="mb-6 rounded-2xl bg-amber-50 border border-amber-100 p-4 text-sm text-amber-900">
-          Demo-modus: Stripe keys ontbreken — betaling is gesimuleerd als PAID.
+      {booking?.stripePaymentId === "demo" && (
+        <p className="mb-6 rounded-2xl bg-amber-50 border border-amber-100 p-4 text-sm text-amber-950">
+          Testmodus: deze betaling is gesimuleerd. In productie telt alleen een bevestiging van Stripe.
         </p>
       )}
 
@@ -98,7 +100,7 @@ export default async function SuccesPage({
                       {formatEuro(booking.slot.originalPrice)}
                     </p>
                   </div>
-                  <Badge variant="violet">Fee {formatEuro(booking.feeAmount)}</Badge>
+                  <p className="text-xs text-slate-500">Zaak betaalt {formatEuro(booking.feeAmount)} platformkosten. Jij betaalde {formatEuro(booking.amount)}.</p>
                 </div>
               </div>
             </CardContent>
@@ -123,7 +125,7 @@ export default async function SuccesPage({
                 <Info className="h-4 w-4 text-violet-600" /> Annuleringsregels
               </p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Gratis annuleren tot 2 uur voor start (demo).</li>
+                <li>Annuleren kan tot {booking.slot.salon.cancellationHours} uur voor de start.</li>
                 <li>No-show: geen terugbetaling — het gat was voor jou gereserveerd.</li>
                 <li>Bevestiging gestuurd naar {booking.customerEmail}</li>
               </ul>

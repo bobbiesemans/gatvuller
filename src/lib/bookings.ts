@@ -2,7 +2,7 @@ import type { Prisma, Salon, Slot, User } from "@prisma/client";
 import { prisma } from "./prisma";
 import { ApiError } from "./errors";
 import { randomCode } from "./codes";
-import { PAYMENT_HOLD_MINUTES, PLATFORM_FEE_PERCENT } from "./config";
+import { isDemoMode, PAYMENT_HOLD_MINUTES, PLATFORM_FEE_PERCENT } from "./config";
 import { platformFee } from "./utils";
 import { getStripe, stripeConfigured, stripeLocale } from "./stripe";
 import { appUrl } from "./config";
@@ -25,7 +25,8 @@ export async function recomputeSlot(db: Db | typeof prisma, slotId: string) {
   });
   const spotsLeft = Math.max(0, slot.capacity - taken);
   const ended = slot.endsAt <= now;
-  const status = spotsLeft === 0 ? "BOOKED" : ended ? "EXPIRED" : "OPEN";
+  const status =
+    spotsLeft === 0 ? "BOOKED" : ended ? "EXPIRED" : slot.status === "PAUSED" ? "PAUSED" : "OPEN";
   await db.slot.update({ where: { id: slotId }, data: { spotsLeft, status } });
 }
 
@@ -76,7 +77,7 @@ export async function startCheckout(input: CheckoutInput) {
     await tx.$executeRaw`SELECT id FROM "Slot" WHERE id = ${input.slotId} FOR UPDATE`;
     const slot = await tx.slot.findUnique({ where: { id: input.slotId }, include: { salon: true } });
     if (!slot || slot.salon.status !== "ACTIVE") throw new ApiError(409, "slot_unavailable");
-    if (slot.status === "CANCELLED" || slot.startsAt <= new Date()) throw new ApiError(409, "slot_unavailable");
+    if (slot.status !== "OPEN" || slot.startsAt <= new Date()) throw new ApiError(409, "slot_unavailable");
 
     await tx.booking.updateMany({
       where: { slotId: slot.id, status: "PENDING", holdExpiresAt: { lt: new Date() } },
@@ -117,6 +118,10 @@ export async function startCheckout(input: CheckoutInput) {
   });
 
   if (!stripeConfigured()) {
+    if (!isDemoMode()) {
+      await releaseHold(booking.id);
+      throw new ApiError(503, "payments_not_configured");
+    }
     await markPaid(booking.id, "demo");
     return { demoPaid: true as const, bookingId: booking.id };
   }
@@ -169,6 +174,7 @@ export async function markPaid(bookingId: string, paymentId: string) {
     await tx.$executeRaw`SELECT id FROM "Booking" WHERE id = ${bookingId} FOR UPDATE`;
     const booking = await tx.booking.findUnique({ where: { id: bookingId }, include: { slot: true } });
     if (!booking) throw new ApiError(404, "not_found");
+    if (paymentId === "demo" && !isDemoMode()) throw new ApiError(403, "demo_disabled");
     if (booking.status === "PAID") return { booking, changed: false, overflow: false };
     if (booking.status === "CANCELLED" || booking.status === "REFUNDED") {
       return { booking, changed: false, overflow: true };

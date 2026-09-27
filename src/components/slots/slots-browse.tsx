@@ -8,6 +8,8 @@ import { distanceKm, CATEGORY_LABELS, CATEGORY_EMOJI } from "@/lib/utils";
 import { getStoredLocation, requestUserLocation, type LatLng } from "@/lib/geo";
 import { getFavorites } from "@/lib/favorites";
 import { List, Map as MapIcon, LocateFixed, Heart } from "lucide-react";
+import { EmptySlots } from "@/components/slots/empty-slots";
+import { track } from "@/lib/track";
 
 type Slot = MapSlot;
 
@@ -21,6 +23,7 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
   const [locError, setLocError] = useState<string | null>(null);
   const [locLoading, setLocLoading] = useState(false);
   const [catFilter, setCatFilter] = useState<string | null>(null);
+  const [maxKm, setMaxKm] = useState<number | null>(null);
 
   useEffect(() => {
     setUserLoc(getStoredLocation());
@@ -62,6 +65,7 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
   const visible = enriched.filter((s) => {
     if (favOnly && !favorites.includes(s.id)) return false;
     if (catFilter && s.salon.category !== catFilter) return false;
+    if (maxKm != null && (s.distanceKm == null || s.distanceKm > maxKm)) return false;
     return true;
   });
   const categories = useMemo(() => {
@@ -130,7 +134,26 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
           Favorieten{favorites.length ? ` (${favorites.length})` : ""}
         </Button>
 
-        <p className="ml-auto text-sm text-slate-500">{visible.length} surprise slots</p>
+        <label className="text-sm text-slate-600">
+          Afstand
+          <select
+            className="ml-2 rounded-lg border border-slate-200 bg-white px-2 py-1"
+            value={maxKm ?? ""}
+            aria-label="Maximale afstand"
+            onChange={(e) => {
+              const value = e.target.value ? Number(e.target.value) : null;
+              setMaxKm(value);
+              if (value) track("filter_used", `km-${value}`);
+              if (value && !userLoc) nearMe();
+            }}
+          >
+            <option value="">Alle</option>
+            <option value="2">2 km</option>
+            <option value="5">5 km</option>
+            <option value="10">10 km</option>
+          </select>
+        </label>
+        <p className="basis-full text-sm text-stone-500">{visible.length} open uren</p>
       </div>
 
       <div className="flex items-center gap-2 text-sm">
@@ -216,9 +239,7 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
               </div>
             ))}
             {visible.length === 0 && (
-              <div className="rounded-2xl border border-dashed p-10 text-center text-slate-500">
-                Geen slots voor deze filters.
-              </div>
+              <EmptySlots favOnly={favOnly} hasFilters={Boolean(catFilter || maxKm || favOnly)} onClear={() => { setCatFilter(null); setMaxKm(null); setFavOnly(false); }} />
             )}
           </div>
           <div className="sticky top-20 h-[70vh] min-h-[420px]">
@@ -235,9 +256,7 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
       )}
 
       {view === "list" && visible.length === 0 && (
-        <div className="rounded-2xl border border-dashed p-10 text-center text-slate-500">
-          Geen slots voor deze filters.
-        </div>
+        <EmptySlots favOnly={favOnly} hasFilters={Boolean(catFilter || maxKm || favOnly)} onClear={() => { setCatFilter(null); setMaxKm(null); setFavOnly(false); }} />
       )}
     </div>
   );

@@ -4,20 +4,20 @@ const STEPS = [
   {
     icon: MapPinned,
     n: "01",
-    title: "Ontdek Surprise slots",
-    desc: "Open de kaart of lijst. Zie last-minute gaten bij kapper, schoonheid, fysio, tandarts en meer — met korting tot 50%.",
+    title: "Kies een vrij uur",
+    desc: "Filter op vandaag of morgen, afstand en categorie. Je ziet de zaak, het adres en de echte korting.",
   },
   {
     icon: Ticket,
     n: "02",
-    title: "Reserveer & betaal",
-    desc: "Kies je tijdvenster, betaal veilig (of demo zonder Stripe) en ontvang meteen je bevestigingscode.",
+    title: "Betaal de getoonde prijs",
+    desc: "De plek blijft kort gereserveerd. De boeking is pas betaald als de betaling bevestigd is.",
   },
   {
     icon: Footprints,
     n: "03",
-    title: "Ga erheen",
-    desc: "Toon je code bij aankomst. Adres + kaartpin staan klaar. Het gat is gevuld — jij hebt bespaard.",
+    title: "Toon je code",
+    desc: "Je krijgt een bevestiging met QR-code. De zaak ziet dezelfde code in het dashboard.",
   },
 ];
 
@@ -30,10 +30,10 @@ export function HowItWorks({ dark = false }: { dark?: boolean }) {
             Hoe het werkt
           </p>
           <h2 className="mt-2 text-3xl md:text-4xl font-extrabold tracking-tight">
-            Drie stappen. Zoals Too Good To Go — voor afspraken.
+            Van leeg uur naar afspraak.
           </h2>
           <p className={`mt-3 ${dark ? "text-slate-400" : "text-slate-600"}`}>
-            Geen voedselverspilling, wel lege stoelen. Salons vullen gaten; jij boekt last-minute met korting.
+            GatVuller is geen algemene agenda. Het is de plek waar een lokale zaak een last-minute uur verkoopt.
           </p>
         </div>
         <ol className="mt-12 grid gap-6 md:grid-cols-3">

@@ -4,6 +4,7 @@ import { compare } from "bcryptjs";
 import type { Role } from "@prisma/client";
 import { prisma } from "./prisma";
 import { hitRateLimit } from "./rate-limit";
+import { isDemoAccount, isDemoMode } from "./config";
 
 declare module "next-auth" {
   interface User {
@@ -32,6 +33,7 @@ class RateLimitedSignin extends CredentialsSignin {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
+  useSecureCookies: process.env.NODE_ENV === "production",
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   pages: {
     signIn: "/login",
@@ -58,6 +60,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           where: { email: { equals: email, mode: "insensitive" } },
         });
         if (!user?.passwordHash || user.anonymizedAt) return null;
+        if (!isDemoMode() && isDemoAccount(user.email)) return null;
 
         const ok = await compare(password, user.passwordHash);
         if (!ok) return null;

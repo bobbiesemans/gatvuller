@@ -2,233 +2,182 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { SlotCard } from "@/components/slot-card";
-import { Badge } from "@/components/ui/badge";
 import { HowItWorks } from "@/components/how-it-works";
-import { Testimonials } from "@/components/testimonials";
 import { Faq } from "@/components/faq";
-import { TrustBar } from "@/components/trust-bar";
-import { CATEGORY_LABELS, CITIES, formatEuro } from "@/lib/utils";
-import { MapPinned, Sparkles, ShieldCheck, TrendingDown } from "lucide-react";
+import { CATEGORY_LABELS } from "@/lib/utils";
+import { isDemoMode, PLATFORM_FEE_PERCENT } from "@/lib/config";
+import { formatEuro } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
+const LAUNCH = ["KAPPER", "SCHOONHEID", "NAGELS", "MASSAGE"] as const;
+
 export default async function HomePage() {
   const now = new Date();
-  const [slots, salonCount, openCount, paidAgg] = await Promise.all([
-    prisma.slot
-      .findMany({
+  let slots: {
+    id: string;
+    title: string;
+    startsAt: Date;
+    endsAt: Date;
+    originalPrice: number;
+    discountPrice: number;
+    spotsLeft: number;
+    salon: {
+      name: string;
+      city: string;
+      category: string;
+      ratingAvg: number;
+      ratingCount: number;
+      address: string;
+      imageUrl: string | null;
+    };
+  }[] = [];
+  let openCount = 0;
+  let paid: { amount: number; slot: { originalPrice: number } }[] = [];
+  let dbError = false;
+  try {
+    [slots, openCount, paid] = await Promise.all([
+      prisma.slot.findMany({
         where: { status: "OPEN", spotsLeft: { gt: 0 }, startsAt: { gte: now }, salon: { status: "ACTIVE" } },
         include: { salon: true },
         orderBy: { startsAt: "asc" },
-        take: 6,
-      })
-      .catch(() => []),
-    prisma.salon.count().catch(() => 20),
-    prisma.slot.count({ where: { status: "OPEN", spotsLeft: { gt: 0 }, startsAt: { gte: now }, salon: { status: "ACTIVE" } } }).catch(() => 0),
-    prisma.booking
-      .findMany({
+        take: 24,
+      }),
+      prisma.slot.count({ where: { status: "OPEN", spotsLeft: { gt: 0 }, startsAt: { gte: now }, salon: { status: "ACTIVE" } } }),
+      prisma.booking.findMany({
         where: { status: "PAID" },
         select: { amount: true, slot: { select: { originalPrice: true } } },
-      })
-      .catch(() => []),
-  ]);
+      }),
+    ]);
+  } catch {
+    dbError = true;
+  }
 
-  const filled = paidAgg.length;
-  const saved = Math.round(paidAgg.reduce((sum, b) => sum + Math.max(0, b.slot.originalPrice - b.amount), 0) / 100);
+  const antwerp = slots.filter((s) => s.salon.city === "Antwerpen");
+  const shown = [...antwerp, ...slots.filter((s) => s.salon.city !== "Antwerpen")].slice(0, 6);
+  const savedCents = paid.reduce((sum, b) => sum + Math.max(0, b.slot.originalPrice - b.amount), 0);
+  const maxSave = shown.reduce((max, slot) => Math.max(max, slot.originalPrice - slot.discountPrice), 0);
 
   return (
     <div>
-      <section className="relative overflow-hidden text-white gv-gradient">
-        <div className="absolute inset-0 gv-grid opacity-40" />
-        <div className="absolute -right-20 top-10 h-72 w-72 rounded-full bg-fuchsia-400/20 blur-3xl" />
-        <div className="absolute -left-10 bottom-0 h-64 w-64 rounded-full bg-violet-300/20 blur-3xl" />
-        <div className="relative mx-auto max-w-6xl px-4 py-16 md:py-24">
-          <div className="flex flex-wrap items-center gap-2 mb-6">
-            <Badge className="bg-white/20 text-white border-0 backdrop-blur">BE & NL</Badge>
-            <Badge className="bg-emerald-400/20 text-emerald-100 border-0">Live Surprise slots</Badge>
-            <Badge className="bg-white/10 text-violet-100 border-0">{openCount}+ open vandaag/morgen</Badge>
-          </div>
-          <h1 className="max-w-3xl text-4xl font-extrabold tracking-tight md:text-6xl leading-[1.05]">
-            Too Good To Go
-            <span className="block text-violet-200">voor afspraken — niet voor eten.</span>
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg text-violet-100/95 leading-relaxed">
-            Ontdek last-minute Surprise slots bij kapper, schoonheid, fysio, tandarts, nagels & autodienst.
-            Salons vullen gaten. Jij bespaart tot 50%.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg" className="bg-white text-violet-800 hover:bg-violet-50 shadow-lg shadow-violet-950/20">
-              <Link href="/slots">
-                <MapPinned className="h-5 w-5" /> Bekijk kaart & slots
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="border-white/40 bg-transparent text-white hover:bg-white/10">
-              <Link href="/register">Ik heb een salon — gratis starten</Link>
-            </Button>
-          </div>
-
-          <div className="mt-12 grid gap-3 sm:grid-cols-3">
-            {[
-              { k: `${salonCount}+`, v: "salons in BE/NL", icon: Sparkles },
-              { k: `${filled}+`, v: "slots gevuld", icon: ShieldCheck },
-              { k: `€${saved.toLocaleString("nl-BE")}+`, v: "bespaard door klanten", icon: TrendingDown },
-            ].map((s) => (
-              <div key={s.v} className="gv-glass rounded-2xl px-5 py-4 flex items-start gap-3">
-                <s.icon className="h-5 w-5 mt-1 text-violet-200" />
-                <div>
-                  <p className="text-2xl font-extrabold">{s.k}</p>
-                  <p className="text-sm text-violet-100/80">{s.v}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <TrustBar />
-
-      <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-6 flex flex-wrap gap-2 items-center">
-          <span className="text-sm font-medium text-slate-500 mr-2">Populair:</span>
-          {CITIES.map((c) => (
-            <Link
-              key={c}
-              href={`/slots?stad=${c}`}
-              className="rounded-full border border-slate-200 bg-slate-50 px-3.5 py-1.5 text-sm font-medium text-slate-700 hover:border-violet-300 hover:bg-violet-50 hover:text-violet-800 transition"
-            >
-              {c}
-            </Link>
-          ))}
-          {Object.entries(CATEGORY_LABELS).slice(0, 6).map(([k, v]) => (
-            <Link
-              key={k}
-              href={`/slots?categorie=${k}`}
-              className="rounded-full border border-slate-200 px-3.5 py-1.5 text-sm text-slate-600 hover:border-violet-300 hover:text-violet-800 transition"
-            >
-              {v}
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-4 py-14">
-        <div className="mb-8 flex items-end justify-between gap-4">
+      <section className="border-b border-stone-200 bg-[#f3efe8]">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-2 md:py-20">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-violet-600">Nu beschikbaar</p>
-            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Surprise slots in jouw buurt</h2>
+            <p className="text-sm font-semibold text-stone-500">Antwerpen · beauty en persoonlijke verzorging</p>
+            <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-stone-950 md:text-5xl md:leading-[1.05]">
+              Lege uren worden last-minute omzet.
+            </h1>
+            <p className="mt-4 max-w-xl text-lg text-stone-700">
+              Kappers, schoonheidssalons, nagelstudio’s en masseurs zetten een vrij moment vandaag of morgen online.
+              Jij ziet de prijs, de afstand en hoeveel je bespaart, en reserveert in een paar stappen.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button asChild size="lg">
+                <Link href="/slots?stad=Antwerpen">Bekijk uren in Antwerpen</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link href="/register">Ik heb een zaak</Link>
+              </Button>
+            </div>
+            <dl className="mt-8 grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <dt className="text-stone-500">Open uren</dt>
+                <dd className="text-2xl font-extrabold text-stone-950">{dbError ? "—" : openCount}</dd>
+              </div>
+              <div>
+                <dt className="text-stone-500">Hoogste korting</dt>
+                <dd className="text-2xl font-extrabold text-stone-950">{maxSave > 0 ? formatEuro(maxSave) : "—"}</dd>
+              </div>
+            </dl>
           </div>
-          <Button asChild variant="secondary">
-            <Link href="/slots">Kaart & alles</Link>
+          <div className="rounded-2xl border border-stone-200 bg-white p-6">
+            <h2 className="text-lg font-bold text-stone-950">Zo werkt een boeking</h2>
+            <ol className="mt-4 space-y-3 text-sm text-stone-700">
+              <li>1. Kies een uur dat vandaag of morgen vrij is.</li>
+              <li>2. Je ziet de normale prijs, de last-minute prijs en de annuleringstermijn.</li>
+              <li>3. Je betaalt online. De plek blijft 30 minuten gereserveerd tot de betaling bevestigd is.</li>
+              <li>4. Je krijgt een code en een QR-code voor bij de zaak.</li>
+            </ol>
+            <p className="mt-4 text-xs text-stone-500">
+              Zaken betalen {PLATFORM_FEE_PERCENT}% platformkosten. Jij betaalt alleen de getoonde prijs.
+              {isDemoMode() ? " Deze omgeving staat in testmodus: betalen is gesimuleerd." : ""}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-12">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-2xl font-extrabold tracking-tight text-stone-950">Beschikbaar</h2>
+            <p className="text-sm text-stone-600">Eerst Antwerpen. Andere steden volgen dezelfde pagina’s.</p>
+          </div>
+          <Button asChild variant="outline">
+            <Link href="/slots">Kaart en lijst</Link>
           </Button>
         </div>
-        {slots.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center">
-            <p className="text-lg font-semibold text-slate-800">Nog even geduld</p>
-            <p className="mt-2 text-slate-500">Er komen zo slots bij. Salon? Post je eerste gat in 30 seconden.</p>
-            <Button asChild className="mt-6">
-              <Link href="/register">Salon registreren</Link>
-            </Button>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link href="/stad/antwerpen" className="rounded-full bg-stone-900 px-3 py-1.5 text-sm font-semibold text-white">Antwerpen</Link>
+          {LAUNCH.map((key) => (
+            <Link key={key} href={`/categorie/${key.toLowerCase()}`} className="rounded-full border border-stone-200 px-3 py-1.5 text-sm text-stone-700">
+              {CATEGORY_LABELS[key]}
+            </Link>
+          ))}
+        </div>
+        {dbError ? (
+          <p className="mt-8 rounded-2xl border border-red-200 bg-red-50 px-4 py-8 text-sm text-red-800">
+            Het aanbod kan nu niet geladen worden. Probeer het opnieuw.
+          </p>
+        ) : shown.length === 0 ? (
+          <div className="mt-8 rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-12 text-center">
+            <p className="font-semibold text-stone-900">Er staat nu geen uur online</p>
+            <p className="mt-2 text-sm text-stone-600">Zaken publiceren een vrij moment wanneer het ontstaat.</p>
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {slots.map((s) => (
-              <div key={s.id} className="gv-card-hover rounded-2xl">
-                <SlotCard
-                  id={s.id}
-                  title={s.title}
-                  startsAt={s.startsAt}
-                  endsAt={s.endsAt}
-                  originalPrice={s.originalPrice}
-                  discountPrice={s.discountPrice}
-                  spotsLeft={s.spotsLeft}
-                  salon={{
-                    name: s.salon.name,
-                    city: s.salon.city,
-                    category: s.salon.category,
-                    rating: s.salon.ratingAvg,
-                    address: s.salon.address,
-                    imageUrl: s.salon.imageUrl,
-                  }}
-                />
-              </div>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {shown.map((slot) => (
+              <SlotCard
+                key={slot.id}
+                id={slot.id}
+                title={slot.title}
+                startsAt={slot.startsAt}
+                endsAt={slot.endsAt}
+                originalPrice={slot.originalPrice}
+                discountPrice={slot.discountPrice}
+                spotsLeft={slot.spotsLeft}
+                salon={{
+                  name: slot.salon.name,
+                  city: slot.salon.city,
+                  category: slot.salon.category,
+                  rating: slot.salon.ratingAvg,
+                  ratingCount: slot.salon.ratingCount,
+                  address: slot.salon.address,
+                  imageUrl: slot.salon.imageUrl,
+                }}
+              />
             ))}
           </div>
         )}
+        {paid.length > 0 && (
+          <p className="mt-6 text-sm text-stone-500">
+            Klanten bespaarden samen {formatEuro(savedCents)} op {paid.length} betaalde boekingen
+            {isDemoMode() ? " (inclusief testboekingen)" : ""}.
+          </p>
+        )}
       </section>
 
-      <HowItWorks dark />
-
-      <Testimonials />
-
+      <HowItWorks />
       <Faq />
 
-      <section className="mx-auto max-w-6xl px-4 py-16">
-        <div className="grid gap-8 md:grid-cols-2 items-center">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-violet-600">Vertrouwen</p>
-            <h2 className="mt-2 text-3xl font-extrabold tracking-tight">Ratings, adres & duidelijke regels</h2>
-            <ul className="mt-6 space-y-3 text-slate-600">
-              <li className="flex gap-3">
-                <span className="mt-1 h-2 w-2 rounded-full bg-violet-600" />
-                Salonratings zichtbaar op elke Surprise card
-              </li>
-              <li className="flex gap-3">
-                <span className="mt-1 h-2 w-2 rounded-full bg-violet-600" />
-                Bevestiging met QR-code, kaartpin en aankomstvenster
-              </li>
-              <li className="flex gap-3">
-                <span className="mt-1 h-2 w-2 rounded-full bg-violet-600" />
-                18% fee — geen abonnement voor salons
-              </li>
-            </ul>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-violet-50 to-white p-8 shadow-sm">
-            <p className="text-sm font-semibold uppercase tracking-wide text-violet-600">Demo accounts</p>
-            <p className="mt-2 text-slate-600 text-sm">
-              Probeer het platform direct — wachtwoord voor allen: <code className="text-violet-800 font-semibold">demo1234</code>
-            </p>
-            <ul className="mt-5 space-y-3 text-sm">
-              {[
-                ["Salon owner", "salon@gatvuller.be"],
-                ["Klant", "klant@gatvuller.be"],
-                ["Admin / earnings", "admin@gatvuller.be"],
-              ].map(([r, e]) => (
-                <li
-                  key={e}
-                  className="flex items-center justify-between rounded-xl bg-white px-4 py-3 border border-slate-100"
-                >
-                  <span className="text-slate-500">{r}</span>
-                  <code className="text-violet-700">{e}</code>
-                </li>
-              ))}
-            </ul>
-            <Button asChild className="mt-6 w-full">
-              <Link href="/login">Inloggen op demo</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
       <section className="mx-auto max-w-6xl px-4 pb-16">
-        <div className="rounded-3xl gv-gradient p-10 md:p-14 text-white text-center relative overflow-hidden">
-          <div className="absolute inset-0 gv-grid opacity-30" />
-          <div className="relative">
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">Lege stoel vanavond?</h2>
-            <p className="mt-3 text-violet-100 max-w-xl mx-auto">
-              Post hem op GatVuller in minder dan 30 seconden. Originele prijs + Surprise-prijs + tijdvenster. Klaar.
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Button asChild size="lg" className="bg-white text-violet-800 hover:bg-violet-50">
-                <Link href="/register">Gratis salon-account</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="border-white/40 bg-transparent text-white hover:bg-white/10">
-                <Link href="/slots">Ontdek slots</Link>
-              </Button>
-            </div>
-            <p className="mt-6 text-xs text-violet-200/80">
-              Impact: {filled}+ slots gevuld · klanten bespaarden samen ~{formatEuro(saved * 100)}
-            </p>
-          </div>
+        <div className="rounded-2xl border border-stone-200 bg-white px-6 py-10 md:px-10">
+          <h2 className="text-2xl font-extrabold tracking-tight text-stone-950">Een leeg uur vanmiddag?</h2>
+          <p className="mt-2 max-w-xl text-stone-600">
+            Zet het online met de normale prijs, de kortingsprijs en het aantal plekken. Bestaande behandelingen kan je als sjabloon hergebruiken.
+          </p>
+          <Button asChild className="mt-6">
+            <Link href="/register">Zaak registreren</Link>
+          </Button>
         </div>
       </section>
     </div>

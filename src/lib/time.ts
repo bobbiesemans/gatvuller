@@ -36,6 +36,14 @@ export function brusselsHour(date: Date): number {
   return new TZDate(date.getTime(), TIME_ZONE).getHours();
 }
 
+/** ISO instants stay absolute. Values without a zone are Brussels wall time (salon forms). */
+export function parseSlotInstant(value: string): Date | null {
+  const trimmed = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(trimmed)) return parseBrusselsLocal(trimmed);
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export type DateStyle = "full" | "dayTime" | "time" | "date" | "short";
 
 const STYLES: Record<DateStyle, Intl.DateTimeFormatOptions> = {

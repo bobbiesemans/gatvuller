@@ -8,8 +8,23 @@ export function appUrl() {
   return raw.replace(/\/$/, "");
 }
 
-/** Demo mode shows demo accounts and simulates payment when Stripe is not configured. */
-export const DEMO_MODE = bool(process.env.NEXT_PUBLIC_DEMO_MODE, true);
+/**
+ * Test mode is explicit. It is on for local development unless turned off.
+ * Production stays off unless NEXT_PUBLIC_DEMO_MODE=true. A booking is never
+ * marked paid in production without a Stripe confirmation.
+ */
+export function isDemoMode() {
+  const flag = process.env.NEXT_PUBLIC_DEMO_MODE;
+  if (flag != null && flag !== "") return bool(flag, false);
+  return process.env.NODE_ENV !== "production";
+}
+
+export const DEMO_MODE = isDemoMode();
+
+/** Seed accounts. They can sign in only while test mode is on. */
+export function isDemoAccount(email: string) {
+  return /^(admin|klant|salon\d*)@gatvuller\.be$/i.test(email.trim());
+}
 
 export const PLATFORM_FEE_PERCENT = (() => {
   const n = Number(process.env.PLATFORM_FEE_PERCENT || "18");
