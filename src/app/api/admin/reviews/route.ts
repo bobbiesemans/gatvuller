@@ -1,3 +1,4 @@
+import { refreshSalonRating } from "@/lib/bookings";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { route, requireUser, parseBody } from "@/lib/api";
@@ -17,5 +18,6 @@ export const POST = route(async (req) => {
   if (!review) throw new ApiError(404, "not_found");
   await prisma.review.update({ where: { id: review.id }, data: { hidden: body.hidden } });
   await audit(admin.id, body.hidden ? "review_hidden" : "review_shown", "review", review.id);
+  await refreshSalonRating(review.salonId);
   return NextResponse.json({ ok: true });
 });

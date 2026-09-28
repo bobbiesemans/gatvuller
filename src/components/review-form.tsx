@@ -1,10 +1,13 @@
 "use client";
 
+import { useErrorText } from "@/lib/i18n/use-error-text";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 export function ReviewForm({ bookingId }: { bookingId: string }) {
+  const errorText = useErrorText();
   const router = useRouter();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
@@ -24,7 +27,7 @@ export function ReviewForm({ bookingId }: { bookingId: string }) {
     const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Review mislukt");
+      setError(errorText(data.error));
       return;
     }
     setDone(true);

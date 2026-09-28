@@ -1,5 +1,7 @@
 "use client";
 
+import { useErrorText } from "@/lib/i18n/use-error-text";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +13,7 @@ export function CancelBookingButton({
   bookingId: string;
   variant?: "outline" | "danger" | "ghost";
 }) {
+  const errorText = useErrorText();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +30,7 @@ export function CancelBookingButton({
     const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Annuleren mislukt");
+      setError(errorText(data.error));
       return;
     }
     router.refresh();

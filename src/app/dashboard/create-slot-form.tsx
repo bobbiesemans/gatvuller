@@ -1,5 +1,7 @@
 "use client";
 
+import { useErrorText } from "@/lib/i18n/use-error-text";
+
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -47,6 +49,7 @@ export function CreateSlotForm({
   salons: { id: string; name: string }[];
   templates: SlotTemplate[];
 }) {
+  const errorText = useErrorText();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,10 +97,10 @@ export function CreateSlotForm({
         capacity,
       }),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Mislukt");
+      setError(errorText(data.error));
       return;
     }
     setOk(true);

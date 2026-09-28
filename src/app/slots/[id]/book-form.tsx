@@ -1,5 +1,7 @@
 "use client";
 
+import { useErrorText } from "@/lib/i18n/use-error-text";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -32,6 +34,7 @@ export function BookForm({
 }) {
   const t = useTranslations("ui.book");
   const common = useTranslations("ui.common");
+  const errorText = useErrorText();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,7 +56,7 @@ export function BookForm({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t("failed"));
+      if (!res.ok) throw new Error(errorText(data.error));
       if (data.url) {
         track("payment_started", slotId);
         window.location.href = data.url;

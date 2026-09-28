@@ -1,6 +1,13 @@
 import type { PaymentMode, Prisma, Salon, Slot } from "@prisma/client";
 import { isDemoMode, MIN_LEAD_MINUTES } from "./config";
 import { paymentsProvider, stripeMode } from "./stripe";
+import { LAUNCHED_CATEGORIES, LAUNCHED_CITIES } from "./catalog";
+
+/** Public listings follow the catalog: only launched cities and categories (flip `launched` to expand). */
+const NICHE = {
+  category: { in: LAUNCHED_CATEGORIES.map((c) => c.key) },
+  city: { in: LAUNCHED_CITIES.map((c) => c.name) },
+} satisfies Prisma.SalonWhereInput;
 
 type BookableFields = Pick<Salon, "status" | "isDemo" | "stripeAccountId" | "stripeChargesEnabled">;
 
@@ -62,13 +69,14 @@ export function bookableSalonWhere(): Prisma.SalonWhereInput {
         : { id: "__no_payments__" };
   return {
     status: "ACTIVE",
+    ...NICHE,
     OR: isDemoMode() ? [{ isDemo: true }, real] : [real],
   };
 }
 
 /** Salon pages stay reachable while bookings are not possible yet (for example before Stripe onboarding), but never for demo data in production or unapproved salons. */
 export function visibleSalonWhere(): Prisma.SalonWhereInput {
-  return { status: "ACTIVE", ...(isDemoMode() ? {} : { isDemo: false }) };
+  return { status: "ACTIVE", ...NICHE, ...(isDemoMode() ? {} : { isDemo: false }) };
 }
 
 export function bookingLeadCutoff(now = new Date()) {
