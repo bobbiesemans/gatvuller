@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { discountPercent, formatEuro } from "@/lib/utils";
 import { toBrusselsLocalInput } from "@/lib/time";
-import { track } from "@/lib/track";
 
 function addHours(h: number, durMin = 45) {
   const start = new Date();
@@ -101,7 +100,6 @@ export function CreateSlotForm({
       setError(data.error || "Mislukt");
       return;
     }
-    track("slot_published", data.slot?.id);
     setOk(true);
     setTitle("");
     router.refresh();

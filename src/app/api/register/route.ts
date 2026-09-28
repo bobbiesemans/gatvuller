@@ -3,7 +3,12 @@ import { hash } from "bcryptjs";
 import type { Category } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { CITY_CENTERS } from "@/lib/utils";
+import { geocodeAddress, approximateLocation } from "@/lib/geocode";
+import { recordEvent } from "@/lib/analytics";
+import { adminEmail, appUrl } from "@/lib/config";
+import { sendEmail } from "@/lib/email/send";
+import { adminNoticeEmail } from "@/lib/email/templates";
+import { isLaunchedCategory } from "@/lib/catalog";
 import { cityByName } from "@/lib/catalog";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { randomCode } from "@/lib/codes";
@@ -13,16 +18,17 @@ import { audit } from "@/lib/audit";
 import { clientIp } from "@/lib/api";
 
 const schema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
+  name: z.string().trim().min(2).max(80),
+  email: z.string().trim().email().max(120),
   password: z.string().min(8).max(80),
   referralCode: z.string().trim().max(16).optional(),
   terms: z.literal(true),
   role: z.enum(["CUSTOMER", "SALON_OWNER"]).default("CUSTOMER"),
-  salonName: z.string().optional(),
-  city: z.string().optional(),
-  category: z.string().optional(),
-  address: z.string().optional(),
+  salonName: z.string().trim().min(2).max(80).optional(),
+  city: z.string().trim().max(40).optional(),
+  category: z.string().max(20).optional(),
+  address: z.string().trim().min(5).max(160).optional(),
+  businessNumber: z.string().trim().max(20).optional(),
 });
 
 function slugify(s: string) {
@@ -55,7 +61,8 @@ export async function POST(req: Request) {
   if (exists) return NextResponse.json({ error: "E-mail al in gebruik" }, { status: 409 });
   let salonCategory: Category | undefined;
   if (data.role === "SALON_OWNER") {
-    if (!data.salonName || !data.city || !data.address || !isCategory(data.category)) {
+    const launchedCity = cityByName(data.city);
+    if (!data.salonName || !launchedCity?.launched || !data.address || !isCategory(data.category) || !isLaunchedCategory(data.category)) {
       return NextResponse.json({ error: "Vul zaak, stad, categorie en adres in" }, { status: 400 });
     }
     salonCategory = data.category;
@@ -84,8 +91,9 @@ export async function POST(req: Request) {
     while (await prisma.salon.findUnique({ where: { slug } })) {
       slug = `${base}-${i++}`;
     }
-    const center = CITY_CENTERS[data.city] || CITY_CENTERS.ALL;
-    const jitter = () => (Math.random() - 0.5) * 0.02;
+    const city = cityByName(data.city)!;
+    const exact = await geocodeAddress(data.address, city);
+    const point = exact ?? approximateLocation(city);
     const salon = await prisma.salon.create({
       data: {
         ownerId: user.id,
@@ -96,12 +104,23 @@ export async function POST(req: Request) {
         category: salonCategory,
         description: `${data.salonName} publiceert last-minute uren op GatVuller.`,
         address: data.address,
-        lat: center.lat + jitter(),
-        lng: center.lng + jitter(),
+        lat: point.lat,
+        lng: point.lng,
+        postalCode: exact?.postalCode ?? null,
+        locationExact: Boolean(exact),
+        businessNumber: data.businessNumber || null,
+        status: "PENDING",
       },
     });
     await audit(user.id, "salon_registered", "salon", salon.id, { city: data.city, category: salonCategory });
+    await recordEvent("salon_registered", { entityType: "salon", entityId: salon.id });
+    await sendEmail({
+      to: adminEmail(),
+      template: "admin_new_salon",
+      ...adminNoticeEmail(`Nieuwe zaak: ${salon.name}`, [`${salon.name} in ${salon.city} wacht op controle.`, `Ondernemingsnummer: ${salon.businessNumber || "niet opgegeven"}`], `${appUrl()}/admin`),
+    });
   }
 
+  if (!salonCategory) await recordEvent("customer_registered");
   return NextResponse.json({ ok: true, role: user.role });
 }

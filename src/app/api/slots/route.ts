@@ -8,6 +8,11 @@ import { audit } from "@/lib/audit";
 import { ApiError } from "@/lib/errors";
 import { parseSlotInstant } from "@/lib/time";
 import { requireOwnedSalon } from "@/lib/ownership";
+import { MAX_PUBLISH_DAYS_AHEAD, SLOT_LIMITS } from "@/lib/config";
+import { discountPercent } from "@/lib/money";
+import { recordEvent } from "@/lib/analytics";
+import { cancelBooking, releaseHold } from "@/lib/bookings";
+import { after } from "next/server";
 
 const createSchema = z.object({
   salonId: z.string().min(1),
@@ -17,7 +22,7 @@ const createSchema = z.object({
   endsAt: z.string().min(10),
   originalPrice: z.number().int().positive().max(100_000_00),
   discountPrice: z.number().int().positive().max(100_000_00),
-  capacity: z.number().int().min(1).max(12).default(1),
+  capacity: z.number().int().min(1).max(SLOT_LIMITS.maxCapacity).default(1),
 });
 
 const patchSchema = z.object({
@@ -26,7 +31,7 @@ const patchSchema = z.object({
   description: z.string().trim().max(400).optional(),
   originalPrice: z.number().int().positive().max(100_000_00).optional(),
   discountPrice: z.number().int().positive().max(100_000_00).optional(),
-  capacity: z.number().int().min(1).max(12).optional(),
+  capacity: z.number().int().min(1).max(SLOT_LIMITS.maxCapacity).optional(),
   action: z.enum(["pause", "resume"]).optional(),
 });
 
@@ -62,15 +67,32 @@ export async function POST(req: Request) {
   if (startsAt.getTime() < Date.now() - 5 * 60 * 1000) {
     return NextResponse.json({ error: "Het moment ligt in het verleden" }, { status: 400 });
   }
-  if (endsAt.getTime() - startsAt.getTime() > 8 * 60 * 60 * 1000) {
-    return NextResponse.json({ error: "Een slot duurt maximaal 8 uur" }, { status: 400 });
+  const minutes = (endsAt.getTime() - startsAt.getTime()) / 60000;
+  if (minutes < SLOT_LIMITS.minDurationMin || minutes > SLOT_LIMITS.maxDurationMin) {
+    return NextResponse.json({ error: "Een slot duurt tussen 10 minuten en 8 uur" }, { status: 400 });
+  }
+  if (startsAt.getTime() > Date.now() + MAX_PUBLISH_DAYS_AHEAD * 86_400_000) {
+    return NextResponse.json({ error: `GatVuller is voor last-minute uren: maximaal ${MAX_PUBLISH_DAYS_AHEAD} dagen vooruit` }, { status: 400 });
+  }
+  const pct = discountPercent(data.originalPrice, data.discountPrice);
+  if (data.discountPrice < SLOT_LIMITS.minPrice || data.originalPrice > SLOT_LIMITS.maxPrice || pct < SLOT_LIMITS.minDiscountPercent || pct > SLOT_LIMITS.maxDiscountPercent) {
+    return NextResponse.json({ error: "Prijs minstens €5 en korting tussen 5% en 80%" }, { status: 400 });
   }
 
+  let salon;
   try {
-    await requireOwnedSalon(user, data.salonId);
+    salon = await requireOwnedSalon(user, data.salonId);
   } catch {
     return NextResponse.json({ error: "Salon niet gevonden" }, { status: 404 });
   }
+  if (salon.status !== "ACTIVE") {
+    return NextResponse.json({ error: "Je zaak wordt nog gecontroleerd. Daarna kan je uren publiceren." }, { status: 409 });
+  }
+  const open = await prisma.slot.count({ where: { salonId: salon.id, status: { in: ["OPEN", "PAUSED"] }, endsAt: { gt: new Date() } } });
+  if (open >= SLOT_LIMITS.maxOpenPerSalon) {
+    return NextResponse.json({ error: "Te veel open aanbiedingen tegelijk" }, { status: 409 });
+  }
+  const isFirst = (await prisma.slot.count({ where: { salonId: salon.id } })) === 0;
 
   const slot = await prisma.slot.create({
     data: {
@@ -88,7 +110,9 @@ export async function POST(req: Request) {
   });
 
   await audit(user.id, "slot_published", "slot", slot.id, { salonId: data.salonId });
-  await notifySlotAlerts(slot.id).catch(() => undefined);
+  await recordEvent(isFirst ? "first_slot_published" : "slot_published", { entityType: "slot", entityId: slot.id });
+  // Alerts go out after the response, so publishing stays fast.
+  after(() => notifySlotAlerts(slot.id).catch(() => undefined));
   return NextResponse.json({ slot });
 }
 
@@ -162,10 +186,16 @@ export async function DELETE(req: Request) {
   if (user.role !== "ADMIN" && slot.salon.ownerId !== user.id) {
     return NextResponse.json({ error: "Geen toegang" }, { status: 403 });
   }
-  if (slot.bookings.length > 0) {
-    return NextResponse.json({ error: "Er staan nog reserveringen op dit slot. Pauzeer het in plaats van verwijderen." }, { status: 409 });
-  }
+  // Close the offer first so nobody can book it any more, then refund everyone on it.
   await prisma.slot.update({ where: { id }, data: { status: "CANCELLED" } });
-  await audit(user.id, "slot_cancelled", "slot", id);
-  return NextResponse.json({ ok: true });
+  let refunded = 0;
+  for (const b of slot.bookings) {
+    if (b.status === "PENDING") await releaseHold(b.id, "slot_cancelled");
+    else if (b.status === "PAID") {
+      await cancelBooking(b.id, { id: user.id, role: user.role });
+      refunded++;
+    }
+  }
+  await audit(user.id, "slot_cancelled", "slot", id, { refunded });
+  return NextResponse.json({ ok: true, refunded });
 }

@@ -4,6 +4,7 @@ import { expireStaleHolds } from "@/lib/bookings";
 import { CATEGORY_LABELS, CITIES, discountPercent } from "@/lib/utils";
 import { brusselsDayStart, brusselsHour } from "@/lib/time";
 import { Button } from "@/components/ui/button";
+import { bookableSalonWhere, bookingLeadCutoff } from "@/lib/marketplace";
 import { SlotsBrowse } from "@/components/slots/slots-browse";
 
 export const dynamic = "force-dynamic";
@@ -31,10 +32,10 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
   const dayAfter = brusselsDayStart(2);
   const whenFilter =
     sp.wanneer === "vandaag"
-      ? { gte: now, lt: tomorrow }
+      ? { gte: bookingLeadCutoff(now), lt: tomorrow }
       : sp.wanneer === "morgen"
         ? { gte: tomorrow, lt: dayAfter }
-        : { gte: now };
+        : { gte: bookingLeadCutoff(now) };
 
   const maxEuro = Number(sp.max);
   const minDiscount = Number(sp.korting);
@@ -45,7 +46,7 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
       startsAt: whenFilter,
       ...(Number.isFinite(maxEuro) && maxEuro > 0 ? { discountPrice: { lte: Math.round(maxEuro * 100) } } : {}),
       salon: {
-        status: "ACTIVE",
+        ...bookableSalonWhere(),
         ...(sp.stad ? { city: sp.stad } : {}),
         ...(sp.categorie ? { category: sp.categorie as never } : {}),
       },

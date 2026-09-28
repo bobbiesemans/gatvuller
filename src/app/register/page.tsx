@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CATEGORY_LABELS } from "@/lib/utils";
 import { CITIES } from "@/lib/catalog";
-import { track } from "@/lib/track";
 
 export default function RegisterPage() {
   return (
@@ -41,7 +40,7 @@ function RegisterForm() {
     const res = await fetch("/api/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     const data = await res.json();
     if (!res.ok) { setError(data.error || "Registratie mislukt"); setLoading(false); return; }
-    if (role === "SALON_OWNER") track("salon_registered");
+
     await signIn("credentials", { email: payload.email as string, password: payload.password as string, redirect: false });
     router.push(role === "SALON_OWNER" ? "/dashboard" : "/slots");
     router.refresh();

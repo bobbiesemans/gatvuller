@@ -6,7 +6,7 @@ import { SlotCard } from "@/components/slot-card";
 import { CATEGORY_LABELS } from "@/lib/utils";
 import { categoryBySlug } from "@/lib/catalog";
 import { MiniMap } from "@/components/map/mini-map";
-import { appUrl, PLATFORM_FEE_PERCENT } from "@/lib/config";
+import { appUrl, isDemoMode, PLATFORM_FEE_PERCENT } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +48,7 @@ export default async function SalonPage({ params }: { params: Promise<{ slug: st
       },
     },
   });
-  if (!salon || salon.status !== "ACTIVE") notFound();
+  if (!salon || salon.status !== "ACTIVE" || (salon.isDemo && !isDemoMode())) notFound();
   const cat = categoryBySlug(salon.category.toLowerCase());
   const jsonLd = {
     "@context": "https://schema.org",

@@ -5,9 +5,7 @@ const NAMES = new Set([
   "filter_used",
   "booking_started",
   "payment_started",
-  "payment_completed",
-  "salon_registered",
-  "slot_published",
+  "share_clicked",
 ]);
 
 /** Funnel event without names, emails or payment data. */

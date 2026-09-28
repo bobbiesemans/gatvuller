@@ -7,6 +7,7 @@ import { Faq } from "@/components/faq";
 import { CATEGORY_LABELS } from "@/lib/utils";
 import { isDemoMode, PLATFORM_FEE_PERCENT } from "@/lib/config";
 import { formatEuro } from "@/lib/utils";
+import { publicSlotWhere } from "@/lib/marketplace";
 
 export const dynamic = "force-dynamic";
 
@@ -38,14 +39,14 @@ export default async function HomePage() {
   try {
     [slots, openCount, paid] = await Promise.all([
       prisma.slot.findMany({
-        where: { status: "OPEN", spotsLeft: { gt: 0 }, startsAt: { gte: now }, salon: { status: "ACTIVE" } },
+        where: publicSlotWhere(now),
         include: { salon: true },
         orderBy: { startsAt: "asc" },
         take: 24,
       }),
-      prisma.slot.count({ where: { status: "OPEN", spotsLeft: { gt: 0 }, startsAt: { gte: now }, salon: { status: "ACTIVE" } } }),
+      prisma.slot.count({ where: publicSlotWhere(now) }),
       prisma.booking.findMany({
-        where: { status: "PAID" },
+        where: { status: "PAID", paymentMode: "LIVE" },
         select: { amount: true, slot: { select: { originalPrice: true } } },
       }),
     ]);

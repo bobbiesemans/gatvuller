@@ -17,6 +17,7 @@ import { BookForm } from "./book-form";
 import { TrackOnMount } from "@/components/track-on-mount";
 import { isDemoMode, PLATFORM_FEE_PERCENT } from "@/lib/config";
 import Link from "next/link";
+import { bookingLeadCutoff, isSalonBookable } from "@/lib/marketplace";
 import { Countdown } from "@/components/countdown";
 import { FavoriteButton } from "@/components/favorite-button";
 import { MiniMap } from "@/components/map/mini-map";
@@ -34,7 +35,8 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
   const session = await auth();
   const pct = discountPercent(slot.originalPrice, slot.discountPrice);
   const save = saveAmount(slot.originalPrice, slot.discountPrice);
-  const open = slot.status === "OPEN" && slot.spotsLeft > 0 && slot.startsAt > new Date() && slot.salon.status === "ACTIVE";
+  const open = slot.status === "OPEN" && slot.spotsLeft > 0 && slot.startsAt > bookingLeadCutoff() && isSalonBookable(slot.salon);
+  if (slot.salon.status !== "ACTIVE" || (slot.salon.isDemo && !isDemoMode())) notFound();
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -55,7 +57,7 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
           </h1>
           <p className="text-slate-600 flex flex-wrap items-center gap-x-3 gap-y-1">
             <Link href={`/salon/${slot.salon.slug}`} className="font-semibold text-slate-800 underline underline-offset-2">{slot.salon.name}</Link>
-            <span>{slot.salon.verified ? "Geverifieerd" : "Nog niet geverifieerd"}</span>
+            <span>{slot.salon.isDemo ? "Demozaak (testdata)" : slot.salon.verified ? "Geverifieerd door GatVuller" : "Nog niet geverifieerd"}</span>
             <span className="inline-flex items-center gap-1">
               <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
               {slot.salon.ratingCount > 0 ? slot.salon.ratingAvg.toFixed(1) : "Nieuw"}
