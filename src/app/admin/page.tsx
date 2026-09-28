@@ -1,10 +1,9 @@
+import { formatInZone } from "@/lib/time";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { formatEuro } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { format } from "date-fns";
-import { nlBE } from "date-fns/locale";
 import { SalonReview } from "./salon-review";
 import { ReportActions, ReviewVisibility } from "./moderation";
 import { funnel } from "@/lib/analytics";
@@ -163,7 +162,7 @@ export default async function AdminPage() {
             <div key={b.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2 text-sm">
               <div>
                 <p className="font-semibold">{b.slot.title} · {b.slot.salon.name}</p>
-                <p className="text-slate-500">{b.customerName} · {format(b.createdAt, "d MMM HH:mm", { locale: nlBE })}</p>
+                <p className="text-slate-500">{b.customerName} · {formatInZone(b.createdAt, "nl", "dayTime")}</p>
               </div>
               <div className="text-right">
                 <p className="font-bold">{formatEuro(b.amount)}</p>

@@ -1,8 +1,8 @@
+import { getLocale } from "next-intl/server";
+import { formatInZone } from "@/lib/time";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { format } from "date-fns";
-import { nlBE } from "date-fns/locale";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { ShareButton } from "@/components/share-button";
@@ -38,6 +38,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 }
 
 export default async function SlotDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const lc = await getLocale();
   const t = await getTranslations("ui.book");
   const trust = await getTranslations("ui.common");
   const { id } = await params;
@@ -93,8 +94,8 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
             <CardContent className="space-y-3 text-sm text-slate-600">
               <p className="flex items-center gap-2 text-base text-slate-800 font-medium">
                 <Clock className="h-4 w-4 text-[#b4492b]" />
-                {format(slot.startsAt, "EEEE d MMMM yyyy · HH:mm", { locale: nlBE })} –{" "}
-                {format(slot.endsAt, "HH:mm", { locale: nlBE })}
+                {formatInZone(slot.startsAt, lc, "full")} –{" "}
+                {formatInZone(slot.endsAt, lc, "time")}
               </p>
               <p>
                 <Countdown to={slot.startsAt} label={t("startIn")} />

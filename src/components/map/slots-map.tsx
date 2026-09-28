@@ -1,12 +1,12 @@
 "use client";
+import { useLocale } from "next-intl";
+import { formatInZone } from "@/lib/time";
 import { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import Link from "next/link";
 import { formatEuro, discountPercent, CATEGORY_EMOJI, formatDistance, CITY_CENTERS } from "@/lib/utils";
-import { format } from "date-fns";
-import { nlBE } from "date-fns/locale";
 export type MapSlot = {
   id: string;
   title: string;
@@ -104,6 +104,7 @@ function clusterSlots(slots: MapSlot[], zoom: number) {
   return out;
 }
 function Markers({ slots, selectedId, onSelect }: { slots: MapSlot[]; selectedId?: string | null; onSelect?: (id: string) => void }) {
+  const lc = useLocale();
   const map = useMap();
   const zoom = useMapZoom();
   const items = useMemo(() => clusterSlots(slots, zoom), [slots, zoom]);
@@ -135,7 +136,7 @@ function Markers({ slots, selectedId, onSelect }: { slots: MapSlot[]; selectedId
                   <span style={{ fontWeight: 400, color: "#94a3b8", textDecoration: "line-through", fontSize: 12 }}>{formatEuro(s.originalPrice)}</span>
                 </p>
                 <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
-                  {format(new Date(s.startsAt), "EEE HH:mm", { locale: nlBE })}
+                  {formatInZone(s.startsAt, lc, "dayTime")}
                   {s.distanceKm != null ? ` · ${formatDistance(s.distanceKm)}` : ""}
                 </p>
                 <Link href={`/slots/${s.id}`} style={{ display: "inline-block", marginTop: 8, background: "#b4492b", color: "white", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 600, textDecoration: "none" }}>

@@ -1,11 +1,11 @@
 {
   "name": "GatVuller",
   "short_name": "GatVuller",
-  "description": "Too Good To Go voor afspraken — Surprise slots in BE/NL",
+  "description": "Last-minute afspraken met korting bij lokale beautyzaken. Eerst in Antwerpen.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#6d28d9",
+  "background_color": "#faf7f2",
+  "theme_color": "#faf7f2",
   "lang": "nl-BE",
   "orientation": "portrait-primary",
   "icons": [

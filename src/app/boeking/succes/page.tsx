@@ -1,6 +1,6 @@
+import { getLocale } from "next-intl/server";
+import { formatInZone } from "@/lib/time";
 import Link from "next/link";
-import { format } from "date-fns";
-import { nlBE } from "date-fns/locale";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
@@ -24,6 +24,7 @@ export default async function SuccesPage({
 }: {
   searchParams: Promise<{ bookingId?: string; demo?: string; t?: string }>;
 }) {
+  const lc = await getLocale();
   const sp = await searchParams;
   const me = await getCurrentUser();
   const session = me ? { user: me } : null;
@@ -90,8 +91,8 @@ export default async function SuccesPage({
                 </p>
                 <p className="flex items-start gap-2">
                   <Clock className="h-4 w-4 mt-0.5 text-[#b4492b] shrink-0" />
-                  {format(booking.slot.startsAt, "EEEE d MMMM · HH:mm", { locale: nlBE })} –{" "}
-                  {format(booking.slot.endsAt, "HH:mm", { locale: nlBE })}
+                  {formatInZone(booking.slot.startsAt, lc, "dayMonth")} · {formatInZone(booking.slot.startsAt, lc, "time")} –{" "}
+                  {formatInZone(booking.slot.endsAt, lc, "time")}
                 </p>
                 <div className="pt-2 flex items-end gap-3">
                   <div>

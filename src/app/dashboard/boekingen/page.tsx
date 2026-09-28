@@ -1,7 +1,6 @@
+import { formatInZone } from "@/lib/time";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { format } from "date-fns";
-import { nlBE } from "date-fns/locale";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { formatEuro } from "@/lib/utils";
@@ -54,7 +53,7 @@ export default async function SalonBoekingenPage({ searchParams }: { searchParam
                 <div>
                   <p className="font-bold text-slate-900">{b.slot.title}</p>
                   <p className="text-sm text-slate-500">
-                    {b.slot.salon.name} · {format(b.slot.startsAt, "EEE d MMM HH:mm", { locale: nlBE })}
+                    {b.slot.salon.name} · {formatInZone(b.slot.startsAt, "nl", "dayTime")}
                   </p>
                   <p className="mt-1 text-sm">
                     {b.customerName} · <span className="font-mono tracking-wider">{b.confirmationCode}</span>

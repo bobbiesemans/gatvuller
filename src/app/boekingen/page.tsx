@@ -1,7 +1,6 @@
+import { formatInZone } from "@/lib/time";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { format } from "date-fns";
-import { nlBE, fr, enGB } from "date-fns/locale";
 import { getLocale, getTranslations } from "next-intl/server";
 import { getCurrentUser } from "@/lib/session";
 import { appUrl } from "@/lib/config";
@@ -19,7 +18,6 @@ import { toLocale } from "@/i18n/config";
 
 export const dynamic = "force-dynamic";
 
-const DATE_LOCALE = { nl: nlBE, fr, en: enGB } as const;
 
 export default async function BoekingenPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const me = await getCurrentUser();
@@ -27,7 +25,7 @@ export default async function BoekingenPage({ searchParams }: { searchParams: Pr
   if (!session?.user) redirect("/login?callbackUrl=/boekingen");
   const t = await getTranslations("ui.bookings");
   const tab = (await searchParams).tab === "voorbij" ? "past" : "upcoming";
-  const locale = DATE_LOCALE[toLocale(await getLocale())];
+  const lc = toLocale(await getLocale());
 
   const bookings = await prisma.booking.findMany({
     where: { customerId: session.user.id },
@@ -89,7 +87,7 @@ export default async function BoekingenPage({ searchParams }: { searchParams: Pr
                     </p>
                     <p className="flex items-start gap-2">
                       <Clock className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
-                      {format(b.slot.startsAt, "EEEE d MMMM · HH:mm", { locale })} – {format(b.slot.endsAt, "HH:mm", { locale })}
+                      {formatInZone(b.slot.startsAt, lc, "dayMonth")} · {formatInZone(b.slot.startsAt, lc, "time")} – {formatInZone(b.slot.endsAt, lc, "time")}
                     </p>
                     <p className="pt-1">
                       <span className="text-xl font-extrabold text-brand">{formatEuro(b.amount)}</span>{" "}

@@ -1,8 +1,8 @@
 "use client";
+import { useLocale } from "next-intl";
+import { formatInZone } from "@/lib/time";
 
 import Link from "next/link";
-import { format } from "date-fns";
-import { nlBE } from "date-fns/locale";
 import { discountPercent, formatDistance, formatEuro, CATEGORY_EMOJI } from "@/lib/utils";
 import type { MapSlot } from "@/components/map/slots-map-dynamic";
 import { X } from "lucide-react";
@@ -14,6 +14,7 @@ export function FloatingSlotCard({
   slot: MapSlot & { distanceKm?: number | null };
   onClose: () => void;
 }) {
+  const lc = useLocale();
   const pct = discountPercent(slot.originalPrice, slot.discountPrice);
   const dist = formatDistance(slot.distanceKm ?? null);
   return (
@@ -52,8 +53,8 @@ export function FloatingSlotCard({
             </span>
           </div>
           <p className="mt-1.5 text-[11px] text-slate-500">
-            {format(new Date(slot.startsAt), "EEE d MMM · HH:mm", { locale: nlBE })}–
-            {format(new Date(slot.endsAt), "HH:mm", { locale: nlBE })}
+            {formatInZone(slot.startsAt, lc, "dayTime")}–
+            {formatInZone(slot.endsAt, lc, "time")}
           </p>
           <Link
             href={`/slots/${slot.id}`}
