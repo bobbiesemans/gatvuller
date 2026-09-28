@@ -5,6 +5,7 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { MobileNav } from "@/components/mobile-nav";
 import { Providers } from "@/components/providers";
+import { EnvironmentBanner } from "@/components/environment-banner";
 import { appUrl } from "@/lib/config";
 
 const geistSans = Geist({
@@ -44,7 +45,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1c1917",
+  themeColor: "#faf7f2",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="nl-BE">
       <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen flex flex-col antialiased`}>
         <Providers>
+          <EnvironmentBanner />
           <Header />
           <main className="flex-1 pb-20 md:pb-0">{children}</main>
           <Footer />

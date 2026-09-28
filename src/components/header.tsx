@@ -30,12 +30,12 @@ export async function Header() {
           </Link>
           {(session?.user?.role === "SALON_OWNER" || session?.user?.role === "ADMIN") && (
             <Link href="/dashboard" className="hover:text-[#b4492b] transition">
-              Salon dashboard
+              Mijn zaak
             </Link>
           )}
           {session?.user?.role === "ADMIN" && (
             <Link href="/admin" className="hover:text-[#b4492b] transition">
-              Earnings
+              Beheer
             </Link>
           )}
           {!session?.user && (
@@ -47,9 +47,9 @@ export async function Header() {
         <div className="flex items-center gap-2">
           {session?.user ? (
             <>
-              <span className="hidden text-sm text-slate-500 sm:inline max-w-[140px] truncate">
+              <Link href="/account" className="hidden max-w-[140px] truncate text-sm text-slate-600 hover:underline sm:inline">
                 {session.user.name}
-              </span>
+              </Link>
               <form
                 action={async () => {
                   "use server";
@@ -67,7 +67,7 @@ export async function Header() {
                 <Link href="/login">Inloggen</Link>
               </Button>
               <Button asChild size="sm">
-                <Link href="/register">Gratis starten</Link>
+                <Link href="/register">Registreren</Link>
               </Button>
             </>
           )}
