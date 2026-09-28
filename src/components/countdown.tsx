@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 
+/** Minutes, not ticking seconds: the time is informative, not a pressure tactic. */
 function parts(msTarget: number) {
   const ms = Math.max(0, msTarget - Date.now());
   const totalSec = Math.floor(ms / 1000);
@@ -30,7 +31,7 @@ export function Countdown({
 
   useEffect(() => {
     setMounted(true);
-    const id = setInterval(() => setT(parts(targetMs)), 1000);
+    const id = setInterval(() => setT(parts(targetMs)), 30_000);
     return () => clearInterval(id);
   }, [targetMs]);
 
@@ -45,8 +46,8 @@ export function Countdown({
   return (
     <span className={cn("tabular-nums font-semibold text-stone-700", className)}>
       {label}{" "}
-      {t.h > 0 ? `${t.h}u ` : ""}
-      {String(t.m).padStart(2, "0")}:{String(t.s).padStart(2, "0")}
+      {t.h > 0 ? `${t.h} u ` : ""}
+      {t.m} min
     </span>
   );
 }
