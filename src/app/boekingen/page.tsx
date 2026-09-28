@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { nlBE, fr, enGB } from "date-fns/locale";
 import { getLocale, getTranslations } from "next-intl/server";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/session";
 import { appUrl } from "@/lib/config";
 import { prisma } from "@/lib/prisma";
 import { formatEuro, shortCode, discountPercent } from "@/lib/utils";
@@ -22,7 +22,8 @@ export const dynamic = "force-dynamic";
 const DATE_LOCALE = { nl: nlBE, fr, en: enGB } as const;
 
 export default async function BoekingenPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  const session = await auth();
+  const me = await getCurrentUser();
+  const session = me ? { user: me } : null;
   if (!session?.user) redirect("/login?callbackUrl=/boekingen");
   const t = await getTranslations("ui.bookings");
   const tab = (await searchParams).tab === "voorbij" ? "past" : "upcoming";

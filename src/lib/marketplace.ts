@@ -1,8 +1,41 @@
-import type { PaymentMode, Prisma, Salon } from "@prisma/client";
+import type { PaymentMode, Prisma, Salon, Slot } from "@prisma/client";
 import { isDemoMode, MIN_LEAD_MINUTES } from "./config";
 import { paymentsProvider, stripeMode } from "./stripe";
 
 type BookableFields = Pick<Salon, "status" | "isDemo" | "stripeAccountId" | "stripeChargesEnabled">;
+
+export type SlotVisibility =
+  | "visible"
+  | "paused"
+  | "full"
+  | "closing"
+  | "ended"
+  | "salon_pending"
+  | "salon_suspended"
+  | "payouts_missing"
+  | "payments_off"
+  | "demo_hidden";
+
+/** What the owner needs to know: is this offer on the public site, and if not, why not. */
+export function slotVisibility(
+  slot: Pick<Slot, "status" | "spotsLeft" | "startsAt" | "endsAt">,
+  salon: BookableFields,
+  now = new Date()
+): SlotVisibility {
+  if (salon.status === "PENDING") return "salon_pending";
+  if (salon.status === "SUSPENDED") return "salon_suspended";
+  if (salon.isDemo && !isDemoMode()) return "demo_hidden";
+  if (!salon.isDemo) {
+    const provider = paymentsProvider();
+    if (provider === "none") return "payments_off";
+    if (provider === "stripe" && !(salon.stripeAccountId && salon.stripeChargesEnabled)) return "payouts_missing";
+  }
+  if (slot.status === "CANCELLED" || slot.status === "EXPIRED" || slot.endsAt <= now) return "ended";
+  if (slot.status === "PAUSED") return "paused";
+  if (slot.startsAt < bookingLeadCutoff(now)) return "closing";
+  if (slot.status === "BOOKED" || slot.spotsLeft <= 0) return "full";
+  return "visible";
+}
 
 /**
  * A salon is public and bookable when an admin approved it and money can reach it:

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { formatEuro } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,8 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin earnings" };
 
 export default async function AdminPage() {
-  const session = await auth();
+  const me = await getCurrentUser();
+  const session = me ? { user: me } : null;
   if (!session?.user) redirect("/login?callbackUrl=/admin");
   if (session.user.role !== "ADMIN") redirect("/");
 

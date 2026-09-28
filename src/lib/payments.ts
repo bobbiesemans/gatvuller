@@ -24,8 +24,15 @@ export async function createCheckoutSession({
   if (!salon.stripeAccountId) throw new Error("Salon has no connected account");
   const token = bookingToken(booking.id);
   const base = appUrl();
+  const methods = (process.env.STRIPE_PAYMENT_METHODS || "")
+    .split(",")
+    .map((m) => m.trim())
+    .filter(Boolean) as Stripe.Checkout.SessionCreateParams.PaymentMethodType[];
   return stripe.checkout.sessions.create({
     mode: "payment",
+    // Without a list, Checkout offers what is switched on in the Stripe dashboard. Keep delayed methods
+    // (SEPA debit) off: a payment that lands after the start is refunded, never booked.
+    ...(methods.length ? { payment_method_types: methods } : {}),
     locale: stripeLocale(booking.locale),
     customer_email: booking.customerEmail,
     client_reference_id: booking.id,
@@ -52,7 +59,7 @@ export async function createCheckoutSession({
     metadata: { bookingId: booking.id, slotId: slot.id, salonId: salon.id },
     success_url: `${base}/boeking/status?b=${booking.id}&t=${token}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${base}/boeking/status?b=${booking.id}&t=${token}&afgebroken=1`,
-  });
+  }, { idempotencyKey: `checkout:${booking.id}` });
 }
 
 export async function retrieveCheckoutSession(sessionId: string) {
@@ -89,21 +96,22 @@ export function refundStatusOf(status: string | null | undefined): RefundStatus 
  * so every party ends where it started. The idempotency key is the payment itself: however often
  * this runs for one payment, Stripe creates one refund.
  */
-export async function refundPayment(paymentIntentId: string, opts: { bookingId: string; reason: string }) {
+export async function refundPayment(paymentIntentId: string, opts: { bookingId: string }) {
   const stripe = requireStripe();
   try {
+    // The parameters never vary for one payment, so the idempotency key always matches them.
     return await stripe.refunds.create(
       {
         payment_intent: paymentIntentId,
         reverse_transfer: true,
         refund_application_fee: true,
-        metadata: { bookingId: opts.bookingId, reason: opts.reason.slice(0, 40) },
+        metadata: { bookingId: opts.bookingId },
       },
       { idempotencyKey: `refund:${paymentIntentId}` }
     );
   } catch (error) {
-    const code = (error as { code?: string }).code;
-    if (code === "charge_already_refunded") {
+    const { code, type } = error as { code?: string; type?: string };
+    if (code === "charge_already_refunded" || type === "StripeIdempotencyError") {
       const existing = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 1 });
       if (existing.data[0]) return existing.data[0];
     }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/session";
 import { expireStaleHolds } from "@/lib/bookings";
 import { CATEGORY_LABELS, CITIES, discountPercent } from "@/lib/utils";
 import { brusselsDayStart, brusselsHour } from "@/lib/time";
@@ -29,7 +29,8 @@ type SearchParams = Promise<{
 export default async function SlotsPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const t = await getTranslations("ui.slots");
-  const session = await auth();
+  const me = await getCurrentUser();
+  const session = me ? { user: me } : null;
   await expireStaleHolds();
   const now = new Date();
   const tomorrow = brusselsDayStart(1);

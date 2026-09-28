@@ -23,8 +23,13 @@ export async function hitRateLimit(key: string, limit: number, windowSeconds: nu
   return { ok: count <= limit, count, remaining: Math.max(0, limit - count) };
 }
 
+/** Only local test runs may switch rate limiting off; a production build always enforces it. */
+export function rateLimitsDisabled() {
+  return process.env.RATE_LIMIT_DISABLED === "true" && process.env.NODE_ENV !== "production";
+}
+
 export async function enforceRateLimit(key: string, limit: number, windowSeconds: number) {
-  if (process.env.RATE_LIMIT_DISABLED === "true") return;
+  if (rateLimitsDisabled()) return;
   const res = await hitRateLimit(key, limit, windowSeconds);
   if (!res.ok) throw new ApiError(429, "rate_limited");
 }

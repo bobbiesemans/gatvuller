@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { nlBE } from "date-fns/locale";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { formatEuro } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,8 @@ export const metadata = { title: "Salonboekingen" };
 
 export default async function SalonBoekingenPage({ searchParams }: { searchParams: Promise<{ code?: string }> }) {
   const { code } = await searchParams;
-  const session = await auth();
+  const me = await getCurrentUser();
+  const session = me ? { user: me } : null;
   if (!session?.user) redirect(`/login?callbackUrl=${encodeURIComponent(`/dashboard/boekingen${code ? `?code=${code.replace(/[^A-Za-z0-9]/g, "")}` : ""}`)}`);
   if (session.user.role !== "SALON_OWNER" && session.user.role !== "ADMIN") redirect("/");
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { nlBE } from "date-fns/locale";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { formatEuro } from "@/lib/utils";
 import { isDemoMode, PLATFORM_FEE_PERCENT } from "@/lib/config";
@@ -26,7 +26,8 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default async function DashboardPage() {
-  const session = await auth();
+  const me = await getCurrentUser();
+  const session = me ? { user: me } : null;
   if (!session?.user) redirect("/login?callbackUrl=/dashboard");
   if (session.user.role !== "SALON_OWNER" && session.user.role !== "ADMIN") redirect("/");
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { route, requireUser, parseBody } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { cityByName, isCategory, isLaunchedCategory } from "@/lib/catalog";
@@ -21,7 +22,12 @@ const schema = z.object({
 
 export const POST = route(async (req) => {
   const user = await requireUser(["SALON_OWNER", "ADMIN"]);
+  await enforceRateLimit(`salon-locations:${user.id}`, 10, 60 * 60);
   const body = await parseBody(req, schema);
+  // Every location goes to the admin queue; a cap keeps that queue and the geocoder free of spam.
+  if (user.role !== "ADMIN" && (await prisma.salon.count({ where: { ownerId: user.id } })) >= 5) {
+    throw new ApiError(409, "too_many_locations");
+  }
   const city = cityByName(body.city);
   if (!city?.launched || !isCategory(body.category) || !isLaunchedCategory(body.category)) {
     throw new ApiError(400, "invalid_input");

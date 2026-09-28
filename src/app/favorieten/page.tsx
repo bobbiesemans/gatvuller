@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 
 export default async function FavorietenPage() {
   const t = await getTranslations("ui.favorites");
-  const session = await auth();
+  const me = await getCurrentUser();
+  const session = me ? { user: me } : null;
   if (!session?.user) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10">

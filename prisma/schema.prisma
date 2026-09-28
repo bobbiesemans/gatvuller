@@ -221,6 +221,8 @@ model Booking {
   customerEmail     String
   customerPhone     String?
   locale            String        @default("nl")
+  /// The salon's cancellation window when the customer booked; later changes do not apply to this booking.
+  cancellationHours Int?
   confirmationCode  String        @unique
   paymentMode       PaymentMode   @default(DEMO)
   stripeSessionId   String?       @unique

@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { auth, signOut } from "@/lib/auth";
+import { signOut } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { toLocale } from "@/i18n/config";
 import { CalendarDays } from "lucide-react";
 
 export async function Header() {
-  const session = await auth();
+  const me = await getCurrentUser();
+  const session = me ? { user: me } : null;
   const t = await getTranslations("ui.nav");
   const locale = toLocale(await getLocale());
   return (

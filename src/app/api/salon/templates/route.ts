@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { route, requireUser, parseBody } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/errors";
@@ -14,6 +15,7 @@ const schema = z.object({
 
 export const POST = route(async (req) => {
   const user = await requireUser(["SALON_OWNER", "ADMIN"]);
+  await enforceRateLimit(`salon-templates:${user.id}`, 60, 60 * 60);
   const body = await parseBody(req, schema);
   if (body.discountPrice > body.originalPrice) throw new ApiError(400, "price_invalid");
   const salon = await prisma.salon.findFirst({
@@ -28,6 +30,7 @@ const patchSchema = schema.extend({ id: z.string().min(1).max(40) });
 
 export const PATCH = route(async (req) => {
   const user = await requireUser(["SALON_OWNER", "ADMIN"]);
+  await enforceRateLimit(`salon-templates:${user.id}`, 60, 60 * 60);
   const body = await parseBody(req, patchSchema);
   if (body.discountPrice > body.originalPrice) throw new ApiError(400, "price_invalid");
   const template = await prisma.serviceTemplate.findUnique({ where: { id: body.id }, include: { salon: true } });
@@ -48,6 +51,7 @@ export const PATCH = route(async (req) => {
 
 export const DELETE = route(async (req) => {
   const user = await requireUser(["SALON_OWNER", "ADMIN"]);
+  await enforceRateLimit(`salon-templates:${user.id}`, 60, 60 * 60);
   const id = new URL(req.url).searchParams.get("id");
   if (!id) throw new ApiError(400, "invalid_input");
   const template = await prisma.serviceTemplate.findUnique({ where: { id }, include: { salon: true } });

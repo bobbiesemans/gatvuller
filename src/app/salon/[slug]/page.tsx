@@ -1,3 +1,4 @@
+import { jsonLd as jsonLdScript } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -66,7 +67,7 @@ export default async function SalonPage({ params }: { params: Promise<{ slug: st
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
       <p className="text-sm text-stone-500">
         <Link href={`/stad/${salon.city.toLowerCase()}`} className="underline">{salon.city}</Link>
         {" · "}

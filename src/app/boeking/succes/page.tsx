@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { nlBE } from "date-fns/locale";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/session";
 import { verifyBookingToken } from "@/lib/tokens";
 import { appUrl } from "@/lib/config";
 import { formatEuro, shortCode, discountPercent } from "@/lib/utils";
@@ -25,7 +25,8 @@ export default async function SuccesPage({
   searchParams: Promise<{ bookingId?: string; demo?: string; t?: string }>;
 }) {
   const sp = await searchParams;
-  const session = await auth();
+  const me = await getCurrentUser();
+  const session = me ? { user: me } : null;
   const booking = sp.bookingId
     ? await prisma.booking.findUnique({
         where: { id: sp.bookingId },

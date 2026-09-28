@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { format } from "date-fns";
 import { nlBE } from "date-fns/locale";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/session";
 import { ShareButton } from "@/components/share-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,7 +46,8 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
     include: { salon: { include: { reviews: { where: { hidden: false }, orderBy: { createdAt: "desc" }, take: 6, include: { customer: { select: { name: true } } } } } } },
   });
   if (!slot) notFound();
-  const session = await auth();
+  const me = await getCurrentUser();
+  const session = me ? { user: me } : null;
   const favorite = session?.user
     ? await prisma.favoriteSalon.findUnique({ where: { userId_salonId: { userId: session.user.id, salonId: slot.salonId } } })
     : null;

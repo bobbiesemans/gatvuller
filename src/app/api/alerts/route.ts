@@ -10,6 +10,8 @@ import { cityByName, isCategory, categoryMeta } from "@/lib/catalog";
 import { sendEmail } from "@/lib/email/send";
 import { alertConfirmEmail } from "@/lib/email/templates";
 import { appUrl } from "@/lib/config";
+import { sha256 } from "@/lib/codes";
+import { getLocale } from "next-intl/server";
 
 const schema = z.object({
   email: z.string().trim().email().max(120),
@@ -23,17 +25,36 @@ export const POST = route(async (req) => {
   await enforceRateLimit(`alert:${clientIp(req)}`, 6, 60 * 60);
   const body = await parseBody(req, schema);
   const user = await getCurrentUser();
+  const locale = await getLocale();
   const email = body.email.toLowerCase();
   const city = cityByName(body.city)?.name ?? null;
   const category = body.category && isCategory(body.category) ? (body.category as Category) : null;
   const salon = body.salonId ? await prisma.salon.findFirst({ where: { id: body.salonId, status: "ACTIVE" }, select: { id: true, name: true } }) : null;
   const trusted = Boolean(user && user.email.toLowerCase() === email);
 
+  if (!trusted) await enforceRateLimit(`alert-mail:${sha256(email).slice(0, 20)}`, 3, 24 * 60 * 60);
   const existing = await prisma.slotAlert.findFirst({ where: { email, city, category, salonId: salon?.id ?? null } });
   const alert = existing
-    ? await prisma.slotAlert.update({ where: { id: existing.id }, data: { active: true, userId: user?.id ?? existing.userId, ...(trusted && !existing.confirmedAt ? { confirmedAt: new Date() } : {}) } })
+    ? await prisma.slotAlert.update({
+        where: { id: existing.id },
+        data: trusted
+          ? { active: true, userId: user!.id, confirmedAt: existing.confirmedAt ?? new Date() }
+          : existing.active && existing.confirmedAt
+            ? {}
+            : // Someone asking again for this address: it only starts after that address confirms.
+              { active: false, confirmedAt: null },
+      })
     : await prisma.slotAlert.create({
-        data: { email, city, category, salonId: salon?.id ?? null, userId: user?.id, locale: user?.locale || "nl", confirmedAt: trusted ? new Date() : null },
+        data: {
+          email,
+          city,
+          category,
+          salonId: salon?.id ?? null,
+          userId: trusted ? user!.id : null,
+          locale: user?.locale || locale,
+          active: trusted,
+          confirmedAt: trusted ? new Date() : null,
+        },
       });
 
   if (!alert.confirmedAt) {

@@ -3,7 +3,16 @@ import type Stripe from "stripe";
 import { prisma } from "./prisma";
 import { ApiError } from "./errors";
 import { randomCode } from "./codes";
-import { isDemoMode, PAYMENT_HOLD_MINUTES, PLATFORM_FEE_PERCENT, REVIEW_WINDOW_DAYS } from "./config";
+import {
+  isDemoMode,
+  LATE_PAYMENT_GRACE_MINUTES,
+  MAX_OPEN_HOLDS,
+  NO_SHOW_GRACE_MINUTES,
+  PAYMENT_HOLD_MINUTES,
+  PLATFORM_FEE_PERCENT,
+  REVIEW_WINDOW_DAYS,
+} from "./config";
+import { checkSlotValues } from "./slot-rules";
 import { platformFee } from "./money";
 import { bookingLeadCutoff, isSalonBookable, paymentModeFor } from "./marketplace";
 import { audit } from "./audit";
@@ -148,16 +157,19 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutResul
 async function reserveSpot(input: CheckoutInput, now: Date) {
   return prisma.$transaction(async (tx) => {
     await lockSlot(tx, input.slotId);
+    // Abandoned holds go first: a slot that only looked full because of them is bookable again.
+    const released = await tx.booking.updateMany({
+      where: { slotId: input.slotId, status: "PENDING", holdExpiresAt: { lte: now } },
+      data: { status: "EXPIRED", cancelReason: "hold_expired" },
+    });
+    if (released.count > 0) await recomputeSlot(tx, input.slotId, now);
     const slot = await tx.slot.findUnique({ where: { id: input.slotId }, include: { salon: true } });
     if (!slot) throw new ApiError(404, "not_found");
     if (!isSalonBookable(slot.salon)) throw new ApiError(409, "slot_unavailable");
     if (slot.salon.ownerId === input.customer.id) throw new ApiError(409, "own_salon");
-    if (slot.status !== "OPEN" || slot.startsAt < bookingLeadCutoff(now)) throw new ApiError(409, "slot_unavailable");
-
-    await tx.booking.updateMany({
-      where: { slotId: slot.id, status: "PENDING", holdExpiresAt: { lte: now } },
-      data: { status: "EXPIRED", cancelReason: "hold_expired" },
-    });
+    if (slot.startsAt < bookingLeadCutoff(now)) throw new ApiError(409, "slot_unavailable");
+    // BOOKED can still hide the customer's own hold; the capacity count below decides.
+    if (slot.status !== "OPEN" && slot.status !== "BOOKED") throw new ApiError(409, "slot_unavailable");
 
     const mine = await tx.booking.findFirst({
       where: { slotId: slot.id, customerId: input.customer.id, status: "PENDING", holdExpiresAt: { gt: now } },
@@ -170,6 +182,11 @@ async function reserveSpot(input: CheckoutInput, now: Date) {
       if (now.getTime() - mine.createdAt.getTime() < 90_000) throw new ApiError(409, "checkout_in_progress");
       await tx.booking.update({ where: { id: mine.id }, data: { status: "EXPIRED", cancelReason: "checkout_failed" } });
     }
+
+    const otherHolds = await tx.booking.count({
+      where: { customerId: input.customer.id, status: "PENDING", holdExpiresAt: { gt: now }, slotId: { not: slot.id } },
+    });
+    if (otherHolds >= MAX_OPEN_HOLDS) throw new ApiError(409, "too_many_holds");
 
     const taken = await tx.booking.count({ where: takenWhere(slot.id, now) });
     if (taken >= slot.capacity) throw new ApiError(409, "slot_full");
@@ -186,6 +203,7 @@ async function reserveSpot(input: CheckoutInput, now: Date) {
         customerEmail: input.contact.email.toLowerCase(),
         customerPhone: input.contact.phone || null,
         locale: input.customer.locale || "nl",
+        cancellationHours: slot.salon.cancellationHours,
         confirmationCode: await freshCode(tx),
         paymentMode: mode,
         stripeDestination: mode === "DEMO" ? null : slot.salon.stripeAccountId,
@@ -237,16 +255,17 @@ export async function markPaid(bookingId: string, proof: PaymentProof): Promise<
       return booking.stripePaymentId === paymentId && booking.stripeRefundId ? "already_handled" : "unavailable";
     }
 
-    // PENDING, or EXPIRED because the hold ran out: take the spot if there is still room.
+    // PENDING, or EXPIRED because the hold ran out: take the spot if there is still room and still time.
     const taken = await tx.booking.count({ where: takenWhere(booking.slotId, now, booking.id) });
-    if (booking.slot.status === "CANCELLED" || taken >= booking.slot.capacity) {
+    const tooLate = now.getTime() > booking.slot.startsAt.getTime() + LATE_PAYMENT_GRACE_MINUTES * 60_000;
+    if (booking.slot.status === "CANCELLED" || taken >= booking.slot.capacity || tooLate) {
       await tx.booking.update({
         where: { id: bookingId },
         data: {
           status: "CANCELLED",
           cancelledAt: now,
           cancelledBy: "SYSTEM",
-          cancelReason: "unavailable",
+          cancelReason: tooLate ? "paid_too_late" : "unavailable",
           stripePaymentId: proof.kind === "stripe" ? paymentId : null,
           holdExpiresAt: null,
         },
@@ -276,7 +295,7 @@ export async function markPaid(bookingId: string, proof: PaymentProof): Promise<
   }
 
   if (proof.kind === "stripe" && (outcome === "unavailable" || outcome === "duplicate_payment")) {
-    const refund = await payments.refundPayment(paymentId, { bookingId, reason: outcome });
+    const refund = await payments.refundPayment(paymentId, { bookingId });
     if (outcome === "unavailable") {
       await prisma.booking.update({
         where: { id: bookingId },
@@ -313,8 +332,19 @@ export async function confirmCheckoutSession(session: Stripe.Checkout.Session): 
   if (session.currency !== "eur" || session.amount_total !== booking.amount) {
     log.error("payment.amount_mismatch", { bookingId, expected: booking.amount, received: session.amount_total });
     await audit(null, "payment_amount_mismatch", "booking", bookingId, { received: session.amount_total, currency: session.currency });
-    await payments.refundPayment(paymentIntentId, { bookingId, reason: "amount_mismatch" });
+    const refund = await payments.refundPayment(paymentIntentId, { bookingId });
     await releaseHold(bookingId, "amount_mismatch");
+    // Leave a trace on the booking: the customer paid and was refunded.
+    await prisma.booking.updateMany({
+      where: { id: bookingId, status: { in: ["PENDING", "EXPIRED"] } },
+      data: {
+        status: "REFUNDED",
+        cancelReason: "amount_mismatch",
+        stripePaymentId: paymentIntentId,
+        stripeRefundId: refund.id,
+        refundStatus: payments.refundStatusOf(refund.status),
+      },
+    });
     return "amount_mismatch";
   }
   return markPaid(booking.id, { kind: "stripe", paymentIntentId, sessionId: session.id, livemode: session.livemode });
@@ -377,7 +407,8 @@ export async function cancelBooking(bookingId: string, actor: Actor, opts: { via
 
   const now = Date.now();
   if (by === "CUSTOMER") {
-    const cutoff = booking.slot.startsAt.getTime() - booking.slot.salon.cancellationHours * 3_600_000;
+    const hours = booking.cancellationHours ?? booking.slot.salon.cancellationHours;
+    const cutoff = booking.slot.startsAt.getTime() - hours * 3_600_000;
     if (now > cutoff) throw new ApiError(409, "cancel_window_closed");
   }
   if (by === "SALON" && booking.slot.endsAt.getTime() < now) throw new ApiError(409, "not_cancellable");
@@ -390,7 +421,7 @@ export async function cancelBooking(bookingId: string, actor: Actor, opts: { via
   if (booking.paymentMode !== "DEMO") {
     if (!booking.stripePaymentId) throw new ApiError(409, "payment_missing");
     try {
-      const r = await payments.refundPayment(booking.stripePaymentId, { bookingId: booking.id, reason: `cancelled_by_${by.toLowerCase()}` });
+      const r = await payments.refundPayment(booking.stripePaymentId, { bookingId: booking.id });
       refund = { id: r.id, amount: r.amount, status: payments.refundStatusOf(r.status) };
     } catch (error) {
       log.error("refund.failed", { bookingId: booking.id, error });
@@ -444,11 +475,17 @@ export async function markNoShow(bookingId: string, actor: Actor) {
   if (booking.status === "NO_SHOW") return booking;
   if (booking.status !== "PAID") throw new ApiError(409, "not_paid");
   if (booking.checkedInAt) throw new ApiError(409, "already_checked_in");
-  if (booking.slot.startsAt.getTime() > Date.now()) throw new ApiError(409, "too_early");
-  const updated = await prisma.booking.update({
-    where: { id: booking.id },
-    data: { status: "NO_SHOW", noShowAt: new Date() },
-  });
+  if (Date.now() < booking.slot.startsAt.getTime() + NO_SHOW_GRACE_MINUTES * 60_000) throw new ApiError(409, "too_early");
+  const updated = await prisma.$transaction(async (tx) => {
+    await lockSlot(tx, booking.slotId);
+    await lockBooking(tx, booking.id);
+    const res = await tx.booking.updateMany({
+      where: { id: booking.id, status: "PAID", checkedInAt: null },
+      data: { status: "NO_SHOW", noShowAt: new Date() },
+    });
+    if (res.count === 0) throw new ApiError(409, "not_paid");
+    return tx.booking.findUniqueOrThrow({ where: { id: booking.id } });
+  }, TX);
   await audit(actor.id, "booking_no_show", "booking", booking.id);
   return updated;
 }
@@ -469,11 +506,17 @@ export async function checkIn(code: string, actor: Actor) {
   if (now < booking.slot.startsAt.getTime() - CHECKIN_BEFORE_MS) throw new ApiError(409, "too_early");
   if (now > booking.slot.endsAt.getTime() + CHECKIN_AFTER_MS) throw new ApiError(409, "too_late");
   if (booking.checkedInAt && booking.status === "PAID") return { booking, already: true };
-  const updated = await prisma.booking.update({
-    where: { id: booking.id },
-    data: { checkedInAt: booking.checkedInAt ?? new Date(), status: "PAID", noShowAt: null },
-    include: { slot: { include: { salon: true } } },
-  });
+  const updated = await prisma.$transaction(async (tx) => {
+    await lockSlot(tx, booking.slotId);
+    await lockBooking(tx, booking.id);
+    // A refund or cancellation that landed meanwhile wins: never turn it back into PAID.
+    const res = await tx.booking.updateMany({
+      where: { id: booking.id, status: { in: ["PAID", "NO_SHOW"] } },
+      data: { checkedInAt: booking.checkedInAt ?? new Date(), status: "PAID", noShowAt: null },
+    });
+    if (res.count === 0) throw new ApiError(409, "not_paid");
+    return tx.booking.findUniqueOrThrow({ where: { id: booking.id }, include: { slot: { include: { salon: true } } } });
+  }, TX);
   await audit(actor.id, "booking_checked_in", "booking", booking.id);
   return { booking: updated, already: false };
 }
@@ -519,4 +562,132 @@ export async function createReview(bookingId: string, actor: Actor, input: { rat
   });
   await refreshSalonRating(booking.slot.salonId);
   return review;
+}
+
+export type SlotEdit = {
+  action: "pause" | "resume" | "edit";
+  title?: string;
+  description?: string | null;
+  startsAt?: Date;
+  endsAt?: Date;
+  originalPrice?: number;
+  discountPrice?: number;
+  capacity?: number;
+};
+
+/**
+ * Pause, resume or edit an offer under the slot lock. Once someone booked, the time, price and
+ * treatment they paid for are fixed; adding spots is always allowed.
+ */
+export async function updateSlot(slotId: string, actor: Actor, edit: SlotEdit) {
+  const now = new Date();
+  const slot = await prisma.$transaction(async (tx) => {
+    await lockSlot(tx, slotId);
+    const current = await tx.slot.findUnique({ where: { id: slotId }, include: { salon: true } });
+    if (!current || (actor.role !== "ADMIN" && current.salon.ownerId !== actor.id)) throw new ApiError(404, "not_found");
+    if (current.status === "CANCELLED" || current.status === "EXPIRED" || current.endsAt <= now) throw new ApiError(409, "slot_closed");
+
+    if (edit.action === "pause") {
+      if (current.status !== "OPEN" && current.status !== "BOOKED") throw new ApiError(409, "not_open");
+      return tx.slot.update({ where: { id: slotId }, data: { status: "PAUSED" } });
+    }
+    if (edit.action === "resume") {
+      if (current.status !== "PAUSED") throw new ApiError(409, "not_paused");
+      await tx.slot.update({ where: { id: slotId }, data: { status: "OPEN" } });
+      await recomputeSlot(tx, slotId, now);
+      return tx.slot.findUniqueOrThrow({ where: { id: slotId } });
+    }
+
+    const taken = await tx.booking.count({ where: takenWhere(slotId, now) });
+    const next = {
+      startsAt: edit.startsAt ?? current.startsAt,
+      endsAt: edit.endsAt ?? current.endsAt,
+      originalPrice: edit.originalPrice ?? current.originalPrice,
+      discountPrice: edit.discountPrice ?? current.discountPrice,
+      capacity: edit.capacity ?? current.capacity,
+    };
+    const timingChanged =
+      next.startsAt.getTime() !== current.startsAt.getTime() || next.endsAt.getTime() !== current.endsAt.getTime();
+    const termsChanged =
+      timingChanged ||
+      next.originalPrice !== current.originalPrice ||
+      next.discountPrice !== current.discountPrice ||
+      (edit.title !== undefined && edit.title !== current.title);
+    if (taken > 0 && (termsChanged || next.capacity < current.capacity)) throw new ApiError(409, "slot_has_bookings");
+    const rule = checkSlotValues(next, now, { timing: timingChanged });
+    if (rule) throw new ApiError(400, rule);
+
+    await tx.slot.update({
+      where: { id: slotId },
+      data: {
+        ...next,
+        title: edit.title ?? current.title,
+        description: edit.description === undefined ? current.description : edit.description || null,
+        spotsLeft: Math.max(0, next.capacity - taken),
+      },
+    });
+    await recomputeSlot(tx, slotId, now);
+    return tx.slot.findUniqueOrThrow({ where: { id: slotId } });
+  }, TX);
+  const action = edit.action === "edit" ? "slot_updated" : edit.action === "pause" ? "slot_paused" : "slot_resumed";
+  await audit(actor.id, action, "slot", slotId);
+  return slot;
+}
+
+/**
+ * Withdraw an offer. The slot is closed under the lock first, so no new checkout can start; then every
+ * paid customer is refunded and every open checkout closed. A refund that fails is retried by the cron.
+ */
+export async function cancelSlot(slotId: string, actor: Actor) {
+  const now = new Date();
+  await prisma.$transaction(async (tx) => {
+    await lockSlot(tx, slotId);
+    const slot = await tx.slot.findUnique({ where: { id: slotId }, include: { salon: true } });
+    if (!slot || (actor.role !== "ADMIN" && slot.salon.ownerId !== actor.id)) throw new ApiError(404, "not_found");
+    if (slot.status === "CANCELLED") return;
+    if (slot.startsAt <= now) throw new ApiError(409, "slot_started");
+    await tx.slot.update({ where: { id: slotId }, data: { status: "CANCELLED" } });
+  }, TX);
+
+  const open = await prisma.booking.findMany({
+    where: { slotId, status: { in: ["PENDING", "PAID"] } },
+    select: { id: true, status: true, stripeSessionId: true },
+  });
+  let refunded = 0;
+  let failed = 0;
+  for (const b of open) {
+    try {
+      if (b.status === "PENDING") {
+        await releaseHold(b.id, "slot_cancelled");
+        if (b.stripeSessionId) await payments.expireCheckoutSession(b.stripeSessionId);
+      } else {
+        await cancelBooking(b.id, actor);
+        refunded++;
+      }
+    } catch (error) {
+      failed++;
+      log.error("slot_cancel.booking_failed", { bookingId: b.id, error });
+    }
+  }
+  await audit(actor.id, "slot_cancelled", "slot", slotId, { refunded, failed });
+  return { refunded, failed };
+}
+
+/** Paid bookings left on a withdrawn offer because a refund failed earlier. Called by the cron. */
+export async function retryCancelledSlotRefunds(limit = 20) {
+  const stuck = await prisma.booking.findMany({
+    where: { status: "PAID", slot: { status: "CANCELLED" } },
+    select: { id: true },
+    take: limit,
+  });
+  let done = 0;
+  for (const b of stuck) {
+    try {
+      await cancelBooking(b.id, { id: "system", role: "ADMIN" });
+      done++;
+    } catch (error) {
+      log.error("slot_cancel.retry_failed", { bookingId: b.id, error });
+    }
+  }
+  return done;
 }

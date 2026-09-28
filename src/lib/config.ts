@@ -51,6 +51,15 @@ export const PAYMENT_HOLD_MINUTES = 37;
 /** A slot that starts sooner than this cannot be booked any more: nobody gets there in time. */
 export const MIN_LEAD_MINUTES = 20;
 
+/** Payment holds one customer may keep at once, so nobody can block a street's worth of slots. */
+export const MAX_OPEN_HOLDS = 2;
+
+/** A payment that completes this long after the start is refunded instead of booked. */
+export const LATE_PAYMENT_GRACE_MINUTES = 15;
+
+/** A salon can mark a no-show only once this much time has passed after the start. */
+export const NO_SHOW_GRACE_MINUTES = 15;
+
 /** How far ahead a salon can publish. GatVuller is for last-minute gaps, not for the agenda. */
 export const MAX_PUBLISH_DAYS_AHEAD = 7;
 
