@@ -1,3 +1,4 @@
+import { visibleSalonWhere } from "@/lib/marketplace";
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { CITIES, CATEGORIES } from "@/lib/catalog";
@@ -11,7 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let salons: { slug: string; updatedAt: Date }[] = [];
   try {
     salons = await prisma.salon.findMany({
-      where: { status: "ACTIVE" },
+      where: visibleSalonWhere(),
       select: { slug: true, updatedAt: true },
     });
   } catch {
