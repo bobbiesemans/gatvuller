@@ -50,9 +50,11 @@ export default async function SalonPage({ params }: { params: Promise<{ slug: st
   });
   if (!salon || salon.status !== "ACTIVE" || (salon.isDemo && !isDemoMode())) notFound();
   const cat = categoryBySlug(salon.category.toLowerCase());
+  const schemaTypes: Record<string, string> = { KAPPER: "HairSalon", SCHOONHEID: "BeautySalon", NAGELS: "NailSalon", MASSAGE: "DaySpa" };
+  const schemaType = schemaTypes[salon.category] || "HealthAndBeautyBusiness";
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "BeautySalon",
+    "@type": schemaType,
     name: salon.name,
     description: salon.description,
     address: { "@type": "PostalAddress", streetAddress: salon.address, addressLocality: salon.city, addressCountry: salon.country },

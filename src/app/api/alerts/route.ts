@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Category } from "@prisma/client";
-import { route, parseBody, clientIp } from "@/lib/api";
+import { route, parseBody, clientIp, requireUser } from "@/lib/api";
+import { ApiError } from "@/lib/errors";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
@@ -45,4 +46,12 @@ export const POST = route(async (req) => {
   }
   // Same answer whether or not the address was known.
   return NextResponse.json({ ok: true, confirmationSent: !alert.confirmedAt });
+});
+
+export const DELETE = route(async (req) => {
+  const user = await requireUser();
+  const salonId = new URL(req.url).searchParams.get("salonId");
+  if (!salonId) throw new ApiError(400, "invalid_input");
+  await prisma.slotAlert.updateMany({ where: { userId: user.id, salonId }, data: { active: false } });
+  return NextResponse.json({ ok: true });
 });

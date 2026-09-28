@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { expireStaleHolds } from "@/lib/bookings";
 import { CATEGORY_LABELS, CITIES, discountPercent } from "@/lib/utils";
 import { brusselsDayStart, brusselsHour } from "@/lib/time";
@@ -26,6 +28,8 @@ type SearchParams = Promise<{
 
 export default async function SlotsPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
+  const t = await getTranslations("ui.slots");
+  const session = await auth();
   await expireStaleHolds();
   const now = new Date();
   const tomorrow = brusselsDayStart(1);
@@ -81,6 +85,7 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
     discountPrice: s.discountPrice,
     spotsLeft: s.spotsLeft,
     salon: {
+      id: s.salon.id,
       name: s.salon.name,
       city: s.salon.city,
       category: s.salon.category,
@@ -95,49 +100,57 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="text-3xl font-extrabold tracking-tight text-stone-950">Open uren</h1>
-      <p className="mt-1 text-stone-600">Kaart of lijst. Tijden in België en Nederland. Alleen uren die nu echt vrij zijn.</p>
+      <h1 className="text-3xl text-ink">{t("title")}</h1>
+      <p className="mt-1 text-stone-600">{t("lead")}</p>
 
       <form className="mt-6 grid gap-2 sm:grid-cols-3 lg:grid-cols-6" action="/slots">
-        <input name="q" defaultValue={sp.q || ""} placeholder="Zaak of behandeling" aria-label="Zoeken" className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm sm:col-span-2" />
-        <select name="stad" defaultValue={sp.stad || ""} aria-label="Stad" className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
-          <option value="">Alle steden</option>
+        <input name="q" defaultValue={sp.q || ""} placeholder={t("search")} aria-label={t("search")} className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm sm:col-span-2" />
+        <select name="stad" defaultValue={sp.stad || ""} aria-label={t("city")} className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
+          <option value="">{t("allCities")}</option>
           {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <select name="categorie" defaultValue={sp.categorie || ""} aria-label="Categorie" className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
-          <option value="">Alle categorieën</option>
+        <select name="categorie" defaultValue={sp.categorie || ""} aria-label={t("category")} className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
+          <option value="">{t("allCategories")}</option>
           {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <select name="wanneer" defaultValue={sp.wanneer || ""} aria-label="Datum" className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
-          <option value="">Alle datums</option>
-          <option value="vandaag">Vandaag</option>
-          <option value="morgen">Morgen</option>
+        <select name="wanneer" defaultValue={sp.wanneer || ""} aria-label={t("date")} className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
+          <option value="">{t("anyDate")}</option>
+          <option value="vandaag">{t("today")}</option>
+          <option value="morgen">{t("tomorrow")}</option>
         </select>
-        <select name="dagdeel" defaultValue={sp.dagdeel || ""} aria-label="Tijdstip" className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
-          <option value="">Hele dag</option>
-          <option value="ochtend">Ochtend</option>
-          <option value="middag">Middag</option>
-          <option value="avond">Avond</option>
+        <select name="dagdeel" defaultValue={sp.dagdeel || ""} aria-label={t("part")} className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
+          <option value="">{t("allDay")}</option>
+          <option value="ochtend">{t("morning")}</option>
+          <option value="middag">{t("afternoon")}</option>
+          <option value="avond">{t("evening")}</option>
         </select>
-        <select name="max" defaultValue={sp.max || ""} aria-label="Maximumprijs" className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
-          <option value="">Elke prijs</option>
-          <option value="25">Tot €25</option>
-          <option value="40">Tot €40</option>
-          <option value="60">Tot €60</option>
+        <select name="max" defaultValue={sp.max || ""} aria-label={t("maxPrice")} className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
+          <option value="">{t("anyPrice")}</option>
+          <option value="25">{t("until", { amount: 25 })}</option>
+          <option value="40">{t("until", { amount: 40 })}</option>
+          <option value="60">{t("until", { amount: 60 })}</option>
         </select>
-        <select name="korting" defaultValue={sp.korting || ""} aria-label="Minimale korting" className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
-          <option value="">Elke korting</option>
-          <option value="20">Minstens 20%</option>
-          <option value="30">Minstens 30%</option>
-          <option value="40">Minstens 40%</option>
+        <select name="korting" defaultValue={sp.korting || ""} aria-label={t("minDiscount")} className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
+          <option value="">{t("anyDiscount")}</option>
+          <option value="20">{t("atLeast", { percent: 20 })}</option>
+          <option value="30">{t("atLeast", { percent: 30 })}</option>
+          <option value="40">{t("atLeast", { percent: 40 })}</option>
         </select>
-        <Button type="submit" className="lg:col-span-2">Toon uren</Button>
+        <Button type="submit" className="lg:col-span-2">{t("apply")}</Button>
       </form>
       <p className="mt-3 text-sm">
-        <Link href="/slots" className="underline">Filters wissen</Link>
+        <Link href="/slots" className="underline">{t("clear")}</Link>
       </p>
       <div className="mt-6">
-        <SlotsBrowse slots={payload} initialCity={sp.stad} />
+        <SlotsBrowse
+          slots={payload}
+          initialCity={sp.stad}
+          favoriteSalonIds={
+            session?.user
+              ? (await prisma.favoriteSalon.findMany({ where: { userId: session.user.id }, select: { salonId: true } })).map((row) => row.salonId)
+              : []
+          }
+        />
       </div>
     </div>
   );

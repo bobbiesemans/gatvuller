@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { cityBySlug } from "@/lib/catalog";
+import { cityBySlug, LAUNCHED_CATEGORIES } from "@/lib/catalog";
 import { SlotCard } from "@/components/slot-card";
 import { CATEGORY_LABELS } from "@/lib/utils";
 
@@ -39,9 +39,9 @@ export default async function CityPage({ params }: { params: Promise<{ slug: str
         GatVuller toont alleen uren die een zaak zelf heeft gepubliceerd. {city.name === "Antwerpen" ? "Antwerpen is de eerste stad waar we beauty en persoonlijke verzorging uitbouwen." : "Het aanbod groeit stad per stad."}
       </p>
       <div className="mt-4 flex flex-wrap gap-2 text-sm">
-        {Object.entries(CATEGORY_LABELS).slice(0, 4).map(([key, label]) => (
-          <Link key={key} href={`/slots?stad=${city.name}&categorie=${key}`} className="rounded-full border border-stone-200 px-3 py-1 hover:bg-stone-50">
-            {label}
+        {LAUNCHED_CATEGORIES.map((category) => (
+          <Link key={category.key} href={`/stad/${city.slug}/${category.slug}`} className="rounded-full border border-stone-200 px-3 py-1 hover:bg-stone-50">
+            {CATEGORY_LABELS[category.key]}
           </Link>
         ))}
       </div>

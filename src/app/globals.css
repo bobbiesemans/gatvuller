@@ -5,25 +5,36 @@
   --foreground: #1d1b18;
   --brand: #b4492b;
   --brand-soft: #f8ebe5;
+  --paper: #faf7f2;
+  --ink: #1d1b18;
 }
 
 @theme inline {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-serif: var(--font-serif), ui-serif, Georgia, "Times New Roman", serif;
+  --color-paper: #faf7f2;
+  --color-ink: #1d1b18;
+  --color-brand: #b4492b;
+  --color-brand-soft: #f8ebe5;
 }
 
 html { scroll-behavior: smooth; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--paper);
+  color: var(--ink);
   font-family: var(--font-sans);
 }
 
+h1, h2, h3, .font-display {
+  font-family: var(--font-serif);
+  letter-spacing: -0.02em;
+}
+
 .gv-gradient {
-  background: radial-gradient(1200px 600px at 10% -10%, rgba(167,139,250,.35), transparent 55%),
-    radial-gradient(900px 500px at 90% 0%, rgba(244,114,182,.25), transparent 50%),
-    linear-gradient(135deg, #5b21b6 0%, #6d28d9 45%, #a21caf 100%);
+  background: #f3efe8;
+  color: var(--ink);
 }
 
 .gv-grid {
@@ -44,8 +55,8 @@ body {
 }
 .gv-card-hover:hover {
   transform: translateY(-3px);
-  box-shadow: 0 16px 40px -20px rgba(109,40,217,.35);
-  border-color: #c4b5fd;
+  box-shadow: 0 16px 40px -24px rgba(29, 27, 24, 0.35);
+  border-color: #e7d3cb;
 }
 
 /* Leaflet fixes inside Next layout */

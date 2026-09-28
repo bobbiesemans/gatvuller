@@ -6,8 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { nlBE } from "date-fns/locale";
 import { SalonReview } from "./salon-review";
+import { ReportActions, ReviewVisibility } from "./moderation";
 import { funnel } from "@/lib/analytics";
 import { environmentMode } from "@/lib/marketplace";
+import { isDemoMode } from "@/lib/config";
+import { stripeConfigured } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin earnings" };
@@ -37,6 +40,19 @@ export default async function AdminPage() {
   const events = await funnel(new Date(Date.now() - 30 * 86_400_000));
   const count = (name: string) => events.find((e) => e.name === name)?.count ?? 0;
   const steps = ["offer_viewed", "booking_started", "payment_started", "payment_completed", "salon_registered", "first_slot_published"];
+  const reports = await prisma.report.findMany({ where: { status: "OPEN" }, orderBy: { createdAt: "asc" }, take: 40, include: { salon: { select: { name: true } } } });
+  const reviews = await prisma.review.findMany({ orderBy: { createdAt: "desc" }, take: 30, include: { salon: { select: { name: true } } } });
+  const outbox = isDemoMode()
+    ? await prisma.emailLog.findMany({ orderBy: { createdAt: "desc" }, take: 20, select: { id: true, to: true, subject: true, template: true, status: true, createdAt: true } })
+    : [];
+  const config = [
+    ["Stripe", stripeConfigured()],
+    ["Stripe-webhook", Boolean(process.env.STRIPE_WEBHOOK_SECRET)],
+    ["Connect-webhook", Boolean(process.env.STRIPE_CONNECT_WEBHOOK_SECRET)],
+    ["Resend", Boolean(process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes("REPLACE"))],
+    ["Cron", Boolean(process.env.CRON_SECRET)],
+    ["Foto-opslag", Boolean(process.env.BLOB_READ_WRITE_TOKEN)],
+  ] as const;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 space-y-8">
@@ -82,6 +98,59 @@ export default async function AdminPage() {
               <span>{s.name} · {s.city}{s.isDemo ? " · demo" : ""}{s.stripeChargesEnabled ? " · Stripe actief" : ""}</span>
               <SalonReview salonId={s.id} status={s.status} />
             </div>
+          ))}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>Configuratie</CardTitle></CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <p className="text-stone-500">Alleen of een onderdeel is ingesteld. Geen sleutels of waarden.</p>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {config.map(([name, ok]) => (
+              <li key={name} className="flex items-center justify-between rounded-xl border px-3 py-2">
+                <span>{name}</span>
+                <strong>{ok ? "Ingesteld" : "Niet ingesteld"}</strong>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>Meldingen ({reports.length})</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          {reports.length === 0 && <p className="text-sm text-stone-500">Geen open meldingen.</p>}
+          {reports.map((report) => (
+            <div key={report.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2 text-sm">
+              <div>
+                <p className="font-semibold">{report.reason} · {report.salon?.name || "zaak"}</p>
+                {report.message && <p className="text-stone-500">{report.message}</p>}
+              </div>
+              <ReportActions id={report.id} />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>Beoordelingen</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          {reviews.length === 0 && <p className="text-sm text-stone-500">Nog geen beoordelingen.</p>}
+          {reviews.map((review) => (
+            <div key={review.id} className="flex flex-wrap items-center justify-between gap-2 border-b py-2 text-sm last:border-0">
+              <span>{review.salon.name} · {"★".repeat(review.rating)}{review.hidden ? " · verborgen" : ""}</span>
+              <ReviewVisibility id={review.id} hidden={review.hidden} />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>E-mail-outbox</CardTitle></CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          {!isDemoMode() && <p className="text-stone-500">De outbox is alleen zichtbaar in testmodus.</p>}
+          {isDemoMode() && outbox.length === 0 && <p className="text-stone-500">Nog geen berichten.</p>}
+          {outbox.map((mail) => (
+            <p key={mail.id} className="border-b py-2 last:border-0">
+              {mail.status} · {mail.template} · {mail.subject}
+            </p>
           ))}
         </CardContent>
       </Card>

@@ -8,6 +8,7 @@ import { formatEuro } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckInForm } from "./check-in-form";
+import { BookingActions } from "./booking-actions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Salonboekingen" };
@@ -64,6 +65,11 @@ export default async function SalonBoekingenPage({ searchParams }: { searchParam
                   {b.checkedInAt && <p className="text-xs text-emerald-700">Aanwezig</p>}
                 </div>
               </div>
+              <BookingActions
+                bookingId={b.id}
+                canNoShow={b.status === "PAID" && !b.checkedInAt && b.slot.startsAt < new Date()}
+                canRefund={b.status === "PAID" && !b.checkedInAt && b.slot.endsAt > new Date()}
+              />
             </li>
           ))}
         </ul>

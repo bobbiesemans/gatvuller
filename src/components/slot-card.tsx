@@ -21,6 +21,7 @@ export type SlotCardData = {
   discountPrice: number;
   spotsLeft?: number;
   salon: {
+    id?: string;
     name: string;
     city: string;
     category: string;
@@ -65,7 +66,7 @@ export function SlotCard({
             {dist ? ` · ${dist}` : ""}
           </p>
         </div>
-        <FavoriteButton slotId={id} />
+        {salon.id ? <FavoriteButton salonId={salon.id} /> : null}
       </div>
       <div className="space-y-3 p-4">
         <div className="flex items-start justify-between gap-3">

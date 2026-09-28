@@ -6,20 +6,29 @@ import { SlotsMapDynamic, type MapSlot } from "@/components/map/slots-map-dynami
 import { Button } from "@/components/ui/button";
 import { distanceKm, CATEGORY_LABELS, CATEGORY_EMOJI } from "@/lib/utils";
 import { getStoredLocation, requestUserLocation, type LatLng } from "@/lib/geo";
-import { getFavorites } from "@/lib/favorites";
+import { useTranslations } from "next-intl";
 import { List, Map as MapIcon, LocateFixed, Heart } from "lucide-react";
 import { EmptySlots } from "@/components/slots/empty-slots";
 import { track } from "@/lib/track";
 
 type Slot = MapSlot;
 
-export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity?: string }) {
+export function SlotsBrowse({
+  slots,
+  initialCity,
+  favoriteSalonIds = [],
+}: {
+  slots: Slot[];
+  initialCity?: string;
+  favoriteSalonIds?: string[];
+}) {
   const [view, setView] = useState<"split" | "list" | "map">("split");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [userLoc, setUserLoc] = useState<LatLng | null>(null);
   const [favOnly, setFavOnly] = useState(false);
   const [sortBy, setSortBy] = useState<"time" | "distance" | "discount">("time");
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const t = useTranslations("ui.slots");
+  const common = useTranslations("ui.common");
   const [locError, setLocError] = useState<string | null>(null);
   const [locLoading, setLocLoading] = useState(false);
   const [catFilter, setCatFilter] = useState<string | null>(null);
@@ -27,16 +36,12 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
 
   useEffect(() => {
     setUserLoc(getStoredLocation());
-    const sync = () => setFavorites(getFavorites());
-    sync();
-    window.addEventListener("gv-favorites", sync);
     // desktop default split, mobile list
     const mq = window.matchMedia("(min-width: 1024px)");
     const apply = () => setView(mq.matches ? "split" : "list");
     apply();
     mq.addEventListener("change", apply);
     return () => {
-      window.removeEventListener("gv-favorites", sync);
       mq.removeEventListener("change", apply);
     };
   }, []);
@@ -63,7 +68,7 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
   }, [slots, userLoc, sortBy]);
 
   const visible = enriched.filter((s) => {
-    if (favOnly && !favorites.includes(s.id)) return false;
+    if (favOnly && !favoriteSalonIds.includes(s.salon.id || "")) return false;
     if (catFilter && s.salon.category !== catFilter) return false;
     if (maxKm != null && (s.distanceKm == null || s.distanceKm > maxKm)) return false;
     return true;
@@ -80,7 +85,7 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
       const loc = await requestUserLocation();
       setUserLoc(loc);
     } catch {
-      setLocError("Kon locatie niet ophalen. Sta toegang toe in je browser.");
+      setLocError(t("nearError"));
     } finally {
       setLocLoading(false);
     }
@@ -97,7 +102,7 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
               view === "list" ? "bg-[#b4492b] text-white" : "text-slate-600 hover:bg-slate-50"
             }`}
           >
-            <List className="h-4 w-4" /> Lijst
+            <List className="h-4 w-4" /> {t("list")}
           </button>
           <button
             type="button"
@@ -106,7 +111,7 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
               view === "map" ? "bg-[#b4492b] text-white" : "text-slate-600 hover:bg-slate-50"
             }`}
           >
-            <MapIcon className="h-4 w-4" /> Kaart
+            <MapIcon className="h-4 w-4" /> {t("map")}
           </button>
           <button
             type="button"
@@ -115,13 +120,13 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
               view === "split" ? "bg-[#b4492b] text-white" : "text-slate-600 hover:bg-slate-50"
             }`}
           >
-            Beide
+            {t("both")}
           </button>
         </div>
 
         <Button type="button" variant="outline" size="sm" onClick={nearMe} disabled={locLoading}>
           <LocateFixed className="h-4 w-4" />
-          {locLoading ? "Bezig…" : "Bij mij in de buurt"}
+          {locLoading ? common("loading") : t("near")}
         </Button>
 
         <Button
@@ -131,11 +136,11 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
           onClick={() => setFavOnly((v) => !v)}
         >
           <Heart className={`h-4 w-4 ${favOnly ? "fill-white" : ""}`} />
-          Favorieten{favorites.length ? ` (${favorites.length})` : ""}
+          {t("favorites")}{favoriteSalonIds.length ? ` (${favoriteSalonIds.length})` : ""}
         </Button>
 
         <label className="text-sm text-slate-600">
-          Afstand
+          {t("distance")}
           <select
             className="ml-2 rounded-lg border border-slate-200 bg-white px-2 py-1"
             value={maxKm ?? ""}
@@ -147,26 +152,27 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
               if (value && !userLoc) nearMe();
             }}
           >
-            <option value="">Alle</option>
+            <option value="">{common("all")}</option>
             <option value="2">2 km</option>
             <option value="5">5 km</option>
             <option value="10">10 km</option>
           </select>
         </label>
-        <p className="basis-full text-sm text-stone-500">{visible.length} open uren</p>
+        <p className="basis-full text-sm text-stone-500">{t("count", { count: visible.length })}</p>
+        <p className="basis-full text-xs text-stone-400">{t("nearHint")}</p>
       </div>
 
       <div className="flex items-center gap-2 text-sm">
-        <label className="text-slate-500" htmlFor="sort">Sorteer</label>
+        <label className="text-slate-500" htmlFor="sort">{t("sort")}</label>
         <select
           id="sort"
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
           className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700"
         >
-          <option value="time">Tijdvenster</option>
-          <option value="distance">Afstand</option>
-          <option value="discount">Hoogste korting</option>
+          <option value="time">{t("sortTime")}</option>
+          <option value="distance">{t("sortDistance")}</option>
+          <option value="discount">{t("sortDiscount")}</option>
         </select>
       </div>
 
@@ -179,7 +185,7 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
               !catFilter ? "bg-[#b4492b] text-white border-[#b4492b]" : "bg-white text-slate-600 border-slate-200"
             }`}
           >
-            Alle
+            {common("all")}
           </button>
           {categories.map((c) => (
             <button
@@ -198,9 +204,7 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
 
       {locError && <p className="text-sm text-rose-600">{locError}</p>}
       {userLoc && (
-        <p className="text-xs text-slate-500">
-          Gesorteerd op afstand vanaf jouw locatie ({userLoc.lat.toFixed(3)}, {userLoc.lng.toFixed(3)})
-        </p>
+        <p className="text-xs text-slate-500">{t("nearHint")}</p>
       )}
 
       {view === "list" && (

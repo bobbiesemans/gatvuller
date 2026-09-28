@@ -16,6 +16,7 @@ export type MapSlot = {
   discountPrice: number;
   spotsLeft: number;
   salon: {
+    id?: string;
     name: string;
     city: string;
     category: string;
