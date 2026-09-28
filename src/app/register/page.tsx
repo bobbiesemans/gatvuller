@@ -84,7 +84,7 @@ function RegisterForm() {
             {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>{loading ? "Bezig…" : "Account aanmaken"}</Button>
           </form>
-          <p className="mt-4 text-center text-sm text-slate-500">Al een account? <Link href="/login" className="font-semibold text-violet-700">Inloggen</Link></p>
+          <p className="mt-4 text-center text-sm text-slate-500">Al een account? <Link href="/login" className="font-semibold text-[#b4492b]">Inloggen</Link></p>
         </CardContent>
       </Card>
     </div>

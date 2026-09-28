@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f3ee;
-  --foreground: #1c1917;
-  --brand: #1c1917;
-  --brand-soft: #f0ebe4;
+  --background: #faf7f2;
+  --foreground: #1d1b18;
+  --brand: #b4492b;
+  --brand-soft: #f8ebe5;
 }
 
 @theme inline {
@@ -71,10 +71,3 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-@keyframes gv-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.65; }
-}
-.gv-urgent {
-  animation: gv-pulse 1.6s ease-in-out infinite;
-}

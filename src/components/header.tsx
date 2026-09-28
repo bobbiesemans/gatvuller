@@ -14,32 +14,32 @@ export async function Header() {
           <span>GatVuller</span>
         </Link>
         <nav className="hidden items-center gap-7 text-sm font-medium text-slate-600 md:flex">
-          <Link href="/slots" className="hover:text-violet-700 transition">
+          <Link href="/slots" className="hover:text-[#b4492b] transition">
             Open uren
           </Link>
-          <Link href="/favorieten" className="hover:text-violet-700 transition">
+          <Link href="/favorieten" className="hover:text-[#b4492b] transition">
             Favorieten
           </Link>
           {session?.user && (
-            <Link href="/boekingen" className="hover:text-violet-700 transition">
+            <Link href="/boekingen" className="hover:text-[#b4492b] transition">
               Mijn boekingen
             </Link>
           )}
-          <Link href="/#hoe" className="hover:text-violet-700 transition">
+          <Link href="/#hoe" className="hover:text-[#b4492b] transition">
             Hoe het werkt
           </Link>
           {(session?.user?.role === "SALON_OWNER" || session?.user?.role === "ADMIN") && (
-            <Link href="/dashboard" className="hover:text-violet-700 transition">
+            <Link href="/dashboard" className="hover:text-[#b4492b] transition">
               Salon dashboard
             </Link>
           )}
           {session?.user?.role === "ADMIN" && (
-            <Link href="/admin" className="hover:text-violet-700 transition">
+            <Link href="/admin" className="hover:text-[#b4492b] transition">
               Earnings
             </Link>
           )}
           {!session?.user && (
-            <Link href="/register" className="hover:text-violet-700 transition">
+            <Link href="/register" className="hover:text-[#b4492b] transition">
               Voor salons
             </Link>
           )}

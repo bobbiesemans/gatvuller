@@ -46,7 +46,7 @@ export default async function AdminPage() {
       </div>
       <div className="grid gap-4 sm:grid-cols-4">
         <Card><CardContent className="p-5"><p className="text-sm text-slate-500">GMV</p><p className="text-2xl font-extrabold">{formatEuro(gmv)}</p></CardContent></Card>
-        <Card><CardContent className="p-5"><p className="text-sm text-slate-500">Fees</p><p className="text-2xl font-extrabold text-violet-700">{formatEuro(fees)}</p></CardContent></Card>
+        <Card><CardContent className="p-5"><p className="text-sm text-slate-500">Fees</p><p className="text-2xl font-extrabold text-[#b4492b]">{formatEuro(fees)}</p></CardContent></Card>
         <Card><CardContent className="p-5"><p className="text-sm text-slate-500">Salons</p><p className="text-2xl font-extrabold">{salons}</p></CardContent></Card>
         <Card><CardContent className="p-5"><p className="text-sm text-slate-500">Open slots</p><p className="text-2xl font-extrabold">{openSlots}</p></CardContent></Card>
       </div>
@@ -97,7 +97,7 @@ export default async function AdminPage() {
               </div>
               <div className="text-right">
                 <p className="font-bold">{formatEuro(b.amount)}</p>
-                <p className="text-xs text-violet-700">fee {formatEuro(b.feeAmount)}</p>
+                <p className="text-xs text-[#b4492b]">fee {formatEuro(b.feeAmount)}</p>
               </div>
             </div>
           ))}

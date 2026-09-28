@@ -68,10 +68,10 @@ export default async function SuccesPage({
       {booking ? (
         <div className="space-y-5">
           <Card className="overflow-hidden">
-            <div className="bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-5 text-white">
-              <p className="text-sm text-violet-100">Bevestigingscode</p>
+            <div className="bg-[#b4492b] px-6 py-5 text-white">
+              <p className="text-sm text-[#f8ebe5]">Bevestigingscode</p>
               <p className="mt-1 text-3xl font-extrabold tracking-[0.2em]">{code}</p>
-              <p className="mt-1 text-xs text-violet-200/90">Volledig: {booking.confirmationCode}</p>
+              <p className="mt-1 text-xs text-[#f8ebe5]/90">Volledig: {booking.confirmationCode}</p>
               <div className="mt-3"><CopyCodeButton code={booking.confirmationCode} /></div>
             </div>
             <CardContent className="p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
@@ -82,17 +82,17 @@ export default async function SuccesPage({
                   {booking.slot.salon.name} · ★ {booking.slot.salon.ratingCount > 0 ? booking.slot.salon.ratingAvg.toFixed(1) : "Nieuw"}
                 </p>
                 <p className="flex items-start gap-2">
-                  <MapPin className="h-4 w-4 mt-0.5 text-violet-600 shrink-0" />
+                  <MapPin className="h-4 w-4 mt-0.5 text-[#b4492b] shrink-0" />
                   {booking.slot.salon.address}
                 </p>
                 <p className="flex items-start gap-2">
-                  <Clock className="h-4 w-4 mt-0.5 text-violet-600 shrink-0" />
+                  <Clock className="h-4 w-4 mt-0.5 text-[#b4492b] shrink-0" />
                   {format(booking.slot.startsAt, "EEEE d MMMM · HH:mm", { locale: nlBE })} –{" "}
                   {format(booking.slot.endsAt, "HH:mm", { locale: nlBE })}
                 </p>
                 <div className="pt-2 flex items-end gap-3">
                   <div>
-                    <p className="text-2xl font-extrabold text-violet-700">
+                    <p className="text-2xl font-extrabold text-[#b4492b]">
                       {formatEuro(booking.amount)}
                     </p>
                     <p className="text-xs text-slate-400">
@@ -122,7 +122,7 @@ export default async function SuccesPage({
           <Card>
             <CardContent className="p-5 text-sm text-slate-600 space-y-2">
               <p className="font-semibold text-slate-900 flex items-center gap-2">
-                <Info className="h-4 w-4 text-violet-600" /> Annuleringsregels
+                <Info className="h-4 w-4 text-[#b4492b]" /> Annuleringsregels
               </p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Annuleren kan tot {booking.slot.salon.cancellationHours} uur voor de start.</li>
@@ -134,7 +134,7 @@ export default async function SuccesPage({
 
           <div className="flex flex-wrap gap-3">
             <Button asChild>
-              <Link href="/slots">Meer Surprise slots</Link>
+              <Link href="/slots">Meer last-minute afspraken</Link>
             </Button>
             <Button asChild variant="outline">
               <a href={`/api/bookings/${booking.id}/ics${sp.t ? `?t=${sp.t}` : ""}`}>Zet in agenda</a>

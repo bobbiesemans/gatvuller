@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
   async headers() {
     return [
       {
@@ -16,10 +17,12 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "img-src 'self' data: blob: https:",
-              "script-src 'self' 'unsafe-inline'",
-              "style-src 'self' 'unsafe-inline' https://unpkg.com",
-              "connect-src 'self' https://*.tile.openstreetmap.org https://nominatim.openstreetmap.org",
+              "img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://*.public.blob.vercel-storage.com",
+              `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
+              "style-src 'self' 'unsafe-inline'",
+              "connect-src 'self'",
+              "object-src 'none'",
+              "upgrade-insecure-requests",
               "font-src 'self' data:",
               "frame-ancestors 'none'",
               "base-uri 'self'",

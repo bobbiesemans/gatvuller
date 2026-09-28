@@ -47,7 +47,7 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
             <Badge variant="violet">
               {CATEGORY_EMOJI[slot.salon.category]} {CATEGORY_LABELS[slot.salon.category]}
             </Badge>
-            <Badge variant="success">-{pct}% Surprise</Badge>
+            <Badge variant="success">-{pct}%</Badge>
             <Badge>Nog {slot.spotsLeft} beschikbaar</Badge>
             <FavoriteButton slotId={slot.id} />
             <ShareButton title={slot.title} />
@@ -63,7 +63,7 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
               {slot.salon.ratingCount > 0 ? slot.salon.ratingAvg.toFixed(1) : "Nieuw"}
             </span>
             <span className="inline-flex items-center gap-1">
-              <MapPin className="h-4 w-4 text-violet-600" />
+              <MapPin className="h-4 w-4 text-[#b4492b]" />
               {slot.salon.address}
             </span>
           </p>
@@ -74,7 +74,7 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-slate-600">
               <p className="flex items-center gap-2 text-base text-slate-800 font-medium">
-                <Clock className="h-4 w-4 text-violet-600" />
+                <Clock className="h-4 w-4 text-[#b4492b]" />
                 {format(slot.startsAt, "EEEE d MMMM yyyy · HH:mm", { locale: nlBE })} –{" "}
                 {format(slot.endsAt, "HH:mm", { locale: nlBE })}
               </p>
@@ -118,13 +118,13 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
 
         <div className="md:col-span-2">
           <Card className="sticky top-24 overflow-hidden">
-            <div className="bg-gradient-to-br from-violet-600 to-fuchsia-600 px-5 py-4 text-white">
-              <p className="text-sm text-violet-100">Surprise prijs</p>
+            <div className="bg-[#b4492b] px-5 py-4 text-white">
+              <p className="text-sm text-[#f8ebe5]">Last-minute prijs</p>
               <div className="flex items-end justify-between gap-3 mt-1">
                 <p className="text-3xl font-extrabold">{formatEuro(slot.discountPrice)}</p>
                 <div className="text-right">
-                  <p className="text-sm line-through text-violet-200">{formatEuro(slot.originalPrice)}</p>
-                  <Badge className="bg-white text-violet-800 border-0">-{pct}%</Badge>
+                  <p className="text-sm line-through text-[#f8ebe5]">{formatEuro(slot.originalPrice)}</p>
+                  <Badge className="bg-white text-[#8f3820] border-0">-{pct}%</Badge>
                 </div>
               </div>
             </div>

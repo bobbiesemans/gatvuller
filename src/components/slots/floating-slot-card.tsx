@@ -19,7 +19,7 @@ export function FloatingSlotCard({
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
       <div className="flex items-start gap-3 p-3.5">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-500 text-xl text-white shadow">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#b4492b] to-[#b4492b] text-xl text-white shadow">
           {CATEGORY_EMOJI[slot.salon.category] || "⭐"}
         </div>
         <div className="min-w-0 flex-1">
@@ -42,7 +42,7 @@ export function FloatingSlotCard({
           </div>
           <div className="mt-2 flex items-end justify-between gap-2">
             <div>
-              <p className="text-lg font-extrabold text-violet-700 leading-none">
+              <p className="text-lg font-extrabold text-[#b4492b] leading-none">
                 {formatEuro(slot.discountPrice)}
               </p>
               <p className="text-[11px] text-slate-400 line-through">{formatEuro(slot.originalPrice)}</p>
@@ -57,9 +57,9 @@ export function FloatingSlotCard({
           </p>
           <Link
             href={`/slots/${slot.id}`}
-            className="mt-3 flex w-full items-center justify-center rounded-xl bg-violet-600 px-3 py-2.5 text-sm font-bold text-white hover:bg-violet-700"
+            className="mt-3 flex w-full items-center justify-center rounded-xl bg-[#b4492b] px-3 py-2.5 text-sm font-bold text-white hover:bg-[#b4492b]"
           >
-            Reserveer Surprise slot
+            Reserveer last-minute afspraak
           </Link>
         </div>
       </div>

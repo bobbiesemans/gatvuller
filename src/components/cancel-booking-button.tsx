@@ -16,7 +16,7 @@ export function CancelBookingButton({
   const [error, setError] = useState<string | null>(null);
 
   async function cancel() {
-    if (!confirm("Boeking annuleren? Het Surprise slot komt weer vrij voor anderen.")) return;
+    if (!confirm("Boeking annuleren? Het last-minute afspraak komt weer vrij voor anderen.")) return;
     setLoading(true);
     setError(null);
     const res = await fetch("/api/bookings/cancel", {

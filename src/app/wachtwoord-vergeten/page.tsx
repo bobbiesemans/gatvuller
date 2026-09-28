@@ -47,7 +47,7 @@ export default function ForgotPage() {
             </form>
           )}
           <p className="mt-4 text-center text-sm">
-            <Link href="/login" className="font-semibold text-violet-700">
+            <Link href="/login" className="font-semibold text-[#b4492b]">
               Terug naar inloggen
             </Link>
           </p>

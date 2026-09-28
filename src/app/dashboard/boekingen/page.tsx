@@ -34,7 +34,7 @@ export default async function SalonBoekingenPage() {
           <h1 className="text-3xl font-extrabold tracking-tight">Boekingen</h1>
           <p className="text-slate-500 mt-1">Vink een klant af met de code op de bon.</p>
         </div>
-        <Link href="/dashboard" className="text-sm font-semibold text-violet-700">
+        <Link href="/dashboard" className="text-sm font-semibold text-[#b4492b]">
           Terug naar dashboard
         </Link>
       </div>

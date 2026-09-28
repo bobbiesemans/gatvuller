@@ -17,7 +17,7 @@ export default async function AnnulerenPage({
           <p className="text-sm font-semibold uppercase tracking-wider text-amber-600">Checkout geannuleerd</p>
           <h1 className="text-2xl font-extrabold text-slate-900">Geen zorgen — er is niets afgeschreven</h1>
           <p className="text-slate-500 text-sm">
-            Je Surprise slot is nog beschikbaar zolang iemand anders het niet boekt.
+            Je last-minute afspraak is nog beschikbaar zolang iemand anders het niet boekt.
             {sp.bookingId ? ` (ref ${sp.bookingId.slice(0, 8)}…)` : ""}
           </p>
           <div className="flex flex-wrap justify-center gap-3 pt-2">

@@ -34,7 +34,7 @@ export function CheckInForm() {
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-wrap gap-2 rounded-2xl border border-violet-100 bg-violet-50 p-4">
+    <form onSubmit={submit} className="flex flex-wrap gap-2 rounded-2xl border border-[#f8ebe5] bg-[#f8ebe5] p-4">
       <Input
         value={code}
         onChange={(e) => setCode(e.target.value.toUpperCase())}

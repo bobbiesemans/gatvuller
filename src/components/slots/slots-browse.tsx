@@ -94,7 +94,7 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
             type="button"
             onClick={() => setView("list")}
             className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${
-              view === "list" ? "bg-violet-600 text-white" : "text-slate-600 hover:bg-slate-50"
+              view === "list" ? "bg-[#b4492b] text-white" : "text-slate-600 hover:bg-slate-50"
             }`}
           >
             <List className="h-4 w-4" /> Lijst
@@ -103,7 +103,7 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
             type="button"
             onClick={() => setView("map")}
             className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${
-              view === "map" ? "bg-violet-600 text-white" : "text-slate-600 hover:bg-slate-50"
+              view === "map" ? "bg-[#b4492b] text-white" : "text-slate-600 hover:bg-slate-50"
             }`}
           >
             <MapIcon className="h-4 w-4" /> Kaart
@@ -112,7 +112,7 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
             type="button"
             onClick={() => setView("split")}
             className={`hidden sm:inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${
-              view === "split" ? "bg-violet-600 text-white" : "text-slate-600 hover:bg-slate-50"
+              view === "split" ? "bg-[#b4492b] text-white" : "text-slate-600 hover:bg-slate-50"
             }`}
           >
             Beide
@@ -176,7 +176,7 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
             type="button"
             onClick={() => setCatFilter(null)}
             className={`rounded-full px-3 py-1 text-xs font-semibold border ${
-              !catFilter ? "bg-violet-600 text-white border-violet-600" : "bg-white text-slate-600 border-slate-200"
+              !catFilter ? "bg-[#b4492b] text-white border-[#b4492b]" : "bg-white text-slate-600 border-slate-200"
             }`}
           >
             Alle
@@ -187,7 +187,7 @@ export function SlotsBrowse({ slots, initialCity }: { slots: Slot[]; initialCity
               type="button"
               onClick={() => setCatFilter(c === catFilter ? null : c)}
               className={`rounded-full px-3 py-1 text-xs font-semibold border ${
-                catFilter === c ? "bg-violet-600 text-white border-violet-600" : "bg-white text-slate-600 border-slate-200"
+                catFilter === c ? "bg-[#b4492b] text-white border-[#b4492b]" : "bg-white text-slate-600 border-slate-200"
               }`}
             >
               {CATEGORY_EMOJI[c] || ""} {CATEGORY_LABELS[c] || c}
