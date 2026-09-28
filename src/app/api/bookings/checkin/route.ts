@@ -9,6 +9,6 @@ const schema = z.object({ code: z.string().min(4).max(16) });
 export const POST = route(async (req) => {
   const user = await requireUser(["SALON_OWNER", "ADMIN"]);
   const body = await parseBody(req, schema);
-  const booking = await checkIn(normalizeCode(body.code), user);
-  return NextResponse.json({ ok: true, bookingId: booking.id, customerName: booking.customerName });
+  const { booking, already } = await checkIn(normalizeCode(body.code), user);
+  return NextResponse.json({ ok: true, already, bookingId: booking.id, customerName: booking.customerName, title: booking.slot.title });
 });

@@ -13,7 +13,8 @@
       "contact": "Contact",
       "fee": "Platform fee ({percent}%)",
       "net": "For you",
-      "price": "Surprise price"
+      "price": "Surprise price",
+      "normal": "normally"
     },
     "bookingConfirmed": {
       "subject": "Confirmed: {title} at {salon}",
@@ -42,7 +43,8 @@
       "expired": "Payment was not completed. The slot is free again.",
       "refunded": "We are refunding {amount}. Card refunds take a few days.",
       "noCharge": "Nothing was charged.",
-      "cta": "Browse other slots"
+      "cta": "Browse other slots",
+      "refundedTest": "Refund of {amount} in test mode: no real money was paid."
     },
     "bookingCancelledSalon": {
       "subject": "Cancellation: {title} · {time}",
@@ -82,6 +84,24 @@
       "title": "Your salon is on GatVuller",
       "intro": "Post a surprise slot whenever a gap opens in the diary.",
       "steps": "Pick a time, the normal price and the surprise price, then publish.",
+      "cta": "Go to your dashboard"
+    },
+    "testPayment": "Test environment: this payment is simulated, nothing was charged.",
+    "stripeTestPayment": "Stripe test mode: no real money was paid.",
+    "codeLabel": "Confirmation code",
+    "footerAlerts": "You receive this email because you turned on an alert at GatVuller.",
+    "alertConfirm": {
+      "subject": "Confirm your GatVuller alert",
+      "title": "Confirm your alert",
+      "intro": "You asked for an alert for {what}. Confirm your email address to receive it.",
+      "ignore": "Didn't ask for this? Ignore this email.",
+      "cta": "Confirm alert"
+    },
+    "salonApproved": {
+      "subject": "{salon} is live on GatVuller",
+      "title": "Your business is approved",
+      "intro": "We checked your business. You can now publish free slots.",
+      "payouts": "Connect your payout account with Stripe, otherwise customers cannot book.",
       "cta": "Go to your dashboard"
     }
   }

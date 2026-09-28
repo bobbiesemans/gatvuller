@@ -5,6 +5,8 @@ import type { Role } from "@prisma/client";
 import { prisma } from "./prisma";
 import { hitRateLimit } from "./rate-limit";
 import { isDemoAccount, isDemoMode } from "./config";
+import { clientIp } from "./api";
+import { sha256 } from "./codes";
 
 declare module "next-auth" {
   interface User {
@@ -50,10 +52,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = String(credentials?.password ?? "");
         if (!email || !password) return null;
 
-        const ip = request?.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
         if (process.env.RATE_LIMIT_DISABLED !== "true") {
-          const limit = await hitRateLimit(`login:${ip}:${email}`, 10, 15 * 60);
-          if (!limit.ok) throw new RateLimitedSignin();
+          const ip = request ? clientIp(request as Request) : "local";
+          const perIp = await hitRateLimit(`login-ip:${ip}`, 30, 15 * 60);
+          const perAccount = await hitRateLimit(`login-acct:${sha256(email).slice(0, 20)}`, 10, 15 * 60);
+          if (!perIp.ok || !perAccount.ok) throw new RateLimitedSignin();
         }
 
         const user = await prisma.user.findFirst({

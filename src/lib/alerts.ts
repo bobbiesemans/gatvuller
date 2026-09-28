@@ -1,7 +1,7 @@
 import type { Category } from "@prisma/client";
 import { prisma } from "./prisma";
 import { appUrl } from "./config";
-import { localePath } from "@/i18n/config";
+import { localizedPath } from "@/i18n/config";
 import { sendEmail } from "./email/send";
 import { slotAlertEmail } from "./email/templates";
 
@@ -36,7 +36,7 @@ export async function notifySlotAlerts(slotId: string) {
           originalPrice: slot.originalPrice,
           discountPrice: slot.discountPrice,
         },
-        `${appUrl()}${localePath(locale, `/slots/${slot.id}`)}`,
+        `${appUrl()}${localizedPath(locale, `/slots/${slot.id}`)}`,
         `${appUrl()}/api/alerts/unsubscribe?token=${alert.token}`
       ),
     });

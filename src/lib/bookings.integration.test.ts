@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { hash } from "bcryptjs";
 import { prisma } from "./prisma";
 import { ApiError } from "./errors";
-import { startCheckout, markPaid } from "./bookings";
+import { startCheckout, markPaid, cancelBooking } from "./bookings";
 import { requireOwnedSalon } from "./ownership";
 
 const enabled = Boolean(process.env.DATABASE_URL);
@@ -26,6 +26,8 @@ async function user(role: "SALON_OWNER" | "CUSTOMER" | "ADMIN", n: number) {
 
 describe.skipIf(!enabled)("reservation integrity", () => {
   afterAll(async () => {
+    if (slotId) await prisma.booking.deleteMany({ where: { slotId } });
+    if (salonId) await prisma.slot.deleteMany({ where: { salonId } });
     if (salonId) await prisma.salon.delete({ where: { id: salonId } }).catch(() => undefined);
     if (ids.length) await prisma.user.deleteMany({ where: { id: { in: ids } } });
     await prisma.$disconnect();
@@ -47,6 +49,7 @@ describe.skipIf(!enabled)("reservation integrity", () => {
         address: "Teststraat 1",
         lat: 51.22,
         lng: 4.4,
+        status: "ACTIVE",
       },
     });
     salonId = salon.id;
@@ -68,8 +71,8 @@ describe.skipIf(!enabled)("reservation integrity", () => {
     await expect(requireOwnedSalon(stranger, salon.id)).rejects.toBeInstanceOf(ApiError);
 
     const results = await Promise.allSettled([
-      startCheckout({ slotId, customerName: "A", customerEmail: a.email, user: { id: a.id, locale: "nl" } }),
-      startCheckout({ slotId, customerName: "B", customerEmail: b.email, user: { id: b.id, locale: "nl" } }),
+      startCheckout({ slotId, customer: { id: a.id, locale: "nl" }, contact: { name: "A", email: a.email } }),
+      startCheckout({ slotId, customer: { id: b.id, locale: "nl" }, contact: { name: "B", email: b.email } }),
     ]);
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
     expect(results.filter((r) => r.status === "rejected")).toHaveLength(1);
@@ -82,12 +85,17 @@ describe.skipIf(!enabled)("reservation integrity", () => {
     expect(paid?.stripePaymentId).toBe("demo");
     expect(paid?.amount).toBe(2900);
     expect(paid?.feeAmount).toBe(Math.round((2900 * paid!.feePercent) / 100));
-    const again = await markPaid(paid!.id, "demo");
-    expect(again.changed).toBe(false);
+    expect(await markPaid(paid!.id, { kind: "demo" })).toBe("already_paid");
+
+    // Someone else cannot cancel it; the customer can, and the spot comes back.
+    await expect(cancelBooking(paid!.id, { id: stranger.id, role: "CUSTOMER" })).rejects.toMatchObject({ status: 404 });
+    const cancelled = await cancelBooking(paid!.id, { id: paid!.customerId, role: "CUSTOMER" });
+    expect(cancelled.status).toBe("CANCELLED");
+    expect((await prisma.slot.findUnique({ where: { id: slotId } }))?.spotsLeft).toBe(1);
 
     await prisma.slot.update({ where: { id: slotId }, data: { status: "PAUSED", spotsLeft: 1, capacity: 2 } });
     await expect(
-      startCheckout({ slotId, customerName: "A", customerEmail: a.email, user: { id: a.id, locale: "nl" } })
+      startCheckout({ slotId, customer: { id: a.id, locale: "nl" }, contact: { name: "A", email: a.email } })
     ).rejects.toMatchObject({ code: "slot_unavailable" });
   });
 });

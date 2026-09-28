@@ -1,8 +1,10 @@
+import { createHash } from "crypto";
 import { NextResponse } from "next/server";
 import { z, type ZodType } from "zod";
 import type { Role } from "@prisma/client";
 import { getCurrentUser, type CurrentUser } from "./session";
 import { ApiError } from "./errors";
+import { log } from "./log";
 
 export { ApiError };
 
@@ -18,7 +20,7 @@ export function route<C = unknown>(handler: Handler<C>): Handler<C> {
       return await handler(req, ctx);
     } catch (err) {
       if (err instanceof ApiError) return jsonError(err.status, err.code, err.details);
-      console.error("[api]", req.method, new URL(req.url).pathname, err);
+      log.error("api.unhandled", { method: req.method, path: new URL(req.url).pathname, error: err });
       return jsonError(500, "server_error");
     }
   };
@@ -44,6 +46,7 @@ export async function parseBody<T extends ZodType>(req: Request, schema: T): Pro
 }
 
 export function clientIp(req: Request) {
-  const fwd = req.headers.get("x-forwarded-for");
-  return fwd?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
+  const ip = req.headers.get("x-real-ip") || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  // Rate-limit keys never hold a raw IP address.
+  return createHash("sha256").update(`${process.env.AUTH_SECRET || "gv"}:${ip}`).digest("hex").slice(0, 20);
 }

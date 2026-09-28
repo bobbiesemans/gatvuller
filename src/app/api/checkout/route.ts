@@ -15,6 +15,10 @@ export const POST = route(async (req) => {
   const user = await requireUser();
   await enforceRateLimit(`book:${user.id}:${clientIp(req)}`, 8, 10 * 60);
   const body = await parseBody(req, schema);
-  const result = await startCheckout({ ...body, user });
+  const result = await startCheckout({
+    slotId: body.slotId,
+    customer: { id: user.id, locale: user.locale },
+    contact: { name: body.customerName, email: body.customerEmail, phone: body.customerPhone },
+  });
   return NextResponse.json(result);
 });

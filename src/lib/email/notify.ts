@@ -1,7 +1,7 @@
 import type { Booking, Salon, Slot, User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { appUrl } from "@/lib/config";
-import { localePath } from "@/i18n/config";
+import { localizedPath } from "@/i18n/config";
 import { bookingToken } from "@/lib/tokens";
 import { sendEmail } from "./send";
 import {
@@ -14,9 +14,11 @@ import {
   type CancelReason,
 } from "./templates";
 
+export type { CancelReason };
+
 type FullBooking = Booking & { slot: Slot & { salon: Salon & { owner: User } } };
 
-export const absoluteUrl = (locale: string, path: string) => `${appUrl()}${localePath(locale, path)}`;
+export const absoluteUrl = (locale: string, path: string) => `${appUrl()}${localizedPath(locale, path)}`;
 
 export function voucherUrl(booking: { id: string; locale: string }) {
   return absoluteUrl(booking.locale, `/boekingen/${booking.id}?t=${bookingToken(booking.id)}`);
@@ -36,6 +38,7 @@ function toView(b: FullBooking): BookingEmailView {
     amount: b.amount,
     feeAmount: b.feeAmount,
     feePercent: b.feePercent,
+    paymentMode: b.paymentMode,
     slot: { title: b.slot.title, startsAt: b.slot.startsAt, endsAt: b.slot.endsAt, originalPrice: b.slot.originalPrice },
     salon: { name: b.slot.salon.name, address: b.slot.salon.address, cancellationHours: b.slot.salon.cancellationHours },
   };
@@ -57,7 +60,7 @@ export async function notifyBookingPaid(bookingId: string) {
   await sendEmail({
     to: b.customerEmail,
     template: "booking_confirmed",
-    ...bookingConfirmedEmail(view, { voucher: voucherUrl(b), calendar: calendarUrl(b.id) }, b.stripePaymentId === "demo"),
+    ...bookingConfirmedEmail(view, { voucher: voucherUrl(b), calendar: calendarUrl(b.id) }),
   });
   const owner = b.slot.salon.owner;
   if (ownerReachable(owner)) {
@@ -76,7 +79,7 @@ export async function notifyBookingCancelled(bookingId: string, reason: CancelRe
   await sendEmail({
     to: b.customerEmail,
     template: "booking_cancelled",
-    ...bookingCancelledEmail(view, reason, { amount: refundAmount, demo: b.stripePaymentId === "demo" }, absoluteUrl(b.locale, "/slots")),
+    ...bookingCancelledEmail(view, reason, refundAmount, absoluteUrl(b.locale, "/slots")),
   });
   const owner = b.slot.salon.owner;
   if (reason !== "SALON" && reason !== "EXPIRED" && ownerReachable(owner)) {

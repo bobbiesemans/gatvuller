@@ -10,6 +10,7 @@ import { randomCode } from "@/lib/codes";
 import { isCategory } from "@/lib/catalog";
 import { isDemoAccount, isDemoMode } from "@/lib/config";
 import { audit } from "@/lib/audit";
+import { clientIp } from "@/lib/api";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -35,7 +36,7 @@ function slugify(s: string) {
 }
 
 export async function POST(req: Request) {
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+  const ip = clientIp(req);
   try {
     await enforceRateLimit(`register:${ip}`, 5, 60 * 60);
   } catch {

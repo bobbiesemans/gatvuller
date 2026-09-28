@@ -13,7 +13,8 @@
       "contact": "Contact",
       "fee": "Commission ({percent}%)",
       "net": "Pour vous",
-      "price": "Prix surprise"
+      "price": "Prix surprise",
+      "normal": "normalement"
     },
     "bookingConfirmed": {
       "subject": "Confirmé : {title} chez {salon}",
@@ -42,7 +43,8 @@
       "expired": "Le paiement n'a pas été finalisé. Le créneau est à nouveau libre.",
       "refunded": "Nous remboursons {amount}. Sur carte, comptez quelques jours.",
       "noCharge": "Aucun montant n'a été débité.",
-      "cta": "Voir d'autres créneaux"
+      "cta": "Voir d'autres créneaux",
+      "refundedTest": "Remboursement de {amount} en mode test : aucun argent réel n'a été payé."
     },
     "bookingCancelledSalon": {
       "subject": "Annulation : {title} · {time}",
@@ -83,6 +85,24 @@
       "intro": "Publiez un créneau surprise dès qu'un trou se libère dans l'agenda.",
       "steps": "Choisissez une heure, le prix normal et le prix surprise, puis publiez.",
       "cta": "Vers le tableau de bord"
+    },
+    "testPayment": "Environnement de test : ce paiement est simulé, rien n'a été débité.",
+    "stripeTestPayment": "Mode test Stripe : aucun argent réel n'a été payé.",
+    "codeLabel": "Code de confirmation",
+    "footerAlerts": "Vous recevez cet e-mail car vous avez activé une alerte sur GatVuller.",
+    "alertConfirm": {
+      "subject": "Confirmez votre alerte GatVuller",
+      "title": "Confirmez votre alerte",
+      "intro": "Vous avez demandé une alerte pour {what}. Confirmez votre adresse e-mail pour la recevoir.",
+      "ignore": "Pas demandé ? Ignorez cet e-mail.",
+      "cta": "Confirmer l'alerte"
+    },
+    "salonApproved": {
+      "subject": "{salon} est en ligne sur GatVuller",
+      "title": "Votre établissement est approuvé",
+      "intro": "Nous avons vérifié votre établissement. Vous pouvez publier des créneaux libres.",
+      "payouts": "Connectez encore votre compte de versement via Stripe, sinon les clients ne peuvent pas réserver.",
+      "cta": "Vers votre tableau de bord"
     }
   }
 }

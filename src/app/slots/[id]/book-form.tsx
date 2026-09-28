@@ -56,8 +56,8 @@ export function BookForm({
         window.location.href = data.url;
         return;
       }
-      if (data.demoPaid) {
-        window.location.href = `/boeking/succes?bookingId=${data.bookingId}&demo=1`;
+      if (data.kind === "confirmed") {
+        window.location.href = `/boeking/succes?bookingId=${data.bookingId}`;
         return;
       }
       throw new Error("Geen betaalpagina");

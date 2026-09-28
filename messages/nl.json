@@ -13,7 +13,8 @@
       "contact": "Contact",
       "fee": "Platformfee ({percent}%)",
       "net": "Voor jou",
-      "price": "Surprise-prijs"
+      "price": "Surprise-prijs",
+      "normal": "normaal"
     },
     "bookingConfirmed": {
       "subject": "Bevestigd: {title} bij {salon}",
@@ -42,7 +43,8 @@
       "expired": "De betaling is niet afgerond. Het slot is weer vrij.",
       "refunded": "We betalen {amount} terug. Bij een kaartbetaling zie je dat binnen enkele dagen.",
       "noCharge": "Er is niets afgeschreven.",
-      "cta": "Bekijk andere slots"
+      "cta": "Bekijk andere slots",
+      "refundedTest": "Terugbetaling van {amount} in testmodus: er was geen echt geld betaald."
     },
     "bookingCancelledSalon": {
       "subject": "Annulering: {title} · {time}",
@@ -82,6 +84,24 @@
       "title": "Je salon staat op GatVuller",
       "intro": "Post een Surprise slot wanneer er een gat in de agenda valt.",
       "steps": "Kies een tijd, zet de normale prijs en de Surprise-prijs, en publiceer.",
+      "cta": "Naar je dashboard"
+    },
+    "testPayment": "Testomgeving: deze betaling is gesimuleerd, er is niets afgeschreven.",
+    "stripeTestPayment": "Stripe-testmodus: er is geen echt geld betaald.",
+    "codeLabel": "Bevestigingscode",
+    "footerAlerts": "Je krijgt deze mail omdat je een melding hebt aangezet bij GatVuller.",
+    "alertConfirm": {
+      "subject": "Bevestig je melding bij GatVuller",
+      "title": "Bevestig je melding",
+      "intro": "Je vroeg een melding voor {what}. Bevestig je e-mailadres om ze te ontvangen.",
+      "ignore": "Niet aangevraagd? Negeer deze mail.",
+      "cta": "Melding bevestigen"
+    },
+    "salonApproved": {
+      "subject": "{salon} staat live op GatVuller",
+      "title": "Je zaak is goedgekeurd",
+      "intro": "We hebben je zaak gecontroleerd. Je kan nu vrije uren publiceren.",
+      "payouts": "Koppel nog je uitbetalingsaccount via Stripe, anders kunnen klanten niet boeken.",
       "cta": "Naar je dashboard"
     }
   }

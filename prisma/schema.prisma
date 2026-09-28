@@ -2,9 +2,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
+/// DATABASE_URL: pooled connection for the app (Supabase: transaction pooler, port 6543, ?pgbouncer=true).
+/// DIRECT_URL: direct or session connection for migrations only (Supabase: port 5432).
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -13,6 +16,8 @@ enum Role {
   ADMIN
 }
 
+/// Beauty and personal care launch first. The other values exist for data that predates the niche
+/// and for later expansion; the catalog decides which ones are offered.
 enum Category {
   KAPPER
   TANDARTS
@@ -24,12 +29,14 @@ enum Category {
   ANDERS
 }
 
+/// PENDING: registered, not public until an admin has checked the business.
 enum SalonStatus {
+  PENDING
   ACTIVE
   SUSPENDED
 }
 
-/// BOOKED means every spot is taken. PAUSED hides the offer without deleting paid bookings.
+/// BOOKED means every spot is taken. PAUSED hides the offer without touching its bookings.
 enum SlotStatus {
   OPEN
   BOOKED
@@ -48,10 +55,37 @@ enum BookingStatus {
   NO_SHOW
 }
 
+/// DEMO: simulated, never money. TEST: Stripe test mode. LIVE: real payment.
+enum PaymentMode {
+  DEMO
+  TEST
+  LIVE
+}
+
+enum RefundStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
 enum EmailStatus {
   SENT
   LOGGED
   FAILED
+}
+
+enum ReportReason {
+  FAKE_OFFER
+  WRONG_PRICE
+  SALON_NO_SHOW
+  INAPPROPRIATE
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
 }
 
 model User {
@@ -75,51 +109,83 @@ model User {
   favorites       FavoriteSalon[]
   alerts          SlotAlert[]
   resetTokens     PasswordResetToken[]
+  reports         Report[]             @relation("ReportReporter")
+
+  @@index([referredById])
 }
 
 model Salon {
-  id                   String          @id @default(cuid())
-  ownerId              String
-  owner                User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  name                 String
-  slug                 String          @unique
-  city                 String
-  category             Category
-  description          String
-  address              String
-  postalCode           String?
-  country              String          @default("BE")
-  phone                String?
-  website              String?
-  imageUrl             String?
-  lat                  Float           @default(50.85)
-  lng                  Float           @default(4.35)
-  status               SalonStatus     @default(ACTIVE)
-  verified             Boolean         @default(false)
-  ratingAvg            Float           @default(0)
-  ratingCount          Int             @default(0)
-  cancellationHours    Int             @default(2)
-  stripeAccountId      String?         @unique
-  stripeChargesEnabled Boolean         @default(false)
-  stripePayoutsEnabled Boolean         @default(false)
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime        @updatedAt
-  slots                Slot[]
-  reviews              Review[]
-  favoritedBy          FavoriteSalon[]
-  hours                OpeningHour[]
-  templates            ServiceTemplate[]
+  id                     String            @id @default(cuid())
+  ownerId                String
+  owner                  User              @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  name                   String
+  slug                   String            @unique
+  city                   String
+  category               Category
+  description            String
+  address                String
+  postalCode             String?
+  country                String            @default("BE")
+  phone                  String?
+  website                String?
+  /// KBO/BCE (BE) or KvK (NL) number, checked by an admin before the salon goes public.
+  businessNumber         String?
+  imageUrl               String?
+  lat                    Float
+  lng                    Float
+  /// True when the pin came from geocoding the address, false for a city-centre estimate.
+  locationExact          Boolean           @default(false)
+  status                 SalonStatus       @default(PENDING)
+  verified               Boolean           @default(false)
+  verifiedAt             DateTime?
+  suspendedReason        String?
+  /// Seed and showcase data. Shown with a demo label and never charged.
+  isDemo                 Boolean           @default(false)
+  ratingAvg              Float             @default(0)
+  ratingCount            Int               @default(0)
+  cancellationHours      Int               @default(2)
+  stripeAccountId        String?           @unique
+  stripeChargesEnabled   Boolean           @default(false)
+  stripePayoutsEnabled   Boolean           @default(false)
+  stripeDetailsSubmitted Boolean           @default(false)
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+  slots                  Slot[]
+  reviews                Review[]
+  favoritedBy            FavoriteSalon[]
+  hours                  OpeningHour[]
+  templates              ServiceTemplate[]
+  photos                 SalonPhoto[]
+  alerts                 SlotAlert[]
+  reports                Report[]
 
   @@index([city])
   @@index([category])
   @@index([status])
+  @@index([ownerId])
   @@index([lat, lng])
+}
+
+model SalonPhoto {
+  id         String   @id @default(cuid())
+  salonId    String
+  salon      Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  url        String
+  /// Blob pathname, needed to delete the file again.
+  storageKey String?
+  alt        String?
+  credit     String?
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([salonId, sortOrder])
 }
 
 model Slot {
   id            String     @id @default(cuid())
   salonId       String
-  salon         Salon      @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  salon         Salon      @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  templateId    String?
   title         String
   description   String?
   startsAt      DateTime
@@ -132,18 +198,23 @@ model Slot {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   bookings      Booking[]
+  reports       Report[]
 
   @@index([startsAt, status])
+  @@index([status, startsAt])
   @@index([salonId, startsAt])
 }
 
 model Booking {
   id                String        @id @default(cuid())
   slotId            String
-  slot              Slot          @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  /// Restrict: a booking is a financial record and outlives its slot, salon and customer account.
+  slot              Slot          @relation(fields: [slotId], references: [id], onDelete: Restrict)
   customerId        String
-  customer          User          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer          User          @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  /// Price the customer pays, in cents, copied from the slot at checkout and never taken from the browser.
   amount            Int
+  /// Platform commission in cents, computed on the server.
   feeAmount         Int
   feePercent        Int           @default(18)
   customerName      String
@@ -151,41 +222,51 @@ model Booking {
   customerPhone     String?
   locale            String        @default("nl")
   confirmationCode  String        @unique
+  paymentMode       PaymentMode   @default(DEMO)
   stripeSessionId   String?       @unique
   stripePaymentId   String?
+  /// Connected account that receives the transfer (destination charge).
+  stripeDestination String?
   stripeRefundId    String?
   refundAmount      Int?
+  refundStatus      RefundStatus?
   status            BookingStatus @default(PENDING)
   holdExpiresAt     DateTime?
   paidAt            DateTime?
   checkedInAt       DateTime?
+  noShowAt          DateTime?
   cancelledAt       DateTime?
   cancelledBy       String?
+  cancelReason      String?
+  disputedAt        DateTime?
   reviewRequestedAt DateTime?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   review            Review?
 
-  @@index([customerId])
+  @@index([customerId, createdAt])
   @@index([slotId, status])
   @@index([status, holdExpiresAt])
+  @@index([stripePaymentId])
   @@index([paidAt])
 }
 
 model Review {
-  id         String    @id @default(cuid())
-  bookingId  String    @unique
-  booking    Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  salonId    String
-  salon      Salon     @relation(fields: [salonId], references: [id], onDelete: Cascade)
-  customerId String
-  customer   User      @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  rating     Int
-  comment    String?
-  reply      String?
-  repliedAt  DateTime?
-  hidden     Boolean   @default(false)
-  createdAt  DateTime  @default(now())
+  id            String    @id @default(cuid())
+  bookingId     String    @unique
+  booking       Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  salonId       String
+  salon         Salon     @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  customerId    String
+  customer      User      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  rating        Int
+  comment       String?
+  /// The salon confirmed the visit with the check-in code.
+  verifiedVisit Boolean   @default(false)
+  reply         String?
+  repliedAt     DateTime?
+  hidden        Boolean   @default(false)
+  createdAt     DateTime  @default(now())
 
   @@index([salonId, createdAt])
   @@index([rating])
@@ -202,21 +283,27 @@ model FavoriteSalon {
   @@index([salonId])
 }
 
+/// A request to be told about new slots, for a salon or for a city/category search.
+/// Guests confirm by e-mail first (`confirmedAt`); signed-in users are confirmed at once.
 model SlotAlert {
-  id         String    @id @default(cuid())
-  email      String
-  userId     String?
-  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  city       String?
-  category   Category?
-  locale     String    @default("nl")
-  token      String    @unique @default(cuid())
-  active     Boolean   @default(true)
-  lastSentAt DateTime?
-  createdAt  DateTime  @default(now())
+  id          String    @id @default(cuid())
+  email       String
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  salonId     String?
+  salon       Salon?    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  city        String?
+  category    Category?
+  locale      String    @default("nl")
+  token       String    @unique @default(cuid())
+  active      Boolean   @default(true)
+  confirmedAt DateTime?
+  lastSentAt  DateTime?
+  createdAt   DateTime  @default(now())
 
   @@index([email])
   @@index([active, city, category])
+  @@index([salonId, active])
 }
 
 model PasswordResetToken {
@@ -239,6 +326,7 @@ model EmailLog {
   status     EmailStatus
   providerId String?
   error      String?
+  /// Only kept in test mode, so the outbox can be read without a mail provider.
   html       String?
   createdAt  DateTime    @default(now())
 
@@ -255,36 +343,85 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([entity, entityId])
+  @@index([action, createdAt])
   @@index([createdAt])
+}
+
+/// Funnel events. No user id, e-mail, IP or free text: only the event, an optional
+/// public entity (slot or salon) and an optional campaign source.
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  name       String
+  entityType String?
+  entityId   String?
+  source     String?
+  createdAt  DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([createdAt])
+}
+
+/// Stripe event ids that were handled, so a retried webhook is a no-op.
+model StripeEvent {
+  id          String   @id
+  type        String
+  livemode    Boolean
+  processedAt DateTime @default(now())
+
+  @@index([processedAt])
+}
+
+model Report {
+  id            String       @id @default(cuid())
+  salonId       String?
+  salon         Salon?       @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  slotId        String?
+  slot          Slot?        @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  reporterId    String?
+  reporter      User?        @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  reporterEmail String?
+  reason        ReportReason
+  message       String?
+  status        ReportStatus @default(OPEN)
+  resolvedAt    DateTime?
+  resolvedById  String?
+  createdAt     DateTime     @default(now())
+
+  @@index([status, createdAt])
+  @@index([salonId])
 }
 
 model RateLimit {
   key         String   @id
   count       Int
   windowStart DateTime
+
+  @@index([windowStart])
 }
 
 model OpeningHour {
-  id        String  @id @default(cuid())
-  salonId   String
-  salon     Salon   @relation(fields: [salonId], references: [id], onDelete: Cascade)
-  weekday   Int
-  openMin   Int
-  closeMin  Int
-  closed    Boolean @default(false)
+  id       String  @id @default(cuid())
+  salonId  String
+  salon    Salon   @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  weekday  Int
+  openMin  Int
+  closeMin Int
+  closed   Boolean @default(false)
 
   @@unique([salonId, weekday])
 }
 
 model ServiceTemplate {
-  id            String  @id @default(cuid())
+  id            String   @id @default(cuid())
   salonId       String
-  salon         Salon   @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  salon         Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
   title         String
+  description   String?
   durationMin   Int
   originalPrice Int
   discountPrice Int
-  active        Boolean @default(true)
+  capacity      Int      @default(1)
+  active        Boolean  @default(true)
   createdAt     DateTime @default(now())
 
   @@index([salonId])
