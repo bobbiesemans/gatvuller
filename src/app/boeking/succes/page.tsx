@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { verifyBookingToken } from "@/lib/tokens";
+import { appUrl } from "@/lib/config";
 import { formatEuro, shortCode, discountPercent } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,7 +43,8 @@ export default async function SuccesPage({
   const code = booking ? shortCode(booking.confirmationCode) : null;
   const paid = booking?.status === "PAID";
   const pending = booking?.status === "PENDING";
-  const qrValue = booking ? `GATVULLER:${booking.confirmationCode}` : "";
+  // The salon scans with any phone camera and lands on its own check-in screen (login and ownership required there).
+  const qrValue = booking ? `${appUrl()}/dashboard/boekingen?code=${booking.confirmationCode}` : "";
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">

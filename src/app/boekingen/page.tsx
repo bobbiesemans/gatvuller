@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { nlBE } from "date-fns/locale";
 import { auth } from "@/lib/auth";
+import { appUrl } from "@/lib/config";
 import { prisma } from "@/lib/prisma";
 import { formatEuro, shortCode, discountPercent } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -86,7 +87,7 @@ export default async function BoekingenPage() {
                 </div>
                 <CardContent className="p-5 flex flex-col sm:flex-row gap-5">
                   {(b.status === "PAID" || b.status === "PENDING") && (
-                    <BookingQr value={`GATVULLER:${b.confirmationCode}`} size={120} />
+                    <BookingQr value={`${appUrl()}/dashboard/boekingen?code=${b.confirmationCode}`} size={120} />
                   )}
                   <div className="flex-1 space-y-2 text-sm text-slate-600">
                     <p className="text-lg font-bold text-slate-900">{b.slot.title}</p>

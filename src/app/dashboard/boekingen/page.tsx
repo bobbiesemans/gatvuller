@@ -12,9 +12,10 @@ import { CheckInForm } from "./check-in-form";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Salonboekingen" };
 
-export default async function SalonBoekingenPage() {
+export default async function SalonBoekingenPage({ searchParams }: { searchParams: Promise<{ code?: string }> }) {
+  const { code } = await searchParams;
   const session = await auth();
-  if (!session?.user) redirect("/login?callbackUrl=/dashboard/boekingen");
+  if (!session?.user) redirect(`/login?callbackUrl=${encodeURIComponent(`/dashboard/boekingen${code ? `?code=${code.replace(/[^A-Za-z0-9]/g, "")}` : ""}`)}`);
   if (session.user.role !== "SALON_OWNER" && session.user.role !== "ADMIN") redirect("/");
 
   const bookings = await prisma.booking.findMany({
@@ -38,7 +39,7 @@ export default async function SalonBoekingenPage() {
           Terug naar dashboard
         </Link>
       </div>
-      <CheckInForm />
+      <CheckInForm initialCode={(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 16)} />
       {bookings.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-sm text-slate-500">Nog geen boekingen.</CardContent>
