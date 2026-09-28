@@ -1,65 +1,56 @@
 # GatVuller op Vercel zetten
 
-De productiedatabase is alleen bereikbaar vanuit Vercel. Daarom voert de deploy dit uit:
+## Principes
+- Een Vercel-build voert **geen** databasewijzigingen meer uit (`buildCommand`: `prisma generate && next build`).
+- Migraties draaien apart en gecontroleerd via de GitHub Action **Database migrations** (`.github/workflows/migrate.yml`). Die start je handmatig en ze vraagt goedkeuring via de GitHub-environment `production`.
+- Volgorde bij elke release met een nieuwe migratie:
+  1. Merge naar `main` pas nadat CI groen is.
+  2. Start **Actions → Database migrations → production** en keur goed.
+  3. Laat Vercel daarna (opnieuw) deployen.
 
-```bash
-prisma migrate deploy && prisma generate && next build
-```
+  Migraties zijn additief geschreven, zodat de oude code tijdens die paar minuten blijft werken.
 
-`prisma migrate deploy` past alleen migraties toe die in git staan en nog niet in `_prisma_migrations` zitten. Als de database bij is, stopt het commando meteen. Er wordt niet geseed en het oude `scripts/upgrade-db.mjs` draait niet mee.
+## Openstaande migraties voor de live database
+- `20260928090000_salon_pending_status` (nieuwe enumwaarde PENDING)
+- `20260928090100_trust_and_payments` (betaalmodus, refunds, meldingen, idempotente webhooks, analytics zonder persoonsgegevens, CHECK-constraints)
 
-Al toegepast op de live database vóór deze ronde: `0_init` en `20260927060000_marketplace_v2`. Deze ronde voegt toe:
+De backfill wist niets. Seedzaken worden gemarkeerd als demo en ratings worden herberekend uit echte reviews.
 
-- `20260927150000_salon_ops` — openingstijden, behandelsjablonen, referralcode
-- `20260927160000_slot_paused` — status `PAUSED`
+## Secrets (Vercel → Settings → Environment Variables; nooit in git)
+| Naam | Productie | Opmerking |
+| --- | --- | --- |
+| `DATABASE_URL` | ja | pooled verbinding (Supabase: poort 6543, `?pgbouncer=true`) |
+| `DIRECT_URL` | ja | directe verbinding, ook als GitHub-secret voor de migratie-workflow |
+| `AUTH_SECRET` | ja | `openssl rand -base64 48` |
+| `AUTH_URL`, `NEXT_PUBLIC_APP_URL` | ja | publieke URL zonder slash op het eind |
+| `NEXT_PUBLIC_DEMO_MODE` | `false` | nooit `true` op de live site |
+| `STRIPE_SECRET_KEY` | ja | `sk_live_…` (of `sk_test_…` op preview) |
+| `STRIPE_WEBHOOK_SECRET` | ja | endpoint voor platform-events |
+| `STRIPE_CONNECT_WEBHOOK_SECRET` | aanbevolen | endpoint "events on connected accounts" (`account.updated`) |
+| `CRON_SECRET` | ja | Vercel stuurt dit automatisch mee naar `/api/cron` |
+| `RESEND_API_KEY`, `EMAIL_FROM` | ja | zonder key wordt er in productie niets verstuurd (gelogd als FAILED) |
+| `ADMIN_NOTIFICATION_EMAIL` | aanbevolen | meldingen over nieuwe zaken |
+| `NEXT_PUBLIC_COMPANY_LEGAL_NAME`, `_VAT`, `_ADDRESS`, `NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_PRIVACY_EMAIL` | ja | juridische gegevens op de voorwaarden, de privacypagina en in e-mails |
+| `PLATFORM_FEE_PERCENT` | nee | standaard 18 |
 
-Lokaal, met een eigen `DATABASE_URL`:
+## Stripe
+1. Activeer Connect (Express) in het Stripe-dashboard. Land: BE/NL.
+2. Maak de webhook `https://<domein>/api/webhooks/stripe` aan met deze events:
+   - `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`
+   - `refund.created`, `refund.updated`, `charge.dispute.created`
+3. Maak een tweede endpoint op dezelfde URL voor **connected accounts** met `account.updated`.
+4. Een boeking wordt alleen PAID na een bevestiging van Stripe: via de webhook, of doordat de server de sessie zelf ophaalt. Een redirect alleen telt nooit.
 
-```bash
-npx prisma migrate deploy
-```
+## Cron
+`vercel.json` plant `/api/cron` dagelijks om 05:00 UTC (de limiet van Vercel Hobby). Betaalholds worden ook bij elke checkout en bij het bladeren vrijgegeven. Op Vercel Pro kan je de schedule naar `*/10 * * * *` zetten.
 
-## Secrets
-
-Zet deze in Vercel, niet in de repository.
-
-| Naam | Verplicht in productie |
-| --- | --- |
-| `DATABASE_URL` | ja |
-| `AUTH_SECRET` | ja, lange willekeurige waarde |
-| `AUTH_URL` | ja, de publieke URL |
-| `NEXT_PUBLIC_APP_URL` | ja, dezelfde URL, zonder slash op het eind |
-| `NEXT_PUBLIC_DEMO_MODE` | `false` |
-| `STRIPE_SECRET_KEY` | ja, `sk_live_…` |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | ja |
-| `STRIPE_WEBHOOK_SECRET` | ja, `whsec_…` |
-| `PLATFORM_FEE_PERCENT` | nee, standaard 18 |
-| `CRON_SECRET` | ja, als je `/api/cron` plant |
-| `RESEND_API_KEY` | nee, zonder key gaat mail naar de outbox |
-| `EMAIL_FROM` | nee |
-| `NEXT_PUBLIC_COMPANY_LEGAL_NAME` | nee, tot de juridische naam vastligt |
-| `NEXT_PUBLIC_COMPANY_VAT` | nee |
-| `NEXT_PUBLIC_COMPANY_ADDRESS` | nee |
-| `NEXT_PUBLIC_CONTACT_EMAIL` | nee |
-| `NEXT_PUBLIC_PRIVACY_EMAIL` | nee |
-
-Stripe-webhook: `https://<domein>/api/webhooks/stripe` met `checkout.session.completed` en `checkout.session.expired`.
-
-Cron, buiten de build: `GET /api/cron` met `Authorization: Bearer <CRON_SECRET>`. Die laat verlopen betaalreserveringen vrij.
-
-## Testmodus en productie
-
-- `NEXT_PUBLIC_DEMO_MODE=false` en `NODE_ENV=production`: een boeking wordt nooit `PAID` zonder Stripe. Ontbrekende Stripe-sleutels geven `payments_not_configured` en maken de reservering weer vrij.
-- Demo-accounts `admin@`, `klant@` en `salon…@gatvuller.be` kunnen in die stand niet inloggen. De rijen blijven in de database staan.
-- Zet `NEXT_PUBLIC_DEMO_MODE` niet op `true` op de live site.
+## Testmodus
+- Lokaal is de testmodus aan. Seed-accounts werken alleen dan en de seed weigert elke niet-lokale database.
+- `NEXT_PUBLIC_DEMO_MODE=false` + `NODE_ENV=production`: demo-accounts kunnen niet inloggen, demozaken zijn onzichtbaar en zonder Stripe kan je niet boeken.
+- Met live Stripe-sleutels staat de testmodus altijd uit.
 
 ## Lokale controles
-
 ```bash
-npm install
 npx prisma migrate deploy
-npm test
-npx tsc --noEmit
-npm run lint
-npm run build
+npx tsc --noEmit && npm run lint && npm test && npm run build
 ```

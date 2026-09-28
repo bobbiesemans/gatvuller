@@ -3,39 +3,34 @@ import { z } from "zod";
 import { route, requireUser, parseBody } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/errors";
-import { getStripe, stripeConfigured } from "@/lib/stripe";
-import { appUrl } from "@/lib/config";
+import { stripeConfigured } from "@/lib/stripe";
+import { requireOwnedSalon } from "@/lib/ownership";
+import { createConnectedAccount, onboardingLink, expressDashboardLink, retrieveConnectState } from "@/lib/payments";
+import { audit } from "@/lib/audit";
 
-const schema = z.object({ salonId: z.string().min(1) });
+const schema = z.object({ salonId: z.string().min(1).max(40), action: z.enum(["onboard", "dashboard", "refresh"]).default("onboard") });
 
+/** Stripe Connect Express for payouts. Only the owner (or an admin) of the salon. */
 export const POST = route(async (req) => {
   const user = await requireUser(["SALON_OWNER", "ADMIN"]);
   if (!stripeConfigured()) throw new ApiError(503, "payments_not_configured");
   const body = await parseBody(req, schema);
-  const salon = await prisma.salon.findFirst({
-    where: { id: body.salonId, ...(user.role === "ADMIN" ? {} : { ownerId: user.id }) },
-  });
-  if (!salon) throw new ApiError(404, "not_found");
+  const salon = await requireOwnedSalon(user, body.salonId);
+  if (salon.isDemo) throw new ApiError(409, "demo_salon");
 
-  const stripe = getStripe()!;
   let accountId = salon.stripeAccountId;
   if (!accountId) {
-    const account = await stripe.accounts.create({
-      type: "express",
-      country: salon.country === "NL" ? "NL" : "BE",
-      email: user.email,
-      capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
-      metadata: { salonId: salon.id },
-    });
+    const account = await createConnectedAccount(salon, user.email);
     accountId = account.id;
     await prisma.salon.update({ where: { id: salon.id }, data: { stripeAccountId: accountId } });
+    await audit(user.id, "stripe_account_created", "salon", salon.id);
   }
-
-  const link = await stripe.accountLinks.create({
-    account: accountId,
-    refresh_url: `${appUrl()}/dashboard?stripe=refresh`,
-    return_url: `${appUrl()}/dashboard?stripe=return`,
-    type: "account_onboarding",
+  const state = await retrieveConnectState(accountId);
+  await prisma.salon.update({
+    where: { id: salon.id },
+    data: { stripeChargesEnabled: state.chargesEnabled, stripePayoutsEnabled: state.payoutsEnabled, stripeDetailsSubmitted: state.detailsSubmitted },
   });
-  return NextResponse.json({ url: link.url });
+  if (body.action === "refresh") return NextResponse.json({ state });
+  const url = body.action === "dashboard" && state.detailsSubmitted ? await expressDashboardLink(accountId) : await onboardingLink(accountId, salon.id);
+  return NextResponse.json({ url, state });
 });
