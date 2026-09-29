@@ -17,6 +17,28 @@ if (existsSync(".env")) {
   }
 }
 
+// Integration tests create and delete their own rows. They never run against the development
+// database when a test database is configured, and never against a database that is not local
+// (or a CI service container), so a wrong .env can not put test data into production.
+if (process.env.TEST_DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+  process.env.DIRECT_URL = process.env.TEST_DATABASE_URL;
+}
+const databaseUrl = process.env.DATABASE_URL;
+if (databaseUrl && process.env.ALLOW_REMOTE_TEST_DATABASE !== "1") {
+  let host = "";
+  try {
+    host = new URL(databaseUrl).hostname;
+  } catch {
+    throw new Error("DATABASE_URL is not a valid URL; refusing to run the test suite.");
+  }
+  if (!["localhost", "127.0.0.1", "::1", "[::1]", "postgres"].includes(host)) {
+    throw new Error(
+      `Refusing to run integration tests against "${host}". Point TEST_DATABASE_URL at a local database, or set ALLOW_REMOTE_TEST_DATABASE=1 if you are sure.`
+    );
+  }
+}
+
 export default defineConfig({
   test: {
     environment: "node",
