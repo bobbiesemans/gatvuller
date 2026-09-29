@@ -1,1 +1,125 @@
-{}
+{
+  "ui": {
+    "home": {
+      "summaryTitle": "Nu beschikbaar",
+      "statToday": "Vandaag",
+      "statTomorrow": "Morgen",
+      "statFrom": "Vanaf",
+      "statMoments": "{count, plural, one {# moment} other {# momenten}}",
+      "ctaNear": "Bij mij in de buurt",
+      "leadTime": "Boeken kan tot {minutes} minuten voor de start.",
+      "noneAlert": "Wil je het weten zodra er iets vrijkomt?"
+    },
+    "slots": {
+      "filters": "Filters",
+      "filtersActive": "{count} actief",
+      "filtersClose": "Filters sluiten",
+      "results": "{count, plural, =0 {Geen open uren} one {# open uur} other {# open uren}}",
+      "resultsTitle": "Resultaten",
+      "view": "Weergave",
+      "emptyTitle": "Geen open uren gevonden",
+      "emptyFilters": "Probeer een andere stad of categorie, of wis je filters.",
+      "emptyNone": "Nu is er niets vrij. Nieuwe momenten verschijnen doorheen de dag.",
+      "emptyFavTitle": "Geen open uren bij je favorieten",
+      "emptyFavBody": "Tik op het hartje bij een zaak om ze te bewaren. Je favorieten vind je ook onder Favorieten.",
+      "loadError": "De open uren kunnen nu niet geladen worden. Probeer het zo opnieuw.",
+      "metaTitle": "Open uren: last-minute afspraken",
+      "metaDescription": "Kaart en lijst van vrije last-minute momenten. Filter op stad, categorie, moment van de dag en prijs."
+    },
+    "nav": {
+      "account": "Account",
+      "bookingsShort": "Boekingen",
+      "primary": "Hoofdmenu",
+      "bottom": "Snelle navigatie",
+      "skip": "Naar de inhoud"
+    },
+    "card": {
+      "hourUnit": "u",
+      "minuteUnit": "min",
+      "started": "Dit uur is begonnen",
+      "discount": "{percent}% korting"
+    },
+    "city": {
+      "name": {
+        "antwerpen": "Antwerpen",
+        "gent": "Gent",
+        "brussel": "Brussel",
+        "leuven": "Leuven",
+        "mechelen": "Mechelen",
+        "amsterdam": "Amsterdam",
+        "rotterdam": "Rotterdam",
+        "utrecht": "Utrecht"
+      },
+      "metaTitle": "Last-minute afspraken in {city}",
+      "metaDescription": "Vrije momenten met korting bij kappers, schoonheidssalons, nagelstudio’s en massagezaken in {city}. Prijs en korting staan er vooraf bij.",
+      "h1": "Vrije momenten in {city}",
+      "leadLaunched": "Kies een vrij moment bij een zaak in {city}. De korting en het aantal plekken komen van de zaak zelf.",
+      "leadWaiting": "GatVuller start in {launch}. In {city} is er nog geen aanbod.",
+      "waitingTitle": "Nog geen aanbod in {city}",
+      "waitingBody": "Laat je e-mailadres achter en we mailen je zodra er hier iets vrijkomt. Intussen vind je het aanbod in {launch}.",
+      "resultsTitle": "Open uren in {city}",
+      "categoriesTitle": "Kies een soort zaak",
+      "otherCities": "Ook beschikbaar in",
+      "otherCategories": "Andere categorieën in {city}",
+      "breadcrumb": "Kruimelpad",
+      "ccMetaTitle": "{category} in {city}: last-minute afspraken",
+      "ccMetaDescription": "Last-minute afspraken in de categorie {category} in {city}. Prijs, korting en aantal plekken staan er vooraf bij.",
+      "ccH1": "{category} in {city}",
+      "ccLead": "Vrije momenten in deze categorie in {city}, met de echte korting van de zaak."
+    },
+    "category": {
+      "metaTitle": "{category}: last-minute afspraken met korting",
+      "metaDescription": "Vrije last-minute momenten in de categorie {category}, met de echte korting van de zaak. Nu in {cities}.",
+      "h1": "{category}, last-minute",
+      "lead": "Alleen echte vrije uren. De korting en het aantal plekken komen uit de publicatie van de zaak.",
+      "chooseCity": "Kies je stad",
+      "otherCategories": "Andere categorieën",
+      "resultsTitle": "Open uren voor {category}",
+      "emptyTitle": "Nu geen open uren voor {category}",
+      "emptyBody": "Nieuwe momenten verschijnen zodra een zaak tijd vrijgeeft. Laat je e-mailadres achter en we mailen je."
+    },
+    "favorites": {
+      "loginBody": "Met een account bewaar je zaken en krijg je een melding als er een nieuw moment vrijkomt.",
+      "emptyBody": "Tik op het hartje bij een zaak om ze hier te bewaren.",
+      "find": "Bekijk open uren"
+    },
+    "footer": {
+      "explore": "Ontdekken",
+      "info": "Info",
+      "citiesTitle": "Steden",
+      "categoriesTitle": "Categorieën"
+    },
+    "alerts": {
+      "heading": "Verwittig me als er iets vrijkomt",
+      "bodyAny": "Laat je e-mailadres achter. We mailen je zodra een zaak een nieuw moment online zet.",
+      "bodyCity": "Laat je e-mailadres achter. We mailen je zodra er een nieuw moment vrijkomt in {city}.",
+      "bodyCategory": "Laat je e-mailadres achter. We mailen je zodra er een nieuw moment vrijkomt in de categorie {category}.",
+      "bodyCityCategory": "Laat je e-mailadres achter. We mailen je zodra er een nieuw moment vrijkomt in de categorie {category} in {city}.",
+      "bodySalon": "Laat je e-mailadres achter. We mailen je zodra {salon} een nieuw moment online zet.",
+      "signedInLine": "De melding gaat naar {email}.",
+      "email": "E-mailadres",
+      "submit": "Verwittig me",
+      "doneSignedIn": "Klaar. Je melding staat aan.",
+      "doneGuest": "Bijna klaar. We mailden een bevestigingslink naar {email}. De melding start pas nadat je erop klikt.",
+      "fine": "Je kan je altijd uitschrijven via de link in elke mail. We sturen hooguit één mail per drie uur.",
+      "confirmed": "Je melding staat aan. Je krijgt een mail zodra er een passend moment vrijkomt.",
+      "off": "Je melding staat uit. Je krijgt er geen mails meer over.",
+      "invalid": "Deze link is verlopen of al gebruikt. Maak hieronder een nieuwe melding aan."
+    },
+    "map": {
+      "you": "Jij bent hier",
+      "viewOffer": "Bekijk aanbod",
+      "cluster": "{count, plural, one {# aanbod} other {# aanbiedingen}}. Tik om in te zoomen.",
+      "zoomIn": "Inzoomen",
+      "zoomOut": "Uitzoomen",
+      "loading": "Kaart laden…",
+      "region": "Kaart met open uren",
+      "pin": "{title}, {salon}, {percent}% korting"
+    },
+    "env": {
+      "demo": "Testomgeving: demozaken en gesimuleerde betalingen. Er wordt niets aangerekend.",
+      "stripeTest": "Stripe-testmodus: betaal met testkaart 4242 4242 4242 4242. Er wordt geen echt geld aangerekend.",
+      "unconfigured": "Betalingen zijn nog niet ingesteld. Reserveren is tijdelijk niet mogelijk."
+    }
+  }
+}

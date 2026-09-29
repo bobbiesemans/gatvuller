@@ -1,41 +1,68 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
+import { List, Map as MapIcon, LocateFixed, Heart } from "lucide-react";
 import { SlotCard } from "@/components/slot-card";
 import { SlotsMapDynamic, type MapSlot } from "@/components/map/slots-map-dynamic";
 import { Button } from "@/components/ui/button";
-import { distanceKm, CATEGORY_LABELS, CATEGORY_EMOJI } from "@/lib/utils";
-import { getStoredLocation, requestUserLocation, type LatLng } from "@/lib/geo";
-import { useTranslations } from "next-intl";
-import { List, Map as MapIcon, LocateFixed, Heart } from "lucide-react";
 import { EmptySlots } from "@/components/slots/empty-slots";
+import { distanceKm, cn } from "@/lib/utils";
+import { getStoredLocation, requestUserLocation, type LatLng } from "@/lib/geo";
 import { track } from "@/lib/track";
 
 type Slot = MapSlot;
+type SortBy = "time" | "distance" | "discount";
+
+const selectClass =
+  "h-11 rounded-xl border border-stone-300 bg-white px-2.5 text-sm font-medium text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand";
 
 export function SlotsBrowse({
   slots,
   initialCity,
   favoriteSalonIds = [],
+  initialSort = "time",
+  hasFilters = false,
+  emptyExtra,
 }: {
   slots: Slot[];
   initialCity?: string;
   favoriteSalonIds?: string[];
+  initialSort?: SortBy;
+  /** Filters from the URL are active (the server already applied them). */
+  hasFilters?: boolean;
+  emptyExtra?: React.ReactNode;
 }) {
-  const [view, setView] = useState<"split" | "list" | "map">("split");
+  const [view, setView] = useState<"split" | "list" | "map">("list");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [userLoc, setUserLoc] = useState<LatLng | null>(null);
   const [favOnly, setFavOnly] = useState(false);
-  const [sortBy, setSortBy] = useState<"time" | "distance" | "discount">("time");
+  const [sortBy, setSortBy] = useState<SortBy>(initialSort);
   const t = useTranslations("ui.slots");
   const common = useTranslations("ui.common");
   const [locError, setLocError] = useState<string | null>(null);
   const [locLoading, setLocLoading] = useState(false);
-  const [catFilter, setCatFilter] = useState<string | null>(null);
   const [maxKm, setMaxKm] = useState<number | null>(null);
 
+  async function nearMe() {
+    setLocLoading(true);
+    setLocError(null);
+    try {
+      const loc = await requestUserLocation();
+      setUserLoc(loc);
+      setSortBy((current) => (current === "time" ? "distance" : current));
+    } catch {
+      setLocError(t("nearError"));
+    } finally {
+      setLocLoading(false);
+    }
+  }
+
   useEffect(() => {
-    setUserLoc(getStoredLocation());
+    const stored = getStoredLocation();
+    setUserLoc(stored);
+    // "Near me" from the home page arrives with a distance sort: ask for the position once, on that intent.
+    if (initialSort === "distance" && !stored) void nearMe();
     // desktop default split, mobile list
     const mq = window.matchMedia("(min-width: 1024px)");
     const apply = () => setView(mq.matches ? "split" : "list");
@@ -44,15 +71,14 @@ export function SlotsBrowse({
     return () => {
       mq.removeEventListener("change", apply);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const enriched = useMemo(() => {
     return slots
       .map((s) => ({
         ...s,
-        distanceKm: userLoc
-          ? distanceKm(userLoc, { lat: s.salon.lat, lng: s.salon.lng })
-          : null,
+        distanceKm: userLoc ? distanceKm(userLoc, { lat: s.salon.lat, lng: s.salon.lng }) : null,
       }))
       .sort((a, b) => {
         if (sortBy === "distance" && a.distanceKm != null && b.distanceKm != null) {
@@ -69,199 +95,147 @@ export function SlotsBrowse({
 
   const visible = enriched.filter((s) => {
     if (favOnly && !favoriteSalonIds.includes(s.salon.id || "")) return false;
-    if (catFilter && s.salon.category !== catFilter) return false;
     if (maxKm != null && (s.distanceKm == null || s.distanceKm > maxKm)) return false;
     return true;
   });
-  const categories = useMemo(() => {
-    const set = new Set(slots.map((s) => s.salon.category));
-    return Array.from(set).sort();
-  }, [slots]);
+  const clientFilters = favOnly || maxKm != null;
+  const clearClient = () => {
+    setMaxKm(null);
+    setFavOnly(false);
+  };
 
-  async function nearMe() {
-    setLocLoading(true);
-    setLocError(null);
-    try {
-      const loc = await requestUserLocation();
-      setUserLoc(loc);
-    } catch {
-      setLocError(t("nearError"));
-    } finally {
-      setLocLoading(false);
-    }
-  }
+  const viewButton = (value: "list" | "map" | "split", label: string, icon: React.ReactNode, extra = "") => (
+    <button
+      type="button"
+      aria-pressed={view === value}
+      onClick={() => setView(value)}
+      className={cn(
+        "inline-flex h-10 items-center gap-1.5 rounded-lg px-3.5 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
+        view === value ? "bg-brand text-white" : "text-stone-700 hover:bg-stone-100",
+        extra
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+
+  const cards = (className: string, onPick?: boolean) => (
+    <div className={className}>
+      {visible.map((s) => (
+        <div
+          key={s.id}
+          onMouseEnter={() => setSelectedId(s.id)}
+          onFocus={() => setSelectedId(s.id)}
+          onClick={onPick ? () => setSelectedId(s.id) : undefined}
+        >
+          <SlotCard {...s} favorite={favoriteSalonIds.includes(s.salon.id || "")} selected={selectedId === s.id} />
+        </div>
+      ))}
+    </div>
+  );
+
+  const empty = (
+    <EmptySlots
+      favOnly={favOnly}
+      hasFilters={hasFilters}
+      hasClientFilters={clientFilters}
+      onClear={clearClient}
+      extra={emptyExtra}
+    />
+  );
+
+  const map = (className: string) => (
+    <SlotsMapDynamic
+      slots={visible}
+      selectedId={selectedId}
+      onSelect={setSelectedId}
+      userLocation={userLoc}
+      initialCity={initialCity}
+      className={className}
+    />
+  );
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
-          <button
-            type="button"
-            onClick={() => setView("list")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${
-              view === "list" ? "bg-[#b4492b] text-white" : "text-slate-600 hover:bg-slate-50"
-            }`}
-          >
-            <List className="h-4 w-4" /> {t("list")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("map")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${
-              view === "map" ? "bg-[#b4492b] text-white" : "text-slate-600 hover:bg-slate-50"
-            }`}
-          >
-            <MapIcon className="h-4 w-4" /> {t("map")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("split")}
-            className={`hidden sm:inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${
-              view === "split" ? "bg-[#b4492b] text-white" : "text-slate-600 hover:bg-slate-50"
-            }`}
-          >
-            {t("both")}
-          </button>
+      <h2 className="sr-only">{t("resultsTitle")}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div role="group" aria-label={t("view")} className="inline-flex rounded-xl border border-stone-300 bg-white p-0.5">
+          {viewButton("list", t("list"), <List aria-hidden="true" className="h-4 w-4" />)}
+          {viewButton("map", t("map"), <MapIcon aria-hidden="true" className="h-4 w-4" />)}
+          {viewButton("split", t("both"), null, "hidden lg:inline-flex")}
         </div>
+        <p role="status" aria-live="polite" className="text-sm font-medium text-stone-700">
+          {t("results", { count: visible.length })}
+        </p>
+      </div>
 
-        <Button type="button" variant="outline" size="sm" onClick={nearMe} disabled={locLoading}>
-          <LocateFixed className="h-4 w-4" />
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" variant="outline" onClick={nearMe} disabled={locLoading}>
+          <LocateFixed aria-hidden="true" className="h-4 w-4" />
           {locLoading ? common("loading") : t("near")}
         </Button>
-
         <Button
           type="button"
           variant={favOnly ? "default" : "outline"}
-          size="sm"
+          aria-pressed={favOnly}
           onClick={() => setFavOnly((v) => !v)}
         >
-          <Heart className={`h-4 w-4 ${favOnly ? "fill-white" : ""}`} />
-          {t("favorites")}{favoriteSalonIds.length ? ` (${favoriteSalonIds.length})` : ""}
+          <Heart aria-hidden="true" className={cn("h-4 w-4", favOnly && "fill-white")} />
+          {t("favorites")}
         </Button>
-
-        <label className="text-sm text-slate-600">
-          {t("distance")}
-          <select
-            className="ml-2 rounded-lg border border-slate-200 bg-white px-2 py-1"
-            value={maxKm ?? ""}
-            aria-label="Maximale afstand"
-            onChange={(e) => {
-              const value = e.target.value ? Number(e.target.value) : null;
-              setMaxKm(value);
-              if (value) track("filter_used", `km-${value}`);
-              if (value && !userLoc) nearMe();
-            }}
-          >
-            <option value="">{common("all")}</option>
-            <option value="2">2 km</option>
-            <option value="5">5 km</option>
-            <option value="10">10 km</option>
+        <label className="inline-flex items-center gap-2 text-sm text-stone-700">
+          {t("sort")}
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortBy)} className={selectClass}>
+            <option value="time">{t("sortTime")}</option>
+            <option value="distance">{t("sortDistance")}</option>
+            <option value="discount">{t("sortDiscount")}</option>
           </select>
         </label>
-        <p className="basis-full text-sm text-stone-500">{t("count", { count: visible.length })}</p>
-        <p className="basis-full text-xs text-stone-400">{t("nearHint")}</p>
-      </div>
-
-      <div className="flex items-center gap-2 text-sm">
-        <label className="text-slate-500" htmlFor="sort">{t("sort")}</label>
-        <select
-          id="sort"
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700"
-        >
-          <option value="time">{t("sortTime")}</option>
-          <option value="distance">{t("sortDistance")}</option>
-          <option value="discount">{t("sortDiscount")}</option>
-        </select>
-      </div>
-
-      {categories.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setCatFilter(null)}
-            className={`rounded-full px-3 py-1 text-xs font-semibold border ${
-              !catFilter ? "bg-[#b4492b] text-white border-[#b4492b]" : "bg-white text-slate-600 border-slate-200"
-            }`}
-          >
-            {common("all")}
-          </button>
-          {categories.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setCatFilter(c === catFilter ? null : c)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold border ${
-                catFilter === c ? "bg-[#b4492b] text-white border-[#b4492b]" : "bg-white text-slate-600 border-slate-200"
-              }`}
+        {userLoc && (
+          <label className="inline-flex items-center gap-2 text-sm text-stone-700">
+            {t("distance")}
+            <select
+              className={selectClass}
+              value={maxKm ?? ""}
+              onChange={(e) => {
+                const value = e.target.value ? Number(e.target.value) : null;
+                setMaxKm(value);
+                if (value) track("filter_used", `km-${value}`);
+              }}
             >
-              {CATEGORY_EMOJI[c] || ""} {CATEGORY_LABELS[c] || c}
-            </button>
-          ))}
-        </div>
-      )}
+              <option value="">{common("all")}</option>
+              <option value="2">2 km</option>
+              <option value="5">5 km</option>
+              <option value="10">10 km</option>
+            </select>
+          </label>
+        )}
+      </div>
+      <div aria-live="polite">
+        {locError && <p className="text-sm text-red-700">{locError}</p>}
+        {userLoc && !locError && <p className="text-xs text-stone-600">{t("nearHint")}</p>}
+      </div>
 
-      {locError && <p className="text-sm text-rose-600">{locError}</p>}
-      {userLoc && (
-        <p className="text-xs text-slate-500">{t("nearHint")}</p>
-      )}
+      {visible.length === 0 && view !== "map" && empty}
 
-      {view === "list" && (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {visible.map((s) => (
-            <div key={s.id} onMouseEnter={() => setSelectedId(s.id)}>
-              <SlotCard {...s} selected={selectedId === s.id} />
-            </div>
-          ))}
-        </div>
-      )}
+      {view === "list" && visible.length > 0 && cards("grid gap-4 sm:grid-cols-2 xl:grid-cols-3")}
 
       {view === "map" && (
         <div className="h-[70vh] min-h-[420px]">
-          <SlotsMapDynamic
-            slots={visible}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            userLocation={userLoc}
-            initialCity={initialCity}
-            className="h-full w-full rounded-2xl overflow-hidden border border-slate-200"
-          />
+          {map("h-full w-full overflow-hidden rounded-2xl border border-stone-200")}
         </div>
       )}
 
-      {view === "split" && (
+      {view === "split" && visible.length > 0 && (
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="max-h-[70vh] space-y-3 overflow-y-auto pr-1">
-            {visible.map((s) => (
-              <div
-                key={s.id}
-                onMouseEnter={() => setSelectedId(s.id)}
-                onClick={() => setSelectedId(s.id)}
-              >
-                <SlotCard {...s} selected={selectedId === s.id} />
-              </div>
-            ))}
-            {visible.length === 0 && (
-              <EmptySlots favOnly={favOnly} hasFilters={Boolean(catFilter || maxKm || favOnly)} onClear={() => { setCatFilter(null); setMaxKm(null); setFavOnly(false); }} />
-            )}
-          </div>
+          {cards("max-h-[70vh] space-y-3 overflow-y-auto pr-1", true)}
           <div className="sticky top-20 h-[70vh] min-h-[420px]">
-            <SlotsMapDynamic
-              slots={visible}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-              userLocation={userLoc}
-              initialCity={initialCity}
-              className="h-full w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm"
-            />
+            {map("h-full w-full overflow-hidden rounded-2xl border border-stone-200 shadow-sm")}
           </div>
         </div>
       )}
-
-      {view === "list" && visible.length === 0 && (
-        <EmptySlots favOnly={favOnly} hasFilters={Boolean(catFilter || maxKm || favOnly)} onClear={() => { setCatFilter(null); setMaxKm(null); setFavOnly(false); }} />
-      )}
+      {view === "map" && visible.length === 0 && empty}
     </div>
   );
 }

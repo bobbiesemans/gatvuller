@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   // A second dev server (end-to-end tests) can use its own build folder: NEXT_DIST_DIR=.next-e2e
   distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
+  async redirects() {
+    // The old impact page showed unfiltered numbers; it is gone for good.
+    return [{ source: "/impact", destination: "/", permanent: true }];
+  },
   async headers() {
     return [
       {

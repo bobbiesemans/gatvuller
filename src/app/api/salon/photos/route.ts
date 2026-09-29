@@ -16,8 +16,9 @@ function sniffImage(b: Uint8Array): { type: string; ext: string } | null {
 }
 
 export const POST = route(async (req) => {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) throw new ApiError(503, "uploads_disabled");
+  // Who is asking comes first: an anonymous caller learns nothing about the configuration.
   const user = await requireUser(["SALON_OWNER", "ADMIN"]);
+  if (!process.env.BLOB_READ_WRITE_TOKEN) throw new ApiError(503, "uploads_disabled");
   await enforceRateLimit(`photo:${user.id}`, 30, 60 * 60);
   const form = await req.formData();
   const salonId = String(form.get("salonId") || "");

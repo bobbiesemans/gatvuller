@@ -9,6 +9,7 @@ import { Providers } from "@/components/providers";
 import { EnvironmentBanner } from "@/components/environment-banner";
 import { appUrl } from "@/lib/config";
 import { toLocale } from "@/i18n/config";
+import { getCurrentUser } from "@/lib/session";
 
 const geistSans = Geist({
   subsets: ["latin"],
@@ -36,13 +37,11 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: t("title"), template: "%s · GatVuller" },
     description: t("description"),
     metadataBase: new URL(site),
-    alternates: { canonical: "/" },
     openGraph: {
       title: t("ogTitle"),
       description: t("ogDescription"),
       locale: OG_LOCALE[locale],
       type: "website",
-      url: site,
     },
     manifest: "/manifest.webmanifest",
     icons: {
@@ -63,15 +62,23 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = toLocale(await getLocale());
   const messages = await getMessages();
+  const me = await getCurrentUser();
+  const t = await getTranslations("ui.nav");
   return (
     <html lang={HTML_LANG[locale]}>
       <body className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} min-h-screen flex flex-col antialiased`}>
         <Providers locale={locale} messages={messages}>
+          <a
+            href="#main"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-xl focus:bg-white focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-ink focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand"
+          >
+            {t("skip")}
+          </a>
           <EnvironmentBanner />
           <Header />
-          <main className="flex-1 pb-20 md:pb-0">{children}</main>
+          <main id="main" tabIndex={-1} className="flex-1 pb-20 outline-none lg:pb-0">{children}</main>
           <Footer />
-          <MobileNav />
+          <MobileNav role={me?.role ?? null} />
         </Providers>
       </body>
     </html>

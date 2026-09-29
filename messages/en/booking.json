@@ -1,1 +1,151 @@
-{}
+{
+  "ui": {
+    "book": {
+      "guestTitle": "Log in to reserve",
+      "guestLead": "With a free account you can find your voucher and your bookings again. After logging in you come back to this hour.",
+      "register": "Create an account",
+      "overview": "Price overview",
+      "saving": "You save",
+      "feeForYou": "Service fee for you",
+      "feeNote": "The business pays {percent}% platform fee to GatVuller. It is never added on top of your price.",
+      "rulesTitle": "Good to know before you pay",
+      "rulesCancel": "You can cancel free of charge until {deadline} ({hours} hours before the start). You then get the full amount back.",
+      "rulesNoCancel": "Free cancellation is no longer possible: the window of {hours} hours before the start has passed.",
+      "rulesLate": "If you cancel later or do not show up (no-show), you get nothing back.",
+      "rulesHold": "Once you continue, we hold the spot for you for {minutes} minutes while you pay.",
+      "contactTitle": "Your details",
+      "phoneOptional": "Phone (optional)",
+      "phoneHint": "Only so the business can call you if something changes with your appointment.",
+      "invalidPhone": "Enter a valid phone number, or leave the field empty.",
+      "working": "We are opening the secure Stripe payment page. One moment.",
+      "workingDemo": "We are confirming your booking. One moment.",
+      "networkError": "No connection. Nothing was charged. Please try again.",
+      "termsNote": "By reserving you agree to the <link>terms</link>."
+    },
+    "offer": {
+      "metaTitle": "{title} at {salon}",
+      "metaDescription": "{title} at {salon} in {city}: {price} instead of {original}. {when}. Free cancellation until {hours} hours before the start.",
+      "metaNotFound": "Offer not found",
+      "back": "All open hours",
+      "inMinutes": "{minutes} min",
+      "inHoursMinutes": "{hours} h {minutes} min",
+      "inDaysHours": "{days} d {hours} h",
+      "started": "The hour has started.",
+      "duration": "Takes {minutes} min",
+      "about": "About {name}",
+      "viewSalon": "View the business",
+      "conditionsTitle": "Conditions",
+      "conditionCancel": "You can cancel until {hours} hours before the start. You then get the full amount back.",
+      "conditionNoShow": "If you cancel later or do not show up, you get nothing back.",
+      "conditionFee": "The price you see is the price you pay. The business pays the platform fee ({percent}%).",
+      "reasonFull": "This hour is fully booked.",
+      "reasonClosed": "This hour can no longer be booked: it starts soon, has already started, or the business withdrew the offer.",
+      "reasonOff": "Booking is not possible with this business right now.",
+      "otherHours": "See other open hours",
+      "salonHours": "More hours from this business",
+      "locationApprox": "The pin on the map is an estimate: it shows the city centre, not the exact address.",
+      "noReviews": "No reviews yet. Only customers with a paid, completed booking can leave one.",
+      "ratingSummary": "{rating}/5 · {count, plural, one {# review} other {# reviews}}",
+      "verifiedVisit": "Confirmed visit",
+      "salonReply": "Reply from the business",
+      "reviewAnon": "Customer",
+      "demoNotice": "Demo business with sample data: this appointment does not really exist and nothing will be charged.",
+      "loadErrorTitle": "This page could not be loaded",
+      "loadErrorBody": "Something went wrong on our side. Nothing was changed and nothing was charged.",
+      "loadErrorRetry": "Try again",
+      "loadErrorBrowse": "Go to all open hours",
+      "ogPrice": "{price} instead of {original}",
+      "ogTagline": "Last-minute appointments near you"
+    },
+    "share": {
+      "label": "Share",
+      "copied": "Link copied",
+      "text": "{title}: last-minute appointment on GatVuller",
+      "failed": "Copying failed. Copy the link from the address bar."
+    },
+    "salonPage": {
+      "metaTitle": "{name} in {city}",
+      "metaDescription": "{summary} See last-minute hours, opening times and reviews.",
+      "metaNotFound": "Business not found",
+      "demoBanner": "This is a demo business with sample data. Booking is simulated and nothing will be charged.",
+      "photoAlt": "{name}, photo {n}",
+      "photoCredit": "Photo: {credit}",
+      "noPhotos": "This business has not uploaded photos yet.",
+      "verifiedMeaning": "GatVuller has checked this business’s company details.",
+      "unverifiedMeaning": "GatVuller has not checked this business’s company details yet.",
+      "demoMeaning": "A demo business is not a real business: it only exists to show the product.",
+      "ratingLine": "{rating}/5 · {count, plural, one {# review} other {# reviews}} after a visit",
+      "noRatingLine": "No reviews yet",
+      "offersTitle": "Open hours",
+      "offersEmpty": "There is no last-minute hour online right now.",
+      "offersEmptyHint": "Save the business with the heart. That way you can find it quickly when a new hour goes online.",
+      "reviewsTitle": "Reviews",
+      "reviewsNote": "Only customers with a paid, completed booking can leave a review. If the business confirmed the visit, it says “Confirmed visit”.",
+      "reviewsEmpty": "No reviews yet.",
+      "addressTitle": "Address",
+      "hoursTitle": "Opening hours",
+      "hoursEmpty": "The business has not entered its opening hours yet.",
+      "hoursNote": "These are the business’s opening hours. The hours you can book are listed under Open hours.",
+      "closed": "Closed",
+      "openNow": "Open now · until {time}",
+      "opensLater": "Closed now · opens at {time}",
+      "closedNow": "Closed now",
+      "closedToday": "Closed today"
+    },
+    "bookings": {
+      "metaTitle": "My bookings",
+      "metaDescription": "Your upcoming appointments, vouchers and reviews.",
+      "tabsLabel": "Bookings",
+      "emptyPastTitle": "No earlier bookings yet",
+      "emptyPastBody": "Appointments that are over, cancelled or expired will appear here.",
+      "pendingNote": "Payment not confirmed yet. As soon as Stripe confirms, your voucher appears here. If it does not, the spot is released on its own and nothing is charged.",
+      "expiredNote": "Not paid: nothing was charged.",
+      "noShowNote": "You did not show up, so the amount was not refunded.",
+      "refundedNote": "{amount} goes back to your payment method. This can take a few working days.",
+      "cancelUntil": "Free cancellation until {deadline}. You get the full amount back.",
+      "cancelClosed": "Free cancellation is no longer possible.",
+      "calendar": "Add to calendar"
+    },
+    "voucher": {
+      "metaTitle": "Your booking",
+      "qrLabel": "QR code for your booking. Show it at the desk.",
+      "checkPayment": "Check payment"
+    },
+    "status": {
+      "metaTitle": "Payment status",
+      "stillWaiting": "Bear with us. Confirming a payment sometimes takes half a minute or more. You can leave this screen open.",
+      "slowDetail": "Was the amount charged? Then you will get your voucher by email and find it under My bookings. If nothing was charged, you do not need to do anything: the spot is released on its own.",
+      "checkAgain": "Check again"
+    },
+    "review": {
+      "verifiedHint": "The business confirmed your visit: your review will carry the label “Confirmed visit”.",
+      "unverifiedHint": "The business did not confirm your visit, so your review will not carry the label “Confirmed visit”.",
+      "windowHint": "You can leave a review up to {days} days after your appointment.",
+      "hiddenNote": "Your review has been hidden by the GatVuller team (for example after a report) and does not count towards the average. Think that is a mistake? Please contact us.",
+      "yourReview": "Your review",
+      "score": "{rating} out of 5 stars"
+    },
+    "report": {
+      "titleSalon": "Report this business",
+      "choose": "Choose a reason",
+      "messageOptional": "Details (optional)",
+      "messageHint": "What is going on? Do not share sensitive details about yourself or others.",
+      "messageRequired": "For “Something else”, add a short explanation (at least 5 characters).",
+      "sentDetail": "We read every report, but we do not always reply personally. Urgent problem with a booking? Use the contact form.",
+      "cancel": "Close"
+    },
+    "cancelBooking": {
+      "confirmYes": "Yes, cancel",
+      "confirmNo": "No, keep it"
+    },
+    "copyCode": {
+      "failed": "Copying failed. Write the code down."
+    },
+    "cancelled": {
+      "metaTitle": "Payment interrupted"
+    },
+    "errors": {
+      "payment_mode_mismatch": "Paying this way is not possible right now. Nothing was charged; please try again shortly."
+    }
+  }
+}

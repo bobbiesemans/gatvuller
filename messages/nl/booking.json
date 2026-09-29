@@ -1,1 +1,151 @@
-{}
+{
+  "ui": {
+    "book": {
+      "guestTitle": "Log in om te reserveren",
+      "guestLead": "Met een gratis account vind je je bon en je boekingen terug. Na het inloggen kom je terug bij dit uur.",
+      "register": "Account maken",
+      "overview": "Prijsoverzicht",
+      "saving": "Je bespaart",
+      "feeForYou": "Servicekosten voor jou",
+      "feeNote": "De zaak betaalt {percent}% platformkosten aan GatVuller. Die komen nooit bovenop jouw prijs.",
+      "rulesTitle": "Goed om te weten voor je betaalt",
+      "rulesCancel": "Gratis annuleren kan tot {deadline} ({hours} uur voor de start). Je krijgt dan het volledige bedrag terug.",
+      "rulesNoCancel": "Gratis annuleren kan niet meer: de termijn van {hours} uur voor de start is al voorbij.",
+      "rulesLate": "Annuleer je later of kom je niet opdagen (no-show), dan krijg je niets terug.",
+      "rulesHold": "Zodra je verdergaat, houden we de plek {minutes} minuten voor je vrij terwijl je betaalt.",
+      "contactTitle": "Jouw gegevens",
+      "phoneOptional": "Telefoon (optioneel)",
+      "phoneHint": "Alleen zodat de zaak je kan bellen als er iets verandert aan je afspraak.",
+      "invalidPhone": "Vul een geldig telefoonnummer in, of laat het veld leeg.",
+      "working": "We openen de beveiligde betaalpagina van Stripe. Even geduld.",
+      "workingDemo": "We bevestigen je boeking. Even geduld.",
+      "networkError": "Geen verbinding. Er is niets afgeschreven. Probeer het opnieuw.",
+      "termsNote": "Door te reserveren ga je akkoord met de <link>voorwaarden</link>."
+    },
+    "offer": {
+      "metaTitle": "{title} bij {salon}",
+      "metaDescription": "{title} bij {salon} in {city}: {price} in plaats van {original}. {when}. Gratis annuleren tot {hours} uur voor de start.",
+      "metaNotFound": "Aanbod niet gevonden",
+      "back": "Alle open uren",
+      "inMinutes": "{minutes} min",
+      "inHoursMinutes": "{hours} u {minutes} min",
+      "inDaysHours": "{days} d {hours} u",
+      "started": "Het uur is begonnen.",
+      "duration": "Duurt {minutes} min",
+      "about": "Over {name}",
+      "viewSalon": "Bekijk de zaak",
+      "conditionsTitle": "Voorwaarden",
+      "conditionCancel": "Annuleren kan tot {hours} uur voor de start. Dan krijg je het volledige bedrag terug.",
+      "conditionNoShow": "Annuleer je later of kom je niet opdagen, dan krijg je niets terug.",
+      "conditionFee": "De prijs die je ziet is de prijs die je betaalt. De zaak betaalt de platformkosten ({percent}%).",
+      "reasonFull": "Dit uur is volzet.",
+      "reasonClosed": "Dit uur is niet meer te boeken: het begint bijna, is al bezig of de zaak heeft het aanbod ingetrokken.",
+      "reasonOff": "Boeken is bij deze zaak nu niet mogelijk.",
+      "otherHours": "Bekijk andere open uren",
+      "salonHours": "Meer uren van deze zaak",
+      "locationApprox": "De pin op de kaart is een schatting: hij toont het centrum van de stad, niet het exacte adres.",
+      "noReviews": "Nog geen beoordelingen. Alleen klanten met een betaalde, afgeronde boeking kunnen er een plaatsen.",
+      "ratingSummary": "{rating}/5 · {count, plural, one {# beoordeling} other {# beoordelingen}}",
+      "verifiedVisit": "Bevestigd bezoek",
+      "salonReply": "Antwoord van de zaak",
+      "reviewAnon": "Klant",
+      "demoNotice": "Demozaak met testdata: deze afspraak bestaat niet echt en er wordt niets afgeschreven.",
+      "loadErrorTitle": "Deze pagina kon niet geladen worden",
+      "loadErrorBody": "Er ging iets mis aan onze kant. Er is niets aangepast en niets afgeschreven.",
+      "loadErrorRetry": "Opnieuw proberen",
+      "loadErrorBrowse": "Naar alle open uren",
+      "ogPrice": "{price} in plaats van {original}",
+      "ogTagline": "Last-minute afspraken bij zaken in je buurt"
+    },
+    "share": {
+      "label": "Delen",
+      "copied": "Link gekopieerd",
+      "text": "{title}: last-minute afspraak op GatVuller",
+      "failed": "Kopiëren lukt niet. Kopieer de link uit de adresbalk."
+    },
+    "salonPage": {
+      "metaTitle": "{name} in {city}",
+      "metaDescription": "{summary} Bekijk vrije last-minute uren, openingstijden en beoordelingen.",
+      "metaNotFound": "Zaak niet gevonden",
+      "demoBanner": "Dit is een demozaak met testdata. Boeken wordt gesimuleerd en er wordt niets afgeschreven.",
+      "photoAlt": "{name}, foto {n}",
+      "photoCredit": "Foto: {credit}",
+      "noPhotos": "Deze zaak heeft nog geen foto's geüpload.",
+      "verifiedMeaning": "GatVuller heeft de bedrijfsgegevens van deze zaak nagekeken.",
+      "unverifiedMeaning": "GatVuller heeft de bedrijfsgegevens van deze zaak nog niet nagekeken.",
+      "demoMeaning": "Een demozaak is geen echte zaak: ze dient alleen om het product te tonen.",
+      "ratingLine": "{rating}/5 · {count, plural, one {# beoordeling} other {# beoordelingen}} na een bezoek",
+      "noRatingLine": "Nog geen beoordelingen",
+      "offersTitle": "Vrije uren",
+      "offersEmpty": "Er staat nu geen last-minute uur online.",
+      "offersEmptyHint": "Bewaar de zaak met het hartje. Zo vind je ze snel terug wanneer er een nieuw uur online komt.",
+      "reviewsTitle": "Beoordelingen",
+      "reviewsNote": "Alleen klanten met een betaalde, afgeronde boeking kunnen een beoordeling plaatsen. Bevestigde de zaak het bezoek, dan staat er ‘Bevestigd bezoek’ bij.",
+      "reviewsEmpty": "Nog geen beoordelingen.",
+      "addressTitle": "Adres",
+      "hoursTitle": "Openingstijden",
+      "hoursEmpty": "De zaak heeft nog geen openingstijden ingevuld.",
+      "hoursNote": "Dit zijn de openingstijden van de zaak. Welke uren je kan boeken, zie je bij Vrije uren.",
+      "closed": "Gesloten",
+      "openNow": "Nu open · tot {time}",
+      "opensLater": "Nu gesloten · opent om {time}",
+      "closedNow": "Nu gesloten",
+      "closedToday": "Vandaag gesloten"
+    },
+    "bookings": {
+      "metaTitle": "Mijn boekingen",
+      "metaDescription": "Je komende afspraken, bonnen en beoordelingen.",
+      "tabsLabel": "Boekingen",
+      "emptyPastTitle": "Nog geen eerdere boekingen",
+      "emptyPastBody": "Afspraken die voorbij, geannuleerd of verlopen zijn, komen hier te staan.",
+      "pendingNote": "Betaling nog niet bevestigd. Zodra Stripe bevestigt, staat je bon hier. Gebeurt dat niet, dan komt de plek vanzelf weer vrij en wordt er niets afgeschreven.",
+      "expiredNote": "Niet betaald: er is niets afgeschreven.",
+      "noShowNote": "Je kwam niet opdagen, dus het bedrag werd niet terugbetaald.",
+      "refundedNote": "{amount} gaat terug naar je betaalmethode. Dat kan enkele werkdagen duren.",
+      "cancelUntil": "Gratis annuleren kan tot {deadline}. Je krijgt het volledige bedrag terug.",
+      "cancelClosed": "Gratis annuleren kan niet meer.",
+      "calendar": "Zet in agenda"
+    },
+    "voucher": {
+      "metaTitle": "Jouw boeking",
+      "qrLabel": "QR-code van je boeking. Toon die aan de balie.",
+      "checkPayment": "Betaling controleren"
+    },
+    "status": {
+      "metaTitle": "Betaalstatus",
+      "stillWaiting": "Nog even geduld. Een betaling bevestigen duurt soms een halve minuut of langer. Je kan dit scherm gerust openlaten.",
+      "slowDetail": "Is het bedrag afgeschreven? Dan krijg je je bon per e-mail en vind je die bij Mijn boekingen. Is er niets afgeschreven, dan hoef je niets te doen: de plek komt vanzelf weer vrij.",
+      "checkAgain": "Opnieuw controleren"
+    },
+    "review": {
+      "verifiedHint": "De zaak heeft je bezoek bevestigd: je beoordeling krijgt het label ‘Bevestigd bezoek’.",
+      "unverifiedHint": "De zaak heeft je bezoek niet bevestigd, dus je beoordeling krijgt het label ‘Bevestigd bezoek’ niet.",
+      "windowHint": "Beoordelen kan tot {days} dagen na je afspraak.",
+      "hiddenNote": "Je beoordeling is verborgen door het GatVuller-team (bijvoorbeeld na een melding) en telt niet mee in het gemiddelde. Denk je dat dat niet klopt? Neem contact met ons op.",
+      "yourReview": "Jouw beoordeling",
+      "score": "{rating} van 5 sterren"
+    },
+    "report": {
+      "titleSalon": "Meld deze zaak",
+      "choose": "Kies een reden",
+      "messageOptional": "Toelichting (optioneel)",
+      "messageHint": "Wat is er aan de hand? Deel geen gevoelige gegevens van jezelf of van anderen.",
+      "messageRequired": "Geef bij ‘Iets anders’ een korte toelichting (minstens 5 tekens).",
+      "sentDetail": "We lezen elke melding, maar antwoorden niet altijd persoonlijk. Heb je een dringend probleem met een boeking? Gebruik dan het contactformulier.",
+      "cancel": "Sluiten"
+    },
+    "cancelBooking": {
+      "confirmYes": "Ja, annuleer",
+      "confirmNo": "Toch niet"
+    },
+    "copyCode": {
+      "failed": "Kopiëren lukt niet. Noteer de code."
+    },
+    "cancelled": {
+      "metaTitle": "Betaling afgebroken"
+    },
+    "errors": {
+      "payment_mode_mismatch": "Betalen lukt nu niet op deze manier. Er is niets afgeschreven; probeer het zo opnieuw."
+    }
+  }
+}

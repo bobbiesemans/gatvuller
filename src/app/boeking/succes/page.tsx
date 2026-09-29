@@ -1,16 +1,19 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Clock, Info, MapPin } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
-import { verifyBookingToken } from "@/lib/tokens";
-import { appUrl } from "@/lib/config";
-import { discountPercent, formatEuro } from "@/lib/money";
+import { bookingToken, verifyBookingToken } from "@/lib/tokens";
+import { appUrl, REVIEW_WINDOW_DAYS } from "@/lib/config";
+import { discountPercent, formatEuro, formatNumber } from "@/lib/money";
 import { spacedCode } from "@/lib/utils";
 import { formatInZone } from "@/lib/time";
+import { toLocale } from "@/i18n/config";
 import { reviewEligibility } from "@/lib/bookings";
 import { Badge } from "@/components/ui/badge";
+import { Notice } from "@/components/ui/notice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BookingQr } from "@/components/booking-qr";
@@ -20,7 +23,13 @@ import { MiniMap } from "@/components/map/mini-map";
 import { ReviewForm } from "@/components/review-form";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Jouw boeking", robots: { index: false, follow: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("ui.voucher");
+  return { title: t("metaTitle"), robots: { index: false, follow: false }, alternates: { canonical: "/boeking/succes" } };
+}
+
+/** Printing the voucher gives the page itself, without the site header, footer and buttons. */
+const PRINT_CSS = "@media print{header,footer,nav,.no-print{display:none!important}body{background:#fff!important}}";
 
 type Kind = "paid" | "checkedIn" | "pending" | "expired" | "cancelled" | "refunded" | "noShow";
 
@@ -28,7 +37,8 @@ type Kind = "paid" | "checkedIn" | "pending" | "expired" | "cancelled" | "refund
 export default async function VoucherPage({ searchParams }: { searchParams: Promise<{ bookingId?: string; t?: string }> }) {
   const sp = await searchParams;
   if (!sp.bookingId) redirect("/boekingen");
-  const [lc, t, me] = await Promise.all([getLocale(), getTranslations("ui.voucher"), getCurrentUser()]);
+  const [locale, t, r, me] = await Promise.all([getLocale(), getTranslations("ui.voucher"), getTranslations("ui.review"), getCurrentUser()]);
+  const lc = toLocale(locale);
   const booking = await prisma.booking.findUnique({
     where: { id: sp.bookingId },
     include: { slot: { include: { salon: true } }, review: true },
@@ -68,10 +78,12 @@ export default async function VoucherPage({ searchParams }: { searchParams: Prom
   const refunded = kind === "refunded" || (kind === "cancelled" && (booking.refundAmount ?? 0) > 0);
   const showPlace = kind === "paid" || kind === "checkedIn" || kind === "pending";
   const pct = discountPercent(slot.originalPrice, booking.amount);
+  const statusHref = `/boeking/status?b=${encodeURIComponent(booking.id)}&t=${encodeURIComponent(bookingToken(booking.id))}`;
   const cancelledBy = booking.cancelledBy && ["CUSTOMER", "SALON", "ADMIN", "SYSTEM"].includes(booking.cancelledBy) ? booking.cancelledBy : null;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:py-12">
+      <style>{PRINT_CSS}</style>
       <header className="mb-8 text-center">
         <Badge variant={kind === "paid" || kind === "checkedIn" ? "success" : kind === "pending" ? "warn" : "default"}>
           {t(`badge.${kind}`)}
@@ -82,9 +94,9 @@ export default async function VoucherPage({ searchParams }: { searchParams: Prom
       </header>
 
       {notice && (
-        <p role="note" className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-          {notice}
-        </p>
+        <div className="mb-6">
+          <Notice tone="warn">{notice}</Notice>
+        </div>
       )}
 
       <Card className="overflow-hidden">
@@ -92,7 +104,7 @@ export default async function VoucherPage({ searchParams }: { searchParams: Prom
           <div className="bg-brand px-6 py-5 text-white">
             <p className="text-sm text-brand-soft">{t("code")}</p>
             <p className="mt-1 font-mono text-3xl font-bold tracking-[0.2em]">{spacedCode(booking.confirmationCode)}</p>
-            <div className="mt-3">
+            <div className="no-print mt-3">
               <CopyCodeButton code={booking.confirmationCode} />
             </div>
           </div>
@@ -106,7 +118,7 @@ export default async function VoucherPage({ searchParams }: { searchParams: Prom
                 {salon.name}
               </Link>
               {" · "}
-              {salon.ratingCount > 0 ? `★ ${salon.ratingAvg.toFixed(1)}` : t("salonNew")}
+              {salon.ratingCount > 0 ? `★ ${formatNumber(salon.ratingAvg, lc, 1)}` : t("salonNew")}
               {salon.isDemo ? ` · ${t("demoSalon")}` : ""}
             </p>
             <p className="flex items-start gap-2">
@@ -169,7 +181,7 @@ export default async function VoucherPage({ searchParams }: { searchParams: Prom
         </Card>
       )}
 
-      <div className="mt-6 flex flex-wrap items-start gap-3">
+      <div className="no-print mt-6 flex flex-wrap items-start gap-3">
         {kind === "paid" && isCustomer && cancelOpen && <CancelBookingButton bookingId={booking.id} />}
         {(kind === "paid" || kind === "checkedIn") && !isCustomer && me?.role !== "ADMIN" && (
           <Button asChild variant="outline">
@@ -192,6 +204,11 @@ export default async function VoucherPage({ searchParams }: { searchParams: Prom
             </a>
           </Button>
         )}
+        {kind === "pending" && (isCustomer || me?.role === "ADMIN" || verifyBookingToken(booking.id, sp.t)) && (
+          <Button asChild>
+            <Link href={statusHref}>{t("checkPayment")}</Link>
+          </Button>
+        )}
         {(kind === "expired" || kind === "cancelled") && (
           <Button asChild>
             <Link href={`/slots/${slot.id}`}>{t("tryAgain")}</Link>
@@ -206,9 +223,23 @@ export default async function VoucherPage({ searchParams }: { searchParams: Prom
         <p className="mt-3 text-sm text-stone-600">{t("loginToManage")}</p>
       )}
       {canReview && (
-        <div className="mt-8" id="review">
-          <ReviewForm bookingId={booking.id} />
+        <div className="no-print mt-8" id="review">
+          <ReviewForm bookingId={booking.id} verified={Boolean(booking.checkedInAt)} windowDays={REVIEW_WINDOW_DAYS} />
         </div>
+      )}
+      {isCustomer && booking.review && (
+        <section className="no-print mt-8 rounded-2xl border border-stone-200 bg-white p-5 text-sm text-stone-700" aria-labelledby="your-review">
+          <h2 id="your-review" className="text-lg text-ink">
+            {r("yourReview")}
+          </h2>
+          <p className="mt-1 font-semibold text-ink">{r("score", { rating: booking.review.rating })}</p>
+          {booking.review.comment && <p className="mt-1 whitespace-pre-line">{booking.review.comment}</p>}
+          {booking.review.hidden && (
+            <div className="mt-3">
+              <Notice tone="warn">{r("hiddenNote")}</Notice>
+            </div>
+          )}
+        </section>
       )}
     </div>
   );

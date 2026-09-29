@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
+import { useErrorText } from "@/lib/i18n/use-error-text";
+import { intlLocale } from "@/lib/time";
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0];
-const NAMES = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"];
 
 type Day = { weekday: number; openMin: number; closeMin: number; closed: boolean };
 
@@ -17,71 +20,89 @@ function minutesLabel(total: number) {
 
 function toMinutes(value: string) {
   const [h, m] = value.split(":").map(Number);
-  return h * 60 + m;
+  return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : 0;
 }
 
+const timeInput = "h-11 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm disabled:bg-stone-100 disabled:text-stone-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand";
+
 export function HoursForm({ salonId, initial }: { salonId: string; initial: Day[] }) {
+  const t = useTranslations("ui.dashboard.manage");
+  const locale = useLocale();
+  const errorText = useErrorText();
   const router = useRouter();
   const [days, setDays] = useState<Day[]>(
     ORDER.map((weekday) => initial.find((d) => d.weekday === weekday) || { weekday, openMin: 9 * 60, closeMin: 18 * 60, closed: weekday === 0 })
   );
-  const [error, setError] = useState<string | null>(null);
-  const [ok, setOk] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ tone: "info" | "error"; text: string } | null>(null);
+
+  // 7 January 2024 was a Sunday: weekday 0 matches Date#getDay.
+  const dayName = (weekday: number) =>
+    new Intl.DateTimeFormat(intlLocale(locale), { weekday: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2024, 0, 7 + weekday)));
 
   async function save() {
-    setLoading(true);
-    setError(null);
-    setOk(false);
-    const res = await fetch("/api/salon/hours", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ salonId, days }),
-    });
-    setLoading(false);
-    if (!res.ok) {
-      setError("Opslaan mislukt");
+    setMessage(null);
+    const bad = days.find((d) => !d.closed && d.closeMin <= d.openMin);
+    if (bad) {
+      setMessage({ tone: "error", text: t("hoursInvalid", { day: dayName(bad.weekday) }) });
       return;
     }
-    setOk(true);
-    router.refresh();
+    setBusy(true);
+    try {
+      const res = await fetch("/api/salon/hours", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ salonId, days }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMessage({ tone: "error", text: errorText(data.error) });
+        return;
+      }
+      setMessage({ tone: "info", text: t("hoursSaved") });
+      router.refresh();
+    } catch {
+      setMessage({ tone: "error", text: errorText("generic") });
+    } finally {
+      setBusy(false);
+    }
   }
+
+  const update = (index: number, patch: Partial<Day>) => setDays((rows) => rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
 
   return (
     <div className="space-y-3">
-      {days.map((day, index) => (
-        <div key={day.weekday} className="grid grid-cols-[7rem_1fr_1fr_auto] items-center gap-2 text-sm">
-          <span className="capitalize text-stone-700">{NAMES[day.weekday]}</span>
-          <input
-            type="time"
-            aria-label={`${NAMES[day.weekday]} open`}
-            disabled={day.closed}
-            value={minutesLabel(day.openMin)}
-            onChange={(e) => setDays((rows) => rows.map((row, i) => (i === index ? { ...row, openMin: toMinutes(e.target.value) } : row)))}
-            className="h-10 rounded-lg border border-stone-200 px-2 disabled:bg-stone-100"
-          />
-          <input
-            type="time"
-            aria-label={`${NAMES[day.weekday]} sluit`}
-            disabled={day.closed}
-            value={minutesLabel(day.closeMin)}
-            onChange={(e) => setDays((rows) => rows.map((row, i) => (i === index ? { ...row, closeMin: toMinutes(e.target.value) } : row)))}
-            className="h-10 rounded-lg border border-stone-200 px-2 disabled:bg-stone-100"
-          />
-          <label className="flex items-center gap-1 text-xs text-stone-600">
+      {days.map((day, index) => {
+        const name = dayName(day.weekday);
+        return (
+          <div key={day.weekday} className="grid grid-cols-2 items-center gap-2 rounded-xl border border-stone-200 p-3 text-sm sm:grid-cols-[8rem_1fr_1fr_auto] sm:border-0 sm:p-0">
+            <span className="font-medium capitalize text-ink">{name}</span>
+            <label className="flex min-h-11 items-center justify-end gap-2 text-stone-700 sm:order-last sm:justify-start">
+              <input type="checkbox" className="h-5 w-5 accent-[#b4492b]" checked={day.closed} onChange={(e) => update(index, { closed: e.target.checked })} />
+              {t("hoursClosed")}
+            </label>
             <input
-              type="checkbox"
-              checked={day.closed}
-              onChange={(e) => setDays((rows) => rows.map((row, i) => (i === index ? { ...row, closed: e.target.checked } : row)))}
+              type="time"
+              aria-label={t("hoursOpen", { day: name })}
+              disabled={day.closed}
+              value={minutesLabel(day.openMin)}
+              onChange={(e) => update(index, { openMin: toMinutes(e.target.value) })}
+              className={timeInput}
             />
-            dicht
-          </label>
-        </div>
-      ))}
-      {error && <p className="text-sm text-red-700">{error}</p>}
-      {ok && <p className="text-sm text-emerald-800">Openingstijden opgeslagen.</p>}
-      <Button type="button" onClick={save} disabled={loading} size="sm">
-        {loading ? "Opslaan…" : "Openingstijden opslaan"}
+            <input
+              type="time"
+              aria-label={t("hoursClose", { day: name })}
+              disabled={day.closed}
+              value={minutesLabel(day.closeMin)}
+              onChange={(e) => update(index, { closeMin: toMinutes(e.target.value) })}
+              className={timeInput}
+            />
+          </div>
+        );
+      })}
+      <div aria-live="polite">{message && <Notice tone={message.tone}>{message.text}</Notice>}</div>
+      <Button type="button" onClick={save} disabled={busy} className="w-full sm:w-fit">
+        {busy ? t("saving") : t("saveHours")}
       </Button>
     </div>
   );

@@ -7,25 +7,30 @@ import { Button } from "@/components/ui/button";
 
 export function CopyCodeButton({ code }: { code: string }) {
   const t = useTranslations("ui.copyCode");
-  const [ok, setOk] = useState(false);
+  const [state, setState] = useState<"idle" | "ok" | "failed">("idle");
   return (
-    <Button
-      type="button"
-      size="sm"
-      variant="secondary"
-      className="gap-1.5"
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(code);
-          setOk(true);
-          setTimeout(() => setOk(false), 2000);
-        } catch {
-          /* clipboard not available: the code is on screen anyway */
-        }
-      }}
-    >
-      {ok ? <Check aria-hidden="true" className="h-4 w-4" /> : <Copy aria-hidden="true" className="h-4 w-4" />}
-      <span aria-live="polite">{ok ? t("copied") : t("copy")}</span>
-    </Button>
+    <>
+      <Button
+        type="button"
+        variant="secondary"
+        className="gap-1.5"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(code);
+            setState("ok");
+          } catch {
+            setState("failed");
+          }
+          window.setTimeout(() => setState("idle"), 2500);
+        }}
+      >
+        {state === "ok" ? <Check aria-hidden="true" className="h-4 w-4" /> : <Copy aria-hidden="true" className="h-4 w-4" />}
+        {state === "ok" ? t("copied") : t("copy")}
+      </Button>
+      <span className="sr-only" role="status" aria-live="polite">
+        {state === "ok" ? t("copied") : state === "failed" ? t("failed") : ""}
+      </span>
+      {state === "failed" && <span className="ml-2 text-xs">{t("failed")}</span>}
+    </>
   );
 }

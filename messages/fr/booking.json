@@ -1,1 +1,151 @@
-{}
+{
+  "ui": {
+    "book": {
+      "guestTitle": "Connectez-vous pour réserver",
+      "guestLead": "Avec un compte gratuit, vous retrouvez votre bon et vos réservations. Après la connexion, vous revenez à cette offre.",
+      "register": "Créer un compte",
+      "overview": "Récapitulatif du prix",
+      "saving": "Vous économisez",
+      "feeForYou": "Frais de service pour vous",
+      "feeNote": "Le commerce paie {percent} % de frais de plateforme à GatVuller. Ils ne s’ajoutent jamais à votre prix.",
+      "rulesTitle": "À savoir avant de payer",
+      "rulesCancel": "Annulation gratuite jusqu’au {deadline} ({hours} h avant le début). Vous récupérez alors la totalité du montant.",
+      "rulesNoCancel": "L’annulation gratuite n’est plus possible : le délai de {hours} h avant le début est dépassé.",
+      "rulesLate": "Si vous annulez plus tard ou ne vous présentez pas (absence), aucun remboursement n’est possible.",
+      "rulesHold": "Dès que vous continuez, nous gardons la place pour vous pendant {minutes} minutes, le temps du paiement.",
+      "contactTitle": "Vos coordonnées",
+      "phoneOptional": "Téléphone (facultatif)",
+      "phoneHint": "Uniquement pour que le commerce puisse vous appeler si votre rendez-vous change.",
+      "invalidPhone": "Saisissez un numéro de téléphone valide ou laissez le champ vide.",
+      "working": "Nous ouvrons la page de paiement sécurisée de Stripe. Un instant.",
+      "workingDemo": "Nous confirmons votre réservation. Un instant.",
+      "networkError": "Pas de connexion. Rien n’a été débité. Veuillez réessayer.",
+      "termsNote": "En réservant, vous acceptez les <link>conditions</link>."
+    },
+    "offer": {
+      "metaTitle": "{title} chez {salon}",
+      "metaDescription": "{title} chez {salon} à {city} : {price} au lieu de {original}. {when}. Annulation gratuite jusqu’à {hours} h avant le début.",
+      "metaNotFound": "Offre introuvable",
+      "back": "Toutes les heures disponibles",
+      "inMinutes": "{minutes} min",
+      "inHoursMinutes": "{hours} h {minutes} min",
+      "inDaysHours": "{days} j {hours} h",
+      "started": "L’heure a commencé.",
+      "duration": "Dure {minutes} min",
+      "about": "À propos de {name}",
+      "viewSalon": "Voir le commerce",
+      "conditionsTitle": "Conditions",
+      "conditionCancel": "Annulation possible jusqu’à {hours} h avant le début. Vous récupérez alors la totalité du montant.",
+      "conditionNoShow": "Si vous annulez plus tard ou ne vous présentez pas, aucun remboursement n’est possible.",
+      "conditionFee": "Le prix affiché est le prix que vous payez. Le commerce paie les frais de plateforme ({percent} %).",
+      "reasonFull": "Cette heure est complète.",
+      "reasonClosed": "Cette heure n’est plus réservable : elle commence bientôt, a déjà commencé ou le commerce a retiré l’offre.",
+      "reasonOff": "La réservation n’est pas possible pour le moment chez ce commerce.",
+      "otherHours": "Voir d’autres heures disponibles",
+      "salonHours": "Plus d’heures de ce commerce",
+      "locationApprox": "Le repère sur la carte est approximatif : il indique le centre de la ville, pas l’adresse exacte.",
+      "noReviews": "Pas encore d’avis. Seuls les clients ayant une réservation payée et honorée peuvent en publier un.",
+      "ratingSummary": "{rating}/5 · {count, plural, one {# avis} other {# avis}}",
+      "verifiedVisit": "Visite confirmée",
+      "salonReply": "Réponse du commerce",
+      "reviewAnon": "Client",
+      "demoNotice": "Commerce de démonstration : ce rendez-vous n’existe pas réellement et rien ne sera débité.",
+      "loadErrorTitle": "Cette page n’a pas pu être chargée",
+      "loadErrorBody": "Un problème est survenu de notre côté. Rien n’a été modifié et rien n’a été débité.",
+      "loadErrorRetry": "Réessayer",
+      "loadErrorBrowse": "Voir toutes les heures disponibles",
+      "ogPrice": "{price} au lieu de {original}",
+      "ogTagline": "Rendez-vous de dernière minute près de chez vous"
+    },
+    "share": {
+      "label": "Partager",
+      "copied": "Lien copié",
+      "text": "{title} : rendez-vous de dernière minute sur GatVuller",
+      "failed": "La copie a échoué. Copiez le lien depuis la barre d’adresse."
+    },
+    "salonPage": {
+      "metaTitle": "{name} à {city}",
+      "metaDescription": "{summary} Consultez les heures de dernière minute, les horaires et les avis.",
+      "metaNotFound": "Commerce introuvable",
+      "demoBanner": "Ceci est un commerce de démonstration avec des données de test. La réservation est simulée et rien ne sera débité.",
+      "photoAlt": "{name}, photo {n}",
+      "photoCredit": "Photo : {credit}",
+      "noPhotos": "Ce commerce n’a pas encore ajouté de photos.",
+      "verifiedMeaning": "GatVuller a vérifié les données d’entreprise de ce commerce.",
+      "unverifiedMeaning": "GatVuller n’a pas encore vérifié les données d’entreprise de ce commerce.",
+      "demoMeaning": "Un commerce de démonstration n’est pas un vrai commerce : il sert uniquement à présenter le produit.",
+      "ratingLine": "{rating}/5 · {count, plural, one {# avis} other {# avis}} après une visite",
+      "noRatingLine": "Pas encore d’avis",
+      "offersTitle": "Heures disponibles",
+      "offersEmpty": "Aucune heure de dernière minute n’est en ligne pour le moment.",
+      "offersEmptyHint": "Enregistrez le commerce avec le cœur. Vous le retrouverez facilement quand une nouvelle heure sera publiée.",
+      "reviewsTitle": "Avis",
+      "reviewsNote": "Seuls les clients ayant une réservation payée et honorée peuvent publier un avis. Si le commerce a confirmé la visite, la mention « Visite confirmée » apparaît.",
+      "reviewsEmpty": "Pas encore d’avis.",
+      "addressTitle": "Adresse",
+      "hoursTitle": "Horaires d’ouverture",
+      "hoursEmpty": "Le commerce n’a pas encore indiqué ses horaires.",
+      "hoursNote": "Ce sont les horaires d’ouverture du commerce. Les heures que vous pouvez réserver figurent sous « Heures disponibles ».",
+      "closed": "Fermé",
+      "openNow": "Ouvert maintenant · jusqu’à {time}",
+      "opensLater": "Fermé maintenant · ouvre à {time}",
+      "closedNow": "Fermé maintenant",
+      "closedToday": "Fermé aujourd’hui"
+    },
+    "bookings": {
+      "metaTitle": "Mes réservations",
+      "metaDescription": "Vos prochains rendez-vous, vos bons et vos avis.",
+      "tabsLabel": "Réservations",
+      "emptyPastTitle": "Pas encore de réservation passée",
+      "emptyPastBody": "Les rendez-vous passés, annulés ou expirés apparaîtront ici.",
+      "pendingNote": "Paiement pas encore confirmé. Dès que Stripe confirme, votre bon apparaît ici. Sinon, la place se libère d’elle-même et rien n’est débité.",
+      "expiredNote": "Non payé : rien n’a été débité.",
+      "noShowNote": "Vous ne vous êtes pas présenté(e), le montant n’a donc pas été remboursé.",
+      "refundedNote": "{amount} retournent vers votre moyen de paiement. Cela peut prendre quelques jours ouvrables.",
+      "cancelUntil": "Annulation gratuite jusqu’au {deadline}. Vous récupérez la totalité du montant.",
+      "cancelClosed": "L’annulation gratuite n’est plus possible.",
+      "calendar": "Ajouter à l’agenda"
+    },
+    "voucher": {
+      "metaTitle": "Votre réservation",
+      "qrLabel": "QR code de votre réservation. Présentez-le au comptoir.",
+      "checkPayment": "Vérifier le paiement"
+    },
+    "status": {
+      "metaTitle": "État du paiement",
+      "stillWaiting": "Encore un instant. Confirmer un paiement prend parfois une demi-minute ou plus. Vous pouvez laisser cet écran ouvert.",
+      "slowDetail": "Le montant a-t-il été débité ? Vous recevrez alors votre bon par e-mail et le retrouverez dans Mes réservations. Sinon, vous n’avez rien à faire : la place se libère d’elle-même.",
+      "checkAgain": "Vérifier à nouveau"
+    },
+    "review": {
+      "verifiedHint": "Le commerce a confirmé votre visite : votre avis portera la mention « Visite confirmée ».",
+      "unverifiedHint": "Le commerce n’a pas confirmé votre visite : votre avis ne portera pas la mention « Visite confirmée ».",
+      "windowHint": "Vous pouvez laisser un avis jusqu’à {days} jours après votre rendez-vous.",
+      "hiddenNote": "Votre avis a été masqué par l’équipe GatVuller (par exemple après un signalement) et n’entre pas dans la moyenne. Vous pensez que c’est une erreur ? Contactez-nous.",
+      "yourReview": "Votre avis",
+      "score": "{rating} sur 5 étoiles"
+    },
+    "report": {
+      "titleSalon": "Signaler ce commerce",
+      "choose": "Choisissez un motif",
+      "messageOptional": "Précision (facultatif)",
+      "messageHint": "Que se passe-t-il ? Ne partagez pas de données sensibles vous concernant ou concernant d’autres personnes.",
+      "messageRequired": "Pour « Autre chose », ajoutez une courte précision (au moins 5 caractères).",
+      "sentDetail": "Nous lisons chaque signalement, mais nous ne répondons pas toujours personnellement. Un problème urgent avec une réservation ? Utilisez le formulaire de contact.",
+      "cancel": "Fermer"
+    },
+    "cancelBooking": {
+      "confirmYes": "Oui, annuler",
+      "confirmNo": "Non, garder"
+    },
+    "copyCode": {
+      "failed": "La copie a échoué. Notez le code."
+    },
+    "cancelled": {
+      "metaTitle": "Paiement interrompu"
+    },
+    "errors": {
+      "payment_mode_mismatch": "Le paiement n’est pas possible de cette manière pour le moment. Rien n’a été débité ; veuillez réessayer dans un instant."
+    }
+  }
+}

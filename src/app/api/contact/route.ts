@@ -9,7 +9,7 @@ import { COMPANY } from "@/lib/config";
 const schema = z.object({
   name: z.string().trim().min(2).max(80),
   email: z.string().trim().email().max(120),
-  topic: z.enum(["boeking", "zaak", "privacy", "anders"]),
+  topic: z.enum(["booking", "business", "privacy", "other"]),
   message: z.string().trim().min(10).max(2000),
 });
 
@@ -22,7 +22,7 @@ export const POST = route(async (req) => {
     replyTo: body.email,
     ...contactEmail(body),
   });
-  // Without a mail provider the message is kept in the test outbox; in production that is a failure.
+  // Without a mail provider the message is kept in the test outbox (delivered: false); in production that is a failure.
   if (!result.ok) throw new ApiError(502, "contact_failed");
   return NextResponse.json({ ok: true, delivered: emailProviderConfigured() });
 });

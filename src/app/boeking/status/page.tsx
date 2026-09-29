@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { verifyBookingToken } from "@/lib/tokens";
 import { expireCheckoutSession, retrieveCheckoutSession } from "@/lib/payments";
@@ -7,7 +9,10 @@ import { log } from "@/lib/log";
 import { StatusPoller } from "@/components/status-poller";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Betaalstatus", robots: { index: false, follow: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("ui.status");
+  return { title: t("metaTitle"), robots: { index: false, follow: false }, alternates: { canonical: "/boeking/status" } };
+}
 
 const select = { id: true, status: true, stripeSessionId: true } as const;
 

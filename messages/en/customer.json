@@ -1,1 +1,125 @@
-{}
+{
+  "ui": {
+    "home": {
+      "summaryTitle": "Available now",
+      "statToday": "Today",
+      "statTomorrow": "Tomorrow",
+      "statFrom": "From",
+      "statMoments": "{count, plural, one {# appointment} other {# appointments}}",
+      "ctaNear": "Near me",
+      "leadTime": "You can book up to {minutes} minutes before the start.",
+      "noneAlert": "Want to know as soon as something opens up?"
+    },
+    "slots": {
+      "filters": "Filters",
+      "filtersActive": "{count} active",
+      "filtersClose": "Close filters",
+      "results": "{count, plural, =0 {No open hours} one {# open hour} other {# open hours}}",
+      "resultsTitle": "Results",
+      "view": "View",
+      "emptyTitle": "No open hours found",
+      "emptyFilters": "Try another city or category, or clear your filters.",
+      "emptyNone": "Nothing is free right now. New hours appear throughout the day.",
+      "emptyFavTitle": "No open hours at your favourites",
+      "emptyFavBody": "Tap the heart on a business to save it. You will also find them under Favourites.",
+      "loadError": "The open hours cannot be loaded right now. Please try again in a moment.",
+      "metaTitle": "Open hours: last-minute appointments",
+      "metaDescription": "Map and list of free last-minute hours. Filter by city, category, time of day and price."
+    },
+    "nav": {
+      "account": "Account",
+      "bookingsShort": "Bookings",
+      "primary": "Main menu",
+      "bottom": "Quick navigation",
+      "skip": "Skip to content"
+    },
+    "card": {
+      "hourUnit": "h",
+      "minuteUnit": "min",
+      "started": "This hour has started",
+      "discount": "{percent}% off"
+    },
+    "city": {
+      "name": {
+        "antwerpen": "Antwerp",
+        "gent": "Ghent",
+        "brussel": "Brussels",
+        "leuven": "Leuven",
+        "mechelen": "Mechelen",
+        "amsterdam": "Amsterdam",
+        "rotterdam": "Rotterdam",
+        "utrecht": "Utrecht"
+      },
+      "metaTitle": "Last-minute appointments in {city}",
+      "metaDescription": "Discounted open hours at hairdressers, beauty salons, nail studios and massage businesses in {city}. Price and discount shown up front.",
+      "h1": "Open appointments in {city}",
+      "leadLaunched": "Pick an open hour at a business in {city}. The discount and number of places come from the business itself.",
+      "leadWaiting": "GatVuller is starting in {launch}. There is no offer in {city} yet.",
+      "waitingTitle": "No offer in {city} yet",
+      "waitingBody": "Leave your e-mail address and we will write to you as soon as something opens up here. Meanwhile, see the offer in {launch}.",
+      "resultsTitle": "Open hours in {city}",
+      "categoriesTitle": "Choose a type of business",
+      "otherCities": "Also available in",
+      "otherCategories": "Other categories in {city}",
+      "breadcrumb": "Breadcrumb",
+      "ccMetaTitle": "{category} in {city}: last-minute appointments",
+      "ccMetaDescription": "Last-minute appointments in the {category} category in {city}. Price, discount and number of places shown up front.",
+      "ccH1": "{category} in {city}",
+      "ccLead": "Open hours in this category in {city}, with the business’s real discount."
+    },
+    "category": {
+      "metaTitle": "{category}: discounted last-minute appointments",
+      "metaDescription": "Open last-minute hours in the {category} category, with the business’s real discount. Currently in {cities}.",
+      "h1": "{category}, last minute",
+      "lead": "Only real open hours. The discount and number of places come from the business’s own listing.",
+      "chooseCity": "Choose your city",
+      "otherCategories": "Other categories",
+      "resultsTitle": "Open hours for {category}",
+      "emptyTitle": "No open hours for {category} right now",
+      "emptyBody": "New hours appear as soon as a business frees up time. Leave your e-mail address and we will write to you."
+    },
+    "favorites": {
+      "loginBody": "With an account you can save businesses and get an alert when a new hour opens up.",
+      "emptyBody": "Tap the heart on a business to save it here.",
+      "find": "See open hours"
+    },
+    "footer": {
+      "explore": "Explore",
+      "info": "Info",
+      "citiesTitle": "Cities",
+      "categoriesTitle": "Categories"
+    },
+    "alerts": {
+      "heading": "Tell me when something opens up",
+      "bodyAny": "Leave your e-mail address. We will write to you as soon as a business puts a new hour online.",
+      "bodyCity": "Leave your e-mail address. We will write to you as soon as a new hour opens up in {city}.",
+      "bodyCategory": "Leave your e-mail address. We will write to you as soon as a new hour opens up in the {category} category.",
+      "bodyCityCategory": "Leave your e-mail address. We will write to you as soon as a new hour opens up in the {category} category in {city}.",
+      "bodySalon": "Leave your e-mail address. We will write to you as soon as {salon} puts a new hour online.",
+      "signedInLine": "The alert goes to {email}.",
+      "email": "E-mail address",
+      "submit": "Tell me",
+      "doneSignedIn": "Done. Your alert is on.",
+      "doneGuest": "Almost there. We sent a confirmation link to {email}. The alert only starts once you click it.",
+      "fine": "You can unsubscribe at any time with the link in every e-mail. We send at most one e-mail every three hours.",
+      "confirmed": "Your alert is on. You will get an e-mail as soon as a matching hour opens up.",
+      "off": "Your alert is off. You will get no more e-mails about it.",
+      "invalid": "This link has expired or was already used. Set up a new alert below."
+    },
+    "map": {
+      "you": "You are here",
+      "viewOffer": "View offer",
+      "cluster": "{count, plural, one {# offer} other {# offers}}. Tap to zoom in.",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "loading": "Loading map…",
+      "region": "Map of open hours",
+      "pin": "{title}, {salon}, {percent}% off"
+    },
+    "env": {
+      "demo": "Test environment: demo businesses and simulated payments. Nothing is charged.",
+      "stripeTest": "Stripe test mode: pay with test card 4242 4242 4242 4242. No real money is charged.",
+      "unconfigured": "Payments are not set up yet. Booking is temporarily unavailable."
+    }
+  }
+}

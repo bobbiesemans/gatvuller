@@ -14,7 +14,7 @@ export function LocaleSwitcher({ current, label }: { current: Locale; label: str
       aria-label={label}
       value={current}
       disabled={pending}
-      className="h-9 rounded-lg border border-stone-200 bg-white px-2 text-sm text-ink"
+      className="h-11 max-w-[7.5rem] rounded-lg border border-stone-300 bg-white px-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       onChange={(event) => {
         const next = event.target.value;
         start(async () => {
@@ -24,7 +24,7 @@ export function LocaleSwitcher({ current, label }: { current: Locale; label: str
       }}
     >
       {locales.map((locale) => (
-        <option key={locale} value={locale}>
+        <option key={locale} value={locale} lang={locale}>
           {LOCALE_NAMES[locale]}
         </option>
       ))}

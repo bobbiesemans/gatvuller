@@ -35,14 +35,14 @@ export async function anonymizeAccount(userId: string) {
   if (salons > 0) throw new ApiError(409, "owns_salon");
   const gone = `deleted-${userId}@invalid.local`;
   await prisma.$transaction([
-    prisma.booking.updateMany({ where: { customerId: userId }, data: { customerName: "Verwijderde gebruiker", customerEmail: gone, customerPhone: null } }),
+    prisma.booking.updateMany({ where: { customerId: userId }, data: { customerName: "Deleted user", customerEmail: gone, customerPhone: null } }),
     prisma.review.updateMany({ where: { customerId: userId }, data: { comment: null } }),
     prisma.slotAlert.deleteMany({ where: { userId } }),
     prisma.favoriteSalon.deleteMany({ where: { userId } }),
     prisma.passwordResetToken.deleteMany({ where: { userId } }),
     prisma.user.update({
       where: { id: userId },
-      data: { email: gone, name: "Verwijderde gebruiker", phone: null, passwordHash: null, referralCode: null, marketingOptIn: false, anonymizedAt: new Date() },
+      data: { email: gone, name: "Deleted user", phone: null, passwordHash: null, referralCode: null, marketingOptIn: false, anonymizedAt: new Date() },
     }),
   ]);
   await audit(userId, "account_anonymized", "user", userId);

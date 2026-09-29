@@ -15,6 +15,7 @@ export const POST = route(async (req) => {
   const body = await parseBody(req, schema);
   const report = await prisma.report.findUnique({ where: { id: body.id } });
   if (!report) throw new ApiError(404, "not_found");
+  if (report.status !== "OPEN") throw new ApiError(409, "invalid_transition");
   await prisma.report.update({
     where: { id: report.id },
     data: { status: body.status, resolvedAt: new Date(), resolvedById: admin.id },

@@ -1,259 +1,245 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { format } from "date-fns";
-import { nlBE } from "date-fns/locale";
-import { getCurrentUser } from "@/lib/session";
+import type { Metadata } from "next";
+import { getLocale, getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import { formatEuro } from "@/lib/utils";
-import { isDemoMode, PLATFORM_FEE_PERCENT } from "@/lib/config";
-import { getStripe, stripeConfigured } from "@/lib/stripe";
+import { discountPercent, formatEuro } from "@/lib/money";
+import { formatRange } from "@/lib/time";
+import { isDemoMode, MIN_LEAD_MINUTES, PLATFORM_FEE_PERCENT } from "@/lib/config";
+import { paymentsProvider } from "@/lib/stripe";
+import { paymentModeFor } from "@/lib/marketplace";
+import { ownerVisibility } from "@/lib/owner-visibility";
+import { computeKpis, parsePeriod, periodStart } from "@/lib/kpi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Notice } from "@/components/ui/notice";
+import { KpiBlock } from "@/components/dashboard/kpi-block";
+import { PeriodSwitch } from "@/components/dashboard/period-switch";
+import { VisibilityNote } from "@/components/dashboard/visibility-note";
+import { requireOwner } from "./access";
 import { CreateSlotForm } from "./create-slot-form";
-import { HoursForm } from "./hours-form";
-import { CancellationForm, PayoutButton, TemplateForm } from "./salon-tools";
-import { SlotActions } from "./slot-actions";
-import { LocationForm, PhotoForm, ProfileForm, TemplateEdit } from "./manage-forms";
+import { SlotActions, type OfferSlot } from "./slot-actions";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Zaakbeheer" };
 
-const STATUS_LABEL: Record<string, string> = {
-  OPEN: "Online",
-  PAUSED: "Gepauzeerd",
-  BOOKED: "Volzet",
-  CANCELLED: "Verwijderd",
-  EXPIRED: "Afgelopen",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("ui.dashboard");
+  return { title: t("title"), description: t("meta.overview"), alternates: { canonical: "/dashboard" }, robots: { index: false } };
+}
 
-export default async function DashboardPage() {
-  const me = await getCurrentUser();
-  const session = me ? { user: me } : null;
-  if (!session?.user) redirect("/login?callbackUrl=/dashboard");
-  if (session.user.role !== "SALON_OWNER" && session.user.role !== "ADMIN") redirect("/");
+const ACTIVE = ["OPEN", "BOOKED", "PAUSED"] as const;
+
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ periode?: string | string[] }> }) {
+  const user = await requireOwner("/dashboard");
+  const period = parsePeriod((await searchParams).periode);
+  const t = await getTranslations("ui.dashboard");
+  const locale = await getLocale();
+  const now = new Date();
 
   const salons = await prisma.salon.findMany({
-    where: session.user.role === "ADMIN" ? {} : { ownerId: session.user.id },
-    include: {
-      hours: true,
-      photos: { orderBy: { sortOrder: "asc" }, take: 8 },
-      templates: { where: { active: true }, orderBy: { createdAt: "desc" } },
-      slots: {
-        include: {
-          bookings: { where: { status: { in: ["PAID", "PENDING", "NO_SHOW"] } }, orderBy: { createdAt: "desc" } },
-        },
-        orderBy: { startsAt: "desc" },
-        take: 30,
-      },
-    },
-    take: session.user.role === "ADMIN" ? 20 : undefined,
+    where: user.role === "ADMIN" ? {} : { ownerId: user.id },
+    include: { templates: { where: { active: true }, orderBy: { createdAt: "desc" }, take: 30 } },
+    orderBy: { createdAt: "asc" },
+    take: user.role === "ADMIN" ? 20 : undefined,
   });
+  const ids = salons.map((s) => s.id);
+  const slotInclude = { _count: { select: { bookings: { where: { status: { in: ["PAID", "NO_SHOW"] as ("PAID" | "NO_SHOW")[] } } } } } };
 
-  const stripe = stripeConfigured() ? getStripe() : null;
-  if (stripe && session.user.role !== "ADMIN") {
-    for (const salon of salons) {
-      if (!salon.stripeAccountId) continue;
-      const account = await stripe.accounts.retrieve(salon.stripeAccountId).catch(() => null);
-      if (!account) continue;
-      const charges = Boolean(account.charges_enabled);
-      const payouts = Boolean(account.payouts_enabled);
-      if (charges !== salon.stripeChargesEnabled || payouts !== salon.stripePayoutsEnabled) {
-        await prisma.salon.update({
-          where: { id: salon.id },
-          data: { stripeChargesEnabled: charges, stripePayoutsEnabled: payouts },
-        });
-        salon.stripeChargesEnabled = charges;
-        salon.stripePayoutsEnabled = payouts;
-      }
-    }
-  }
+  const from = periodStart(period, now);
+  const [activeSlots, pastSlots, kpiBookings, kpiSlots] = ids.length
+    ? await Promise.all([
+        prisma.slot.findMany({
+          where: { salonId: { in: ids }, status: { in: [...ACTIVE] }, endsAt: { gt: now } },
+          include: slotInclude,
+          orderBy: { startsAt: "asc" },
+          take: 100,
+        }),
+        prisma.slot.findMany({
+          where: { salonId: { in: ids }, OR: [{ status: { notIn: [...ACTIVE] } }, { endsAt: { lte: now } }] },
+          include: slotInclude,
+          orderBy: { startsAt: "desc" },
+          take: 15,
+        }),
+        prisma.booking.findMany({
+          where: { status: { in: ["PAID", "NO_SHOW"] }, slot: { salonId: { in: ids }, ...(from ? { endsAt: { gte: from } } : {}) } },
+          select: { slotId: true, amount: true, feeAmount: true, status: true, paymentMode: true, slot: { select: { startsAt: true, endsAt: true } } },
+        }),
+        prisma.slot.findMany({
+          where: { salonId: { in: ids }, status: { not: "CANCELLED" }, endsAt: { lte: now, ...(from ? { gte: from } : {}) } },
+          select: { id: true, salonId: true, capacity: true, endsAt: true, status: true },
+        }),
+      ])
+    : [[], [], [], []];
 
-  const kpiRows = salons.length === 0 ? [] : await prisma.booking.findMany({
-    where: { status: "PAID", slot: { salonId: { in: salons.map((salon) => salon.id) } } },
-    select: { amount: true, feeAmount: true, paymentMode: true, slot: { select: { startsAt: true, endsAt: true } } },
-  });
-  const summarize = (rows: typeof kpiRows) => ({
-    revenue: rows.reduce((sum, row) => sum + row.amount, 0),
-    net: rows.reduce((sum, row) => sum + Math.max(0, row.amount - row.feeAmount), 0),
-    hours: rows.reduce((sum, row) => sum + Math.max(0, (row.slot.endsAt.getTime() - row.slot.startsAt.getTime()) / 3_600_000), 0),
-  });
-  const liveKpi = summarize(kpiRows.filter((row) => row.paymentMode === "LIVE"));
-  const testKpi = summarize(kpiRows.filter((row) => row.paymentMode !== "LIVE"));
-  const upcoming = salons.flatMap((s) => s.slots.filter((slot) => slot.startsAt > new Date() && slot.status !== "CANCELLED"));
-  const capacitySpots = upcoming.reduce((sum, slot) => sum + slot.capacity, 0);
-  const takenSpots = upcoming.reduce((sum, slot) => sum + Math.max(0, slot.capacity - slot.spotsLeft), 0);
-  const occupancy = capacitySpots === 0 ? 0 : Math.round((takenSpots / capacitySpots) * 100);
+  const liveBySalon = new Map(salons.map((s) => [s.id, paymentModeFor(s) === "LIVE"]));
+  const { live, test } = computeKpis(
+    kpiBookings.map((b) => ({ slotId: b.slotId, amount: b.amount, feeAmount: b.feeAmount, status: b.status, paymentMode: b.paymentMode, slotStartsAt: b.slot.startsAt, slotEndsAt: b.slot.endsAt })),
+    kpiSlots.map((s) => ({ id: s.id, capacity: s.capacity, endsAt: s.endsAt, status: s.status, live: liveBySalon.get(s.salonId) ?? false })),
+    period,
+    now
+  );
+
+  const several = salons.length > 1;
+  const provider = paymentsProvider();
+  const setupNote = (salon: (typeof salons)[number]) => {
+    if (salon.status === "PENDING") return t("salonNote.PENDING");
+    if (salon.status === "SUSPENDED") return t("salonNote.SUSPENDED");
+    if (!salon.isDemo && provider === "stripe" && !(salon.stripeAccountId && salon.stripeChargesEnabled)) return t("salonNote.payouts");
+    return null;
+  };
+
+  const renderOffer = (slot: (typeof activeSlots)[number], salon: (typeof salons)[number]) => {
+    const state = ownerVisibility(slot, salon, now);
+    const active = (ACTIVE as readonly string[]).includes(slot.status) && slot.endsAt > now;
+    const percent = discountPercent(slot.originalPrice, slot.discountPrice);
+    const offer: OfferSlot = {
+      id: slot.id,
+      title: slot.title,
+      description: slot.description,
+      status: slot.status,
+      capacity: slot.capacity,
+      spotsLeft: slot.spotsLeft,
+      originalPrice: slot.originalPrice,
+      discountPrice: slot.discountPrice,
+      startsAt: slot.startsAt.toISOString(),
+      endsAt: slot.endsAt.toISOString(),
+      active,
+      withdrawable: slot.status !== "CANCELLED" && slot.status !== "EXPIRED" && slot.startsAt > now,
+    };
+    return (
+      <li key={slot.id} className="space-y-3 py-4">
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+          <div>
+            <p className="font-semibold text-ink">{slot.title}</p>
+            <p className="text-sm text-stone-600">{formatRange(slot.startsAt, slot.endsAt, locale)}</p>
+          </div>
+          <p className="text-right text-sm">
+            <span className="font-semibold text-ink">{formatEuro(slot.discountPrice, locale)}</span>{" "}
+            <span className="text-stone-500 line-through">{formatEuro(slot.originalPrice, locale)}</span>
+            <span className="block text-xs text-stone-600">{t("offer.discount", { percent })}</span>
+          </p>
+        </div>
+        <p className="text-sm text-stone-600">
+          {t("offer.spots", { free: slot.spotsLeft, total: slot.capacity })} · {t("offer.booked", { count: slot._count.bookings })}
+        </p>
+        <VisibilityNote state={state} leadMinutes={MIN_LEAD_MINUTES} />
+        {(offer.active || offer.withdrawable) && <SlotActions slot={offer} />}
+      </li>
+    );
+  };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
+    <div className="space-y-8 py-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-stone-950">Zaakbeheer</h1>
-          <p className="mt-1 text-stone-600">Publiceer een vrij uur, volg reserveringen en zie wat GatVuller oplevert.</p>
+          <h1 className="text-3xl text-ink">{t("title")}</h1>
+          <p className="mt-1 text-stone-600">{t("lead")}</p>
         </div>
-        <Link href="/dashboard/boekingen" className="text-sm font-semibold text-stone-900 underline underline-offset-4">
-          QR-code controleren
-        </Link>
+        {salons.length > 0 && (
+          <Link
+            href="/dashboard/boekingen"
+            className="inline-flex min-h-11 items-center text-sm font-semibold text-brand underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          >
+            {t("checkin")}
+          </Link>
+        )}
       </div>
 
-      {isDemoMode() && (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-          Testmodus. Betalingen zijn gesimuleerd en de cijfers hieronder kunnen demoboekingen bevatten.
-        </p>
-      )}
-
-      {(["LIVE", "TEST"] as const).map((mode) => {
-        const kpi = mode === "LIVE" ? liveKpi : testKpi;
-        return (
-          <section key={mode} className="space-y-3">
-            <h2 className="text-lg text-ink">{mode === "LIVE" ? "Live betalingen" : "Test en demo"}</h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {[
-                ["Extra omzet", formatEuro(kpi.revenue)],
-                ["Netto na commissie", formatEuro(kpi.net)],
-                ["Geredde uren", `${kpi.hours.toFixed(1)} u`],
-                ["Bezetting", `${occupancy}%`],
-              ].map(([label, value]) => (
-                <Card key={`${mode}-${label}`}>
-                  <CardContent className="p-5">
-                    <p className="text-sm text-stone-500">{label}</p>
-                    <p className="mt-1 font-display text-2xl text-ink">{value}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-        );
-      })}
-      <p className="text-sm text-stone-500">
-        Platformkosten zijn {PLATFORM_FEE_PERCENT}% van de last-minute prijs, inclusief de Stripe-kosten die GatVuller draagt. De klant betaalt geen extra fee.
-      </p>
+      {isDemoMode() && <Notice tone="warn">{t("demo")}</Notice>}
 
       {salons.length === 0 ? (
-        <Card>
-          <CardContent className="p-6 text-stone-600">
-            Nog geen zaak gekoppeld. <Link href="/register" className="font-semibold underline">Registreer je zaak</Link>.
-          </CardContent>
-        </Card>
+        <EmptyState
+          title={t("none")}
+          action={
+            <Link href="/register" className="font-semibold text-brand underline underline-offset-4">
+              {t("register")}
+            </Link>
+          }
+        />
       ) : (
         <>
-          <Card>
+          {salons.map((salon) => {
+            const note = setupNote(salon);
+            if (!note) return null;
+            return (
+              <Notice key={salon.id} tone="warn">
+                {several && <strong>{salon.name}: </strong>}
+                {note}{" "}
+                {salon.status === "ACTIVE" && (
+                  <Link href="/dashboard/uitbetalingen" className="font-semibold underline underline-offset-2">
+                    {t("salonNote.payoutsLink")}
+                  </Link>
+                )}
+              </Notice>
+            );
+          })}
+
+          <section aria-labelledby="kpi-title" className="space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 id="kpi-title" className="sr-only">
+                  {t("revenue")}
+                </h2>
+                {several && <p className="text-sm text-stone-600">{t("scopeAll", { count: salons.length })}</p>}
+              </div>
+              <PeriodSwitch period={period} />
+            </div>
+            <KpiBlock title={t("live")} hint={t("kpi.liveHint")} kpi={live} feePercent={PLATFORM_FEE_PERCENT} />
+            {(test.filledSpots > 0 || test.capacity > 0 || test.upcomingCount > 0) && (
+              <KpiBlock title={t("test")} hint={t("kpi.testHint")} kpi={test} feePercent={PLATFORM_FEE_PERCENT} />
+            )}
+            <p className="text-sm text-stone-600">{t("feeNote", { percent: PLATFORM_FEE_PERCENT })}</p>
+          </section>
+
+          <Card id="publiceren">
             <CardHeader>
-              <CardTitle>Vrij uur publiceren</CardTitle>
+              <CardTitle>{t("publish")}</CardTitle>
             </CardHeader>
             <CardContent>
               <CreateSlotForm
-                salons={salons.map((s) => ({ id: s.id, name: s.name }))}
-                templates={salons.flatMap((s) => s.templates)}
+                salons={salons.map((s) => ({ id: s.id, name: s.name, status: s.status }))}
+                templates={salons.flatMap((s) => s.templates.map((tpl) => ({ id: tpl.id, salonId: tpl.salonId, title: tpl.title, durationMin: tpl.durationMin, originalPrice: tpl.originalPrice, discountPrice: tpl.discountPrice })))}
+                feePercent={PLATFORM_FEE_PERCENT}
+                leadMinutes={MIN_LEAD_MINUTES}
               />
             </CardContent>
           </Card>
 
-          {salons.map((salon) => (
-            <section key={salon.id} className="space-y-4">
-              <div>
-                <h2 className="text-xl font-bold text-stone-950">
-                  {salon.name}
-                  <span className="ml-2 text-sm font-normal text-stone-500">{salon.city}</span>
-                </h2>
-                <p className="text-sm text-stone-500">
-                  {salon.verified ? "Geverifieerd" : "Nog niet geverifieerd"} · publieke pagina{" "}
-                  <Link href={`/salon/${salon.slug}`} className="underline">/salon/{salon.slug}</Link>
-                </p>
-              </div>
-
-              <Card>
-                <CardHeader><CardTitle>Zaakprofiel</CardTitle></CardHeader>
-                <CardContent>
-                  <ProfileForm salon={salon} />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader><CardTitle>Foto’s</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  {salon.photos.length > 0 && (
-                    <ul className="flex flex-wrap gap-2">
-                      {salon.photos.map((photo) => (
-                        <li key={photo.id}>
-                          <div role="img" aria-label={photo.alt || salon.name} className="h-16 w-16 rounded-lg bg-cover bg-center" style={{ backgroundImage: `url(${photo.url})` }} />
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <PhotoForm salonId={salon.id} enabled={Boolean(process.env.BLOB_READ_WRITE_TOKEN)} />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader><CardTitle>Extra locatie</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm text-stone-600">Een tweede adres wordt een aparte zaak en wacht op goedkeuring.</p>
-                  <LocationForm />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader><CardTitle>Uitbetalingen</CardTitle></CardHeader>
-                <CardContent className="space-y-3 text-sm text-stone-700">
-                  <p>
-                    {salon.stripePayoutsEnabled
-                      ? "Stripe Connect is actief. Uitbetalingen lopen via Stripe, niet via GatVuller."
-                      : salon.stripeAccountId
-                        ? "Stripe-account gekoppeld. Uitbetalingen zijn nog niet geactiveerd."
-                        : "Nog geen uitbetalingsaccount. Zonder Stripe blijven boekingen in testmodus."}
+          {salons.map((salon) => {
+            const current = activeSlots.filter((s) => s.salonId === salon.id);
+            const past = pastSlots.filter((s) => s.salonId === salon.id);
+            return (
+              <section key={salon.id} aria-labelledby={`offers-${salon.id}`} className="space-y-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+                  <h2 id={`offers-${salon.id}`} className="text-xl text-ink">
+                    {several ? t("offer.for", { name: salon.name }) : t("offers")}
+                  </h2>
+                  <p className="text-sm text-stone-600">
+                    {salon.city} · {t(`salonStatus.${salon.status}`)} ·{" "}
+                    <Link href={`/salon/${salon.slug}`} className="underline underline-offset-2">
+                      {t("publicPage")}
+                    </Link>
                   </p>
-                  <PayoutButton salonId={salon.id} configured={stripeConfigured()} />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader><CardTitle>Openingstijden en annulering</CardTitle></CardHeader>
-                <CardContent className="space-y-6">
-                  <HoursForm salonId={salon.id} initial={salon.hours} />
-                  <CancellationForm salonId={salon.id} hours={salon.cancellationHours} />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader><CardTitle>Behandelsjablonen</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <ul className="text-sm text-stone-700">
-                    {salon.templates.length === 0 && <li>Nog geen sjablonen.</li>}
-                    {salon.templates.map((template) => (
-                      <li key={template.id} className="border-b border-stone-100 py-2 last:border-0">
-                        <p>{template.title} · {template.durationMin} min · {formatEuro(template.discountPrice)}</p>
-                        <TemplateEdit template={template} />
-                      </li>
-                    ))}
-                  </ul>
-                  <TemplateForm salonId={salon.id} />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader><CardTitle>Aanbiedingen</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  {salon.slots.length === 0 && <p className="text-sm text-stone-500">Nog geen uren gepubliceerd.</p>}
-                  {salon.slots.map((slot) => (
-                    <div key={slot.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 py-3 text-sm last:border-0">
-                      <div>
-                        <p className="font-semibold text-stone-900">{slot.title}</p>
-                        <p className="text-stone-500">
-                          {format(slot.startsAt, "EEE d MMM HH:mm", { locale: nlBE })} · {formatEuro(slot.discountPrice)} · {slot.spotsLeft}/{slot.capacity} vrij · {STATUS_LABEL[slot.status] || slot.status}
-                        </p>
-                        {slot.bookings.filter((b) => b.status === "PAID").length > 0 && (
-                          <p className="text-xs text-stone-500">
-                            {slot.bookings.filter((b) => b.status === "PAID").map((b) => b.customerName).join(", ")}
-                          </p>
-                        )}
-                      </div>
-                      <SlotActions slotId={slot.id} status={slot.status} />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </section>
-          ))}
+                </div>
+                <Card>
+                  <CardContent className="p-5 pt-3">
+                    {current.length === 0 ? (
+                      <EmptyState className="border-0 py-8" title={t("noOffers")} body={t("offer.noOffersBody")} />
+                    ) : (
+                      <ul className="divide-y divide-stone-100">{current.map((slot) => renderOffer(slot, salon))}</ul>
+                    )}
+                    {past.length > 0 && (
+                      <details className="mt-3 border-t border-stone-100 pt-2">
+                        <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-stone-700">
+                          {t("offer.earlier", { count: past.length })}
+                        </summary>
+                        <ul className="divide-y divide-stone-100">{past.map((slot) => renderOffer(slot, salon))}</ul>
+                      </details>
+                    )}
+                  </CardContent>
+                </Card>
+              </section>
+            );
+          })}
         </>
       )}
     </div>

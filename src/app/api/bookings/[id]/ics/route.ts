@@ -33,17 +33,18 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     where: { id },
     include: { slot: { include: { salon: true } } },
   });
-  if (!booking) return new Response("Niet gevonden", { status: 404 });
+  if (!booking) return new Response("Not found", { status: 404 });
   const allowed = booking.customerId === user?.id || verifyBookingToken(id, token) || user?.role === "ADMIN";
-  if (!allowed) return new Response("Geen toegang", { status: 403 });
+  // Someone else's booking looks exactly like a booking that does not exist.
+  if (!allowed) return new Response("Not found", { status: 404 });
 
-  if (booking.status !== "PAID") return new Response("Geen geldige boeking", { status: 409 });
+  if (booking.status !== "PAID") return new Response("Booking is not confirmed", { status: 409 });
 
   const slot = booking.slot;
   const body = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//GatVuller//Boeking//NL",
+    "PRODID:-//GatVuller//Booking//EN",
     "BEGIN:VEVENT",
     `UID:${booking.id}@gatvuller`,
     `DTSTAMP:${icsStamp(new Date())}`,

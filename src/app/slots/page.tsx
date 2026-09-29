@@ -1,79 +1,111 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { expireStaleHolds } from "@/lib/bookings";
-import { CATEGORY_LABELS, CITIES, discountPercent } from "@/lib/utils";
+import { discountPercent } from "@/lib/utils";
 import { brusselsDayStart, brusselsHour } from "@/lib/time";
-import { Button } from "@/components/ui/button";
 import { bookableSalonWhere, bookingLeadCutoff } from "@/lib/marketplace";
+import { LAUNCHED_CATEGORIES, LAUNCHED_CITIES, cityByName, isCategory } from "@/lib/catalog";
+import { alertBody, cityLabel, favoriteSalonIdsFor } from "@/lib/discovery";
 import { SlotsBrowse } from "@/components/slots/slots-browse";
+import { SlotFilters, type FilterValues } from "@/components/slots/slot-filters";
+import { AlertSignup } from "@/components/slots/alert-signup";
+import { Notice } from "@/components/ui/notice";
 
 export const dynamic = "force-dynamic";
-export const metadata = {
-  title: "Open uren",
-  description: "Kaart en lijst van last-minute afspraken. Filter op datum, tijdstip, categorie en prijs.",
-  alternates: { canonical: "/slots" },
-};
 
-type SearchParams = Promise<{
-  stad?: string;
-  categorie?: string;
-  wanneer?: string;
-  dagdeel?: string;
-  max?: string;
-  korting?: string;
-  q?: string;
-}>;
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("ui.slots");
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+    alternates: { canonical: "/slots" },
+  };
+}
+
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
+const pick = (value: string, allowed: string[]) => (allowed.includes(value) ? value : "");
 
 export default async function SlotsPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const t = await getTranslations("ui.slots");
+  const alertsT = await getTranslations("ui.alerts");
+  const cityT = await getTranslations("ui.city");
+  const cardT = await getTranslations("ui.card");
   const me = await getCurrentUser();
-  const session = me ? { user: me } : null;
-  await expireStaleHolds();
+
+  // Only known values reach the query; anything else is ignored instead of failing.
+  const stad = cityByName(one(sp.stad).trim())?.name ?? "";
+  const categorie = isCategory(one(sp.categorie)) ? one(sp.categorie) : "";
+  const values: FilterValues = {
+    q: one(sp.q).trim().slice(0, 100),
+    stad,
+    categorie,
+    wanneer: pick(one(sp.wanneer), ["vandaag", "morgen"]),
+    dagdeel: pick(one(sp.dagdeel), ["ochtend", "middag", "avond"]),
+    max: pick(one(sp.max), ["25", "40", "60"]),
+    korting: pick(one(sp.korting), ["20", "30", "40"]),
+    sorteer: pick(one(sp.sorteer), ["afstand"]),
+  };
+  const alertState = pick(one(sp.alert), ["aan", "uit", "ongeldig"]);
+
   const now = new Date();
   const tomorrow = brusselsDayStart(1);
   const dayAfter = brusselsDayStart(2);
   const whenFilter =
-    sp.wanneer === "vandaag"
+    values.wanneer === "vandaag"
       ? { gte: bookingLeadCutoff(now), lt: tomorrow }
-      : sp.wanneer === "morgen"
+      : values.wanneer === "morgen"
         ? { gte: tomorrow, lt: dayAfter }
         : { gte: bookingLeadCutoff(now) };
+  const maxEuro = Number(values.max);
+  const minDiscount = Number(values.korting);
 
-  const maxEuro = Number(sp.max);
-  const minDiscount = Number(sp.korting);
-  const slots = await prisma.slot.findMany({
-    where: {
-      status: "OPEN",
-      spotsLeft: { gt: 0 },
-      startsAt: whenFilter,
-      ...(Number.isFinite(maxEuro) && maxEuro > 0 ? { discountPrice: { lte: Math.round(maxEuro * 100) } } : {}),
-      salon: {
-        ...bookableSalonWhere(),
-        ...(sp.stad ? { city: sp.stad } : {}),
-        ...(sp.categorie ? { category: sp.categorie as never } : {}),
+  let loadFailed = false;
+  let slots: Awaited<ReturnType<typeof loadSlots>> = [];
+  let favoriteIds: string[] = [];
+  async function loadSlots() {
+    await expireStaleHolds();
+    return prisma.slot.findMany({
+      where: {
+        status: "OPEN",
+        spotsLeft: { gt: 0 },
+        startsAt: whenFilter,
+        ...(maxEuro > 0 ? { discountPrice: { lte: Math.round(maxEuro * 100) } } : {}),
+        salon: {
+          ...bookableSalonWhere(),
+          ...(stad ? { city: stad } : {}),
+          ...(categorie ? { category: categorie as never } : {}),
+        },
+        ...(values.q
+          ? {
+              OR: [
+                { title: { contains: values.q, mode: "insensitive" as const } },
+                { salon: { name: { contains: values.q, mode: "insensitive" as const } } },
+              ],
+            }
+          : {}),
       },
-      ...(sp.q
-        ? {
-            OR: [
-              { title: { contains: sp.q, mode: "insensitive" as const } },
-              { salon: { name: { contains: sp.q, mode: "insensitive" as const } } },
-            ],
-          }
-        : {}),
-    },
-    include: { salon: true },
-    orderBy: { startsAt: "asc" },
-    take: 80,
-  });
+      include: { salon: true },
+      orderBy: { startsAt: "asc" },
+      take: 80,
+    });
+  }
+  try {
+    [slots, favoriteIds] = await Promise.all([loadSlots(), favoriteSalonIdsFor(me?.id)]);
+  } catch {
+    loadFailed = true;
+  }
 
   const filtered = slots.filter((slot) => {
-    if (sp.dagdeel === "ochtend" && (brusselsHour(slot.startsAt) < 6 || brusselsHour(slot.startsAt) >= 12)) return false;
-    if (sp.dagdeel === "middag" && (brusselsHour(slot.startsAt) < 12 || brusselsHour(slot.startsAt) >= 17)) return false;
-    if (sp.dagdeel === "avond" && (brusselsHour(slot.startsAt) < 17 || brusselsHour(slot.startsAt) >= 22)) return false;
-    if (Number.isFinite(minDiscount) && minDiscount > 0 && discountPercent(slot.originalPrice, slot.discountPrice) < minDiscount) return false;
+    const hour = brusselsHour(slot.startsAt);
+    if (values.dagdeel === "ochtend" && (hour < 6 || hour >= 12)) return false;
+    if (values.dagdeel === "middag" && (hour < 12 || hour >= 17)) return false;
+    if (values.dagdeel === "avond" && (hour < 17 || hour >= 22)) return false;
+    if (minDiscount > 0 && discountPercent(slot.originalPrice, slot.discountPrice) < minDiscount) return false;
     return true;
   });
 
@@ -99,59 +131,51 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
     },
   }));
 
-  return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="text-3xl text-ink">{t("title")}</h1>
-      <p className="mt-1 text-stone-600">{t("lead")}</p>
+  const hasFilters = Boolean(values.q || values.stad || values.categorie || values.wanneer || values.dagdeel || values.max || values.korting);
+  const alertScope = {
+    city: stad ? cityLabel(cityT, stad) : undefined,
+    category: categorie ? cardT(`category.${categorie}`) : undefined,
+  };
 
-      <form className="mt-6 grid gap-2 sm:grid-cols-3 lg:grid-cols-6" action="/slots">
-        <input name="q" defaultValue={sp.q || ""} placeholder={t("search")} aria-label={t("search")} className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm sm:col-span-2" />
-        <select name="stad" defaultValue={sp.stad || ""} aria-label={t("city")} className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
-          <option value="">{t("allCities")}</option>
-          {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <select name="categorie" defaultValue={sp.categorie || ""} aria-label={t("category")} className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
-          <option value="">{t("allCategories")}</option>
-          {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-        <select name="wanneer" defaultValue={sp.wanneer || ""} aria-label={t("date")} className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
-          <option value="">{t("anyDate")}</option>
-          <option value="vandaag">{t("today")}</option>
-          <option value="morgen">{t("tomorrow")}</option>
-        </select>
-        <select name="dagdeel" defaultValue={sp.dagdeel || ""} aria-label={t("part")} className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
-          <option value="">{t("allDay")}</option>
-          <option value="ochtend">{t("morning")}</option>
-          <option value="middag">{t("afternoon")}</option>
-          <option value="avond">{t("evening")}</option>
-        </select>
-        <select name="max" defaultValue={sp.max || ""} aria-label={t("maxPrice")} className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
-          <option value="">{t("anyPrice")}</option>
-          <option value="25">{t("until", { amount: 25 })}</option>
-          <option value="40">{t("until", { amount: 40 })}</option>
-          <option value="60">{t("until", { amount: 60 })}</option>
-        </select>
-        <select name="korting" defaultValue={sp.korting || ""} aria-label={t("minDiscount")} className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
-          <option value="">{t("anyDiscount")}</option>
-          <option value="20">{t("atLeast", { percent: 20 })}</option>
-          <option value="30">{t("atLeast", { percent: 30 })}</option>
-          <option value="40">{t("atLeast", { percent: 40 })}</option>
-        </select>
-        <Button type="submit" className="lg:col-span-2">{t("apply")}</Button>
-      </form>
-      <p className="mt-3 text-sm">
-        <Link href="/slots" className="underline">{t("clear")}</Link>
-      </p>
-      <div className="mt-6">
-        <SlotsBrowse
-          slots={payload}
-          initialCity={sp.stad}
-          favoriteSalonIds={
-            session?.user
-              ? (await prisma.favoriteSalon.findMany({ where: { userId: session.user.id }, select: { salonId: true } })).map((row) => row.salonId)
-              : []
-          }
-        />
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
+      <h1 className="text-2xl text-ink sm:text-3xl">{t("title")}</h1>
+      <p className="mt-1 hidden text-stone-600 sm:block">{t("lead")}</p>
+
+      {alertState && (
+        <div className="mt-4">
+          <Notice tone={alertState === "ongeldig" ? "warn" : "info"}>
+            {alertState === "aan" ? alertsT("confirmed") : alertState === "uit" ? alertsT("off") : alertsT("invalid")}
+          </Notice>
+        </div>
+      )}
+
+      <SlotFilters
+        values={values}
+        cities={LAUNCHED_CITIES.map((c) => ({ value: c.name, label: cityLabel(cityT, c.name) }))}
+        categories={LAUNCHED_CATEGORIES.map((c) => ({ value: c.key, label: cardT(`category.${c.key}`) }))}
+      />
+
+      <div className="mt-5">
+        {loadFailed ? (
+          <Notice tone="error">{t("loadError")}</Notice>
+        ) : (
+          <SlotsBrowse
+            slots={payload}
+            initialCity={stad || undefined}
+            initialSort={values.sorteer === "afstand" ? "distance" : "time"}
+            hasFilters={hasFilters}
+            favoriteSalonIds={favoriteIds}
+            emptyExtra={
+              <AlertSignup
+                body={alertBody(alertsT, alertScope)}
+                city={stad || null}
+                category={categorie || null}
+                signedInEmail={me?.email ?? null}
+              />
+            }
+          />
+        )}
       </div>
     </div>
   );

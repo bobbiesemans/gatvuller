@@ -3,10 +3,11 @@ import { z } from "zod";
 import { route, parseBody, clientIp } from "@/lib/api";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { resetPassword } from "@/lib/password-reset";
+import { passwordSchema } from "@/lib/password-rules";
 
 const schema = z.object({
-  token: z.string().min(20),
-  password: z.string().min(8).max(80),
+  token: z.string().min(20).max(200),
+  password: passwordSchema,
 });
 
 export const POST = route(async (req) => {

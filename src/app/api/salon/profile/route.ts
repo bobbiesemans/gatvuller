@@ -9,14 +9,29 @@ import { geocodeAddress } from "@/lib/geocode";
 import { ApiError } from "@/lib/errors";
 import { audit } from "@/lib/audit";
 
+/** Only http(s) links: the website is rendered as a link on the public page, so `javascript:` must never get in. */
+const website = z
+  .string()
+  .trim()
+  .max(160)
+  .refine((v) => {
+    if (v === "") return true;
+    try {
+      const url = new URL(v);
+      return url.protocol === "https:" || url.protocol === "http:";
+    } catch {
+      return false;
+    }
+  });
+
 const schema = z.object({
   salonId: z.string().min(1).max(40),
   name: z.string().trim().min(2).max(80),
   description: z.string().trim().min(10).max(800),
-  phone: z.string().trim().max(30).optional().or(z.literal("")),
-  website: z.string().trim().max(160).optional().or(z.literal("")),
+  phone: z.string().trim().max(30).regex(/^[0-9+()\-./ ]*$/).optional(),
+  website: website.optional(),
   address: z.string().trim().min(5).max(160),
-  postalCode: z.string().trim().max(12).optional().or(z.literal("")),
+  postalCode: z.string().trim().max(12).regex(/^[0-9A-Za-z -]*$/).optional(),
 });
 
 export const PATCH = route(async (req) => {

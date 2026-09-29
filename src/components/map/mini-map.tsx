@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 
 const Inner = dynamic(() => import("./mini-map-inner").then((m) => m.MiniMapInner), {
   ssr: false,
-  loading: () => <div className="h-48 w-full animate-pulse rounded-2xl bg-slate-100" />,
+  loading: () => <div className="h-48 w-full animate-pulse rounded-2xl bg-stone-100 motion-reduce:animate-none" />,
 });
 
 export function MiniMap(props: {

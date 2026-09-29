@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { route, requireUser, parseBody, clientIp } from "@/lib/api";
+import { route, requireUser, parseBody } from "@/lib/api";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { cancelBooking } from "@/lib/bookings";
 
@@ -11,6 +11,5 @@ export const POST = route(async (req) => {
   await enforceRateLimit(`cancel:${user.id}`, 20, 60 * 60);
   const body = await parseBody(req, schema);
   const result = await cancelBooking(body.bookingId, user);
-  void clientIp;
   return NextResponse.json({ ok: true, ...result });
 });

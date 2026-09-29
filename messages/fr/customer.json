@@ -1,1 +1,125 @@
-{}
+{
+  "ui": {
+    "home": {
+      "summaryTitle": "Disponible maintenant",
+      "statToday": "Aujourd’hui",
+      "statTomorrow": "Demain",
+      "statFrom": "À partir de",
+      "statMoments": "{count, plural, one {# créneau} other {# créneaux}}",
+      "ctaNear": "Près de chez moi",
+      "leadTime": "Vous pouvez réserver jusqu’à {minutes} minutes avant le début.",
+      "noneAlert": "Vous voulez savoir dès qu’un créneau se libère ?"
+    },
+    "slots": {
+      "filters": "Filtres",
+      "filtersActive": "{count, plural, one {# actif} other {# actifs}}",
+      "filtersClose": "Fermer les filtres",
+      "results": "{count, plural, =0 {Aucune heure ouverte} one {# heure ouverte} other {# heures ouvertes}}",
+      "resultsTitle": "Résultats",
+      "view": "Affichage",
+      "emptyTitle": "Aucune heure ouverte trouvée",
+      "emptyFilters": "Essayez une autre ville ou une autre catégorie, ou effacez vos filtres.",
+      "emptyNone": "Rien n’est libre pour le moment. De nouveaux créneaux apparaissent au fil de la journée.",
+      "emptyFavTitle": "Aucune heure ouverte chez vos favoris",
+      "emptyFavBody": "Touchez le cœur d’un commerce pour l’enregistrer. Vous retrouverez vos favoris sous Favoris.",
+      "loadError": "Les heures ouvertes ne peuvent pas être chargées pour le moment. Réessayez dans un instant.",
+      "metaTitle": "Heures ouvertes : rendez-vous de dernière minute",
+      "metaDescription": "Carte et liste des créneaux de dernière minute libres. Filtrez par ville, catégorie, moment de la journée et prix."
+    },
+    "nav": {
+      "account": "Compte",
+      "bookingsShort": "Réservations",
+      "primary": "Menu principal",
+      "bottom": "Navigation rapide",
+      "skip": "Aller au contenu"
+    },
+    "card": {
+      "hourUnit": "h",
+      "minuteUnit": "min",
+      "started": "Cette heure a commencé",
+      "discount": "{percent} % de réduction"
+    },
+    "city": {
+      "name": {
+        "antwerpen": "Anvers",
+        "gent": "Gand",
+        "brussel": "Bruxelles",
+        "leuven": "Louvain",
+        "mechelen": "Malines",
+        "amsterdam": "Amsterdam",
+        "rotterdam": "Rotterdam",
+        "utrecht": "Utrecht"
+      },
+      "metaTitle": "Rendez-vous de dernière minute à {city}",
+      "metaDescription": "Créneaux libres à prix réduit chez des coiffeurs, instituts de beauté, ongleries et salons de massage à {city}. Prix et réduction affichés à l’avance.",
+      "h1": "Créneaux libres à {city}",
+      "leadLaunched": "Choisissez un créneau libre dans un commerce à {city}. La réduction et le nombre de places viennent du commerce lui-même.",
+      "leadWaiting": "GatVuller démarre à {launch}. À {city}, il n’y a pas encore d’offre.",
+      "waitingTitle": "Pas encore d’offre à {city}",
+      "waitingBody": "Laissez votre adresse e-mail et nous vous écrivons dès que quelque chose se libère ici. En attendant, découvrez l’offre à {launch}.",
+      "resultsTitle": "Heures ouvertes à {city}",
+      "categoriesTitle": "Choisissez un type de commerce",
+      "otherCities": "Aussi disponible à",
+      "otherCategories": "Autres catégories à {city}",
+      "breadcrumb": "Fil d’Ariane",
+      "ccMetaTitle": "{category} à {city} : rendez-vous de dernière minute",
+      "ccMetaDescription": "Rendez-vous de dernière minute dans la catégorie « {category} » à {city}. Prix, réduction et nombre de places affichés à l’avance.",
+      "ccH1": "{category} à {city}",
+      "ccLead": "Créneaux libres dans cette catégorie à {city}, avec la vraie réduction du commerce."
+    },
+    "category": {
+      "metaTitle": "{category} : rendez-vous de dernière minute à prix réduit",
+      "metaDescription": "Créneaux de dernière minute libres dans la catégorie « {category} », avec la vraie réduction du commerce. Actuellement à {cities}.",
+      "h1": "{category}, dernière minute",
+      "lead": "Uniquement de vraies heures libres. La réduction et le nombre de places viennent de la publication du commerce.",
+      "chooseCity": "Choisissez votre ville",
+      "otherCategories": "Autres catégories",
+      "resultsTitle": "Heures ouvertes pour « {category} »",
+      "emptyTitle": "Aucune heure ouverte pour « {category} » pour le moment",
+      "emptyBody": "De nouveaux créneaux apparaissent dès qu’un commerce se libère. Laissez votre adresse e-mail et nous vous écrivons."
+    },
+    "favorites": {
+      "loginBody": "Avec un compte, vous enregistrez des commerces et recevez une alerte quand un nouveau créneau se libère.",
+      "emptyBody": "Touchez le cœur d’un commerce pour l’enregistrer ici.",
+      "find": "Voir les heures ouvertes"
+    },
+    "footer": {
+      "explore": "Découvrir",
+      "info": "Infos",
+      "citiesTitle": "Villes",
+      "categoriesTitle": "Catégories"
+    },
+    "alerts": {
+      "heading": "Prévenez-moi dès qu’un créneau se libère",
+      "bodyAny": "Laissez votre adresse e-mail. Nous vous écrivons dès qu’un commerce publie un nouveau créneau.",
+      "bodyCity": "Laissez votre adresse e-mail. Nous vous écrivons dès qu’un nouveau créneau se libère à {city}.",
+      "bodyCategory": "Laissez votre adresse e-mail. Nous vous écrivons dès qu’un nouveau créneau se libère dans la catégorie « {category} ».",
+      "bodyCityCategory": "Laissez votre adresse e-mail. Nous vous écrivons dès qu’un nouveau créneau se libère dans la catégorie « {category} » à {city}.",
+      "bodySalon": "Laissez votre adresse e-mail. Nous vous écrivons dès que {salon} publie un nouveau créneau.",
+      "signedInLine": "L’alerte sera envoyée à {email}.",
+      "email": "Adresse e-mail",
+      "submit": "Me prévenir",
+      "doneSignedIn": "C’est fait. Votre alerte est activée.",
+      "doneGuest": "Presque terminé. Nous avons envoyé un lien de confirmation à {email}. L’alerte ne démarre qu’après votre clic.",
+      "fine": "Vous pouvez vous désinscrire à tout moment via le lien de chaque e-mail. Nous envoyons au plus un e-mail toutes les trois heures.",
+      "confirmed": "Votre alerte est activée. Vous recevrez un e-mail dès qu’un créneau correspondant se libère.",
+      "off": "Votre alerte est désactivée. Vous ne recevrez plus d’e-mails à ce sujet.",
+      "invalid": "Ce lien a expiré ou a déjà été utilisé. Créez une nouvelle alerte ci-dessous."
+    },
+    "map": {
+      "you": "Vous êtes ici",
+      "viewOffer": "Voir l’offre",
+      "cluster": "{count, plural, one {# offre} other {# offres}}. Touchez pour zoomer.",
+      "zoomIn": "Zoom avant",
+      "zoomOut": "Zoom arrière",
+      "loading": "Chargement de la carte…",
+      "region": "Carte des heures ouvertes",
+      "pin": "{title}, {salon}, {percent} % de réduction"
+    },
+    "env": {
+      "demo": "Environnement de test : commerces de démonstration et paiements simulés. Rien n’est débité.",
+      "stripeTest": "Mode test Stripe : payez avec la carte de test 4242 4242 4242 4242. Aucun argent réel n’est débité.",
+      "unconfigured": "Les paiements ne sont pas encore configurés. La réservation est temporairement impossible."
+    }
+  }
+}

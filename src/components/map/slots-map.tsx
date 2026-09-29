@@ -1,12 +1,12 @@
 "use client";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { formatInZone } from "@/lib/time";
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker, ZoomControl } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import Link from "next/link";
-import { formatEuro, discountPercent, CATEGORY_EMOJI, formatDistance, CITY_CENTERS } from "@/lib/utils";
+import { formatEuro, discountPercent, formatDistance, CITY_CENTERS } from "@/lib/utils";
 export type MapSlot = {
   id: string;
   title: string;
@@ -105,6 +105,7 @@ function clusterSlots(slots: MapSlot[], zoom: number) {
 }
 function Markers({ slots, selectedId, onSelect }: { slots: MapSlot[]; selectedId?: string | null; onSelect?: (id: string) => void }) {
   const lc = useLocale();
+  const t = useTranslations("ui.map");
   const map = useMap();
   const zoom = useMapZoom();
   const items = useMemo(() => clusterSlots(slots, zoom), [slots, zoom]);
@@ -117,6 +118,8 @@ function Markers({ slots, selectedId, onSelect }: { slots: MapSlot[]; selectedId
               key={`c-${i}-${item.lat}-${item.lng}`}
               position={[item.lat, item.lng]}
               icon={clusterIcon(item.count)}
+              alt={t("cluster", { count: item.count })}
+              title={t("cluster", { count: item.count })}
               eventHandlers={{ click: () => map.setView([item.lat, item.lng], Math.min(map.getZoom() + 2, 16)) }}
             />
           );
@@ -124,23 +127,23 @@ function Markers({ slots, selectedId, onSelect }: { slots: MapSlot[]; selectedId
         const s = item.slot;
         const pct = discountPercent(s.originalPrice, s.discountPrice);
         return (
-          <Marker key={s.id} position={[s.salon.lat, s.salon.lng]} icon={priceIcon(pct, selectedId === s.id)} eventHandlers={{ click: () => onSelect?.(s.id) }}>
+          <Marker key={s.id} position={[s.salon.lat, s.salon.lng]} icon={priceIcon(pct, selectedId === s.id)} alt={t("pin", { title: s.title, salon: s.salon.name, percent: pct })} title={t("pin", { title: s.title, salon: s.salon.name, percent: pct })} eventHandlers={{ click: () => onSelect?.(s.id) }}>
             <Popup>
               <div style={{ minWidth: 200, fontSize: 13 }}>
                 <p style={{ fontWeight: 700, margin: 0 }}>
-                  {CATEGORY_EMOJI[s.salon.category]} {s.title}
+                  {s.title}
                 </p>
-                <p style={{ color: "#64748b", margin: "2px 0 6px" }}>{s.salon.name}</p>
+                <p style={{ color: "#57534e", margin: "2px 0 6px" }}>{s.salon.name}</p>
                 <p style={{ fontWeight: 800, color: "#b4492b", margin: 0 }}>
-                  {formatEuro(s.discountPrice)}{" "}
-                  <span style={{ fontWeight: 400, color: "#94a3b8", textDecoration: "line-through", fontSize: 12 }}>{formatEuro(s.originalPrice)}</span>
+                  {formatEuro(s.discountPrice, lc)}{" "}
+                  <span style={{ fontWeight: 400, color: "#57534e", textDecoration: "line-through", fontSize: 12 }}>{formatEuro(s.originalPrice, lc)}</span>
                 </p>
-                <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+                <p style={{ fontSize: 12, color: "#57534e", marginTop: 4 }}>
                   {formatInZone(s.startsAt, lc, "dayTime")}
-                  {s.distanceKm != null ? ` · ${formatDistance(s.distanceKm)}` : ""}
+                  {s.distanceKm != null ? ` · ${formatDistance(s.distanceKm, lc)}` : ""}
                 </p>
                 <Link href={`/slots/${s.id}`} style={{ display: "inline-block", marginTop: 8, background: "#b4492b", color: "white", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
-                  Bekijk slot →
+                  {t("viewOffer")} →
                 </Link>
               </div>
             </Popup>
@@ -165,6 +168,7 @@ export function SlotsMap({
   initialCity?: string;
   className?: string;
 }) {
+  const t = useTranslations("ui.map");
   const selected = slots.find((s) => s.id === selectedId) || null;
   const cityCenter = initialCity && CITY_CENTERS[initialCity] ? CITY_CENTERS[initialCity] : null;
   const center = selected
@@ -174,14 +178,15 @@ export function SlotsMap({
       : userLocation || cityCenter || { lat: 51.2, lng: 4.4 };
   const points = slots.map((s) => ({ lat: s.salon.lat, lng: s.salon.lng }));
   return (
-    <div className={className || "h-full w-full min-h-[320px] rounded-2xl overflow-hidden border border-slate-200"}>
-      <MapContainer center={[center.lat, center.lng]} zoom={12} className="h-full w-full z-0" scrollWheelZoom>
+    <div role="region" aria-label={t("region")} className={className || "h-full w-full min-h-[320px] rounded-2xl overflow-hidden border border-stone-200"}>
+      <MapContainer center={[center.lat, center.lng]} zoom={12} className="h-full w-full z-0" scrollWheelZoom zoomControl={false}>
+        <ZoomControl position="topleft" zoomInTitle={t("zoomIn")} zoomOutTitle={t("zoomOut")} />
         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <FitBounds points={points} user={userLocation} />
         <FlyToSelected slot={selected} />
         {userLocation && (
           <CircleMarker center={[userLocation.lat, userLocation.lng]} radius={8} pathOptions={{ color: "#2563eb", fillColor: "#3b82f6", fillOpacity: 0.9 }}>
-            <Popup>Jij bent hier</Popup>
+            <Popup>{t("you")}</Popup>
           </CircleMarker>
         )}
         <Markers slots={slots} selectedId={selectedId} onSelect={onSelect} />

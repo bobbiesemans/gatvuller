@@ -5,7 +5,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { startCheckout } from "@/lib/bookings";
 
 const schema = z.object({
-  slotId: z.string().min(1),
+  slotId: z.string().min(1).max(40),
   customerName: z.string().trim().min(2).max(80),
   customerEmail: z.string().trim().email().max(120),
   customerPhone: z.string().trim().max(30).optional().nullable(),

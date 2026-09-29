@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -7,7 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Betaling afgebroken", robots: { index: false, follow: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("ui.cancelled");
+  return { title: t("metaTitle"), robots: { index: false, follow: false }, alternates: { canonical: "/boeking/annuleren" } };
+}
 
 /** Where the customer lands after pressing "back" on the Stripe page. The spot was released by the status page. */
 export default async function AnnulerenPage({ searchParams }: { searchParams: Promise<{ b?: string; t?: string }> }) {

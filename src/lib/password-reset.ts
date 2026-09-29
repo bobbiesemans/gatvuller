@@ -3,6 +3,7 @@ import { prisma } from "./prisma";
 import { secureToken, sha256 } from "./codes";
 import { ApiError } from "./errors";
 import { appUrl } from "./config";
+import { localizedPath } from "@/i18n/config";
 import { sendEmail } from "./email/send";
 import { passwordResetEmail } from "./email/templates";
 
@@ -20,7 +21,7 @@ export async function requestPasswordReset(email: string) {
   await sendEmail({
     to: user.email,
     template: "password_reset",
-    ...passwordResetEmail(user.locale, user.name, `${appUrl()}/wachtwoord-reset?token=${token}`),
+    ...passwordResetEmail(user.locale, user.name, `${appUrl()}${localizedPath(user.locale, `/wachtwoord-reset?token=${token}`)}`),
   });
 }
 
@@ -30,6 +31,7 @@ export async function resetPassword(token: string, password: string) {
   const passwordHash = await hash(password, 10);
   await prisma.$transaction([
     prisma.user.update({ where: { id: row.userId }, data: { passwordHash } }),
-    prisma.passwordResetToken.update({ where: { id: row.id }, data: { usedAt: new Date() } }),
+    // Every link still open for this person is spent, not only the one used.
+    prisma.passwordResetToken.updateMany({ where: { userId: row.userId, usedAt: null }, data: { usedAt: new Date() } }),
   ]);
 }
