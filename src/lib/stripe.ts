@@ -20,12 +20,34 @@ export function stripeMode(): "test" | "live" | null {
   return key.includes("_live_") ? "live" : "test";
 }
 
+/**
+ * Test seam: STRIPE_API_URL points the SDK at a local stand-in (scripts/qa/fake-stripe.mjs, or Stripe's
+ * own stripe-mock). It is honoured only for test keys and a local address, so a live key can never be
+ * redirected and a deployment cannot be talked into sending payments elsewhere.
+ */
+export function stripeApiOverride(key: string, url: string | undefined = process.env.STRIPE_API_URL) {
+  if (!url || !key.startsWith("sk_test_")) return null;
+  try {
+    const parsed = new URL(url);
+    if (!["127.0.0.1", "localhost", "[::1]"].includes(parsed.hostname)) return null;
+    const https = parsed.protocol === "https:";
+    return { host: parsed.hostname, port: Number(parsed.port) || (https ? 443 : 80), protocol: https ? ("https" as const) : ("http" as const) };
+  } catch {
+    return null;
+  }
+}
+
 export function getStripe() {
   const key = secretKey();
   if (!key) return null;
   if (!_stripe) {
     // POST retries get an automatic idempotency key from the SDK.
-    _stripe = new Stripe(key, { maxNetworkRetries: 2, timeout: 20_000, appInfo: { name: "GatVuller" } });
+    _stripe = new Stripe(key, {
+      maxNetworkRetries: 2,
+      timeout: 20_000,
+      appInfo: { name: "GatVuller" },
+      ...(stripeApiOverride(key) ?? {}),
+    });
   }
   return _stripe;
 }
