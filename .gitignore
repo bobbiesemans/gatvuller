@@ -47,3 +47,4 @@ next-env.d.ts
 
 # launch video output (/brag)
 /brag-output*
+/.next-*/
