@@ -1,10 +1,8 @@
 import { createTranslator } from "next-intl";
-import nl from "../../../messages/nl.json";
-import fr from "../../../messages/fr.json";
-import en from "../../../messages/en.json";
 import { toLocale, type Locale } from "@/i18n/config";
+import { catalogFor } from "@/i18n/catalog";
 
-const MESSAGES = { nl, fr, en } as const;
+const MESSAGES = { nl: catalogFor("nl"), fr: catalogFor("fr"), en: catalogFor("en") } as const;
 
 export type Translate = (key: string, values?: Record<string, string | number | Date>) => string;
 
