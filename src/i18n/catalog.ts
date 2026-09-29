@@ -11,19 +11,23 @@ import enCustomer from "../../messages/en/customer.json";
 import nlSite from "../../messages/nl/site.json";
 import frSite from "../../messages/fr/site.json";
 import enSite from "../../messages/en/site.json";
+import nlBooking from "../../messages/nl/booking.json";
+import frBooking from "../../messages/fr/booking.json";
+import enBooking from "../../messages/en/booking.json";
 
 export type MessageTree = { [key: string]: MessageTree | string };
 
 /**
  * One catalogue per language, assembled from the base file plus one file per area:
- * `dashboard` (salon owner screens), `customer` (browsing, booking, favourites) and `site`
- * (account, auth, admin, legal pages). Each area file is a partial catalogue with the same
- * shape as the base, so the same key path never lives in two files (a test checks that).
+ * `dashboard` (salon owner screens), `customer` (discovery: home, search, city and category
+ * pages, favourites, navigation), `booking` (offer page, salon page, checkout, vouchers, bookings,
+ * reviews) and `site` (account, auth, admin, contact). Each area file is a partial catalogue with
+ * the same shape as the base, so the same key path never lives in two files (a test checks that).
  */
 export const AREA_FILES = {
-  nl: { base: nl, dashboard: nlDashboard, customer: nlCustomer, site: nlSite },
-  fr: { base: fr, dashboard: frDashboard, customer: frCustomer, site: frSite },
-  en: { base: en, dashboard: enDashboard, customer: enCustomer, site: enSite },
+  nl: { base: nl, dashboard: nlDashboard, customer: nlCustomer, booking: nlBooking, site: nlSite },
+  fr: { base: fr, dashboard: frDashboard, customer: frCustomer, booking: frBooking, site: frSite },
+  en: { base: en, dashboard: enDashboard, customer: enCustomer, booking: enBooking, site: enSite },
 } as const satisfies Record<Locale, Record<string, unknown>>;
 
 function isTree(value: unknown): value is MessageTree {
