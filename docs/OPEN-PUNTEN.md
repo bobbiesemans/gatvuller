@@ -6,7 +6,7 @@ Branch `feat/mvp-afwerking`, PR #4. Gepusht en de CI is groen; niet gemerged naa
 1. **De database is onbereikbaar.** `DATABASE_URL` in Vercel (production, preview en development, dezelfde waarde) wijst naar Prisma Postgres `db.prisma.io:5432`.
    - `/api/health` op productie geeft `P1001 Can't reach database server`. Hetzelfde geldt vanaf een lokale machine met dezelfde URL; de host antwoordt wel op TCP.
    - De database lijkt dus verwijderd of geblokkeerd. Controleer dat in console.prisma.io.
-2. **Geen Supabase-project voor GatVuller.** In het Supabase-account staan GEOSCAN, tiktomatch, AISKILLPROOF, "bobbiesemans's Project" en social-deal-espana. Er zijn geen Supabase-variabelen in Vercel. De app gebruikt ook geen Supabase Auth: inloggen loopt via Auth.js met e-mail en wachtwoord.
+2. **Geen Supabase-project voor GatVuller.** Geen enkel project in het Supabase-account hoort bij GatVuller, en er zijn geen Supabase-variabelen in Vercel. De app gebruikt ook geen Supabase Auth: inloggen loopt via Auth.js met e-mail en wachtwoord.
 3. **Ontbrekende Vercel-variabelen:** `DIRECT_URL`, `CRON_SECRET`, `RESEND_API_KEY`, `EMAIL_FROM`, `ADMIN_NOTIFICATION_EMAIL` en `NEXT_PUBLIC_COMPANY_*`. `STRIPE_SECRET_KEY` en `STRIPE_WEBHOOK_SECRET` staan op `REPLACE_ME`.
 4. **Preview en productie delen `DATABASE_URL`.** Geef preview een eigen database.
 

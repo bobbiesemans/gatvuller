@@ -45,6 +45,13 @@ export async function generateMetadata(): Promise<Metadata> {
       url: site,
     },
     manifest: "/manifest.webmanifest",
+    icons: {
+      icon: [
+        { url: "/icons/icon.svg", type: "image/svg+xml" },
+        { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      ],
+      apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+    },
     twitter: { card: "summary_large_image", title: "GatVuller", description: t("ogDescription") },
   };
 }
