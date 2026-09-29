@@ -40,7 +40,7 @@ export function MobileNav({ role }: { role: Role }) {
             <li key={item.href} className="min-w-0 flex-1">
               <NavLink
                 href={item.href}
-                exact={"exact" in item ? item.exact : false}
+                exact={item.href === "/"}
                 className="flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-center text-[11px] font-semibold leading-tight text-stone-600 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand motion-reduce:transition-none"
                 activeClassName="text-brand"
               >

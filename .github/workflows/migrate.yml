@@ -23,8 +23,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Pending migrations
-        run: npx prisma migrate status || true
+      - name: Validate database connection and migration history
+        run: npx prisma migrate status
         env:
           DATABASE_URL: ${{ secrets.DIRECT_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}

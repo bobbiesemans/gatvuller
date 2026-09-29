@@ -3,16 +3,20 @@
 ## Principes
 - Een Vercel-build voert **geen** databasewijzigingen meer uit (`buildCommand`: `prisma generate && next build`).
 - Migraties draaien apart en gecontroleerd via de GitHub Action **Database migrations** (`.github/workflows/migrate.yml`). Die start je handmatig en ze vraagt goedkeuring via de GitHub-environment `production`.
-- Volgorde bij elke release met een nieuwe migratie:
-  1. Merge naar `main` pas nadat CI groen is.
-  2. Start **Actions → Database migrations → production** en keur goed.
-  3. Laat Vercel daarna (opnieuw) deployen.
+- Volgorde bij een release met een nieuwe migratie:
+  1. Controleer eerst een databasebackup, de juiste `DIRECT_URL` en `DATABASE_URL`, de migratiegeschiedenis en een groene CI/preview. Controleer dat de bestaande productieversie compatibel blijft met de geplande migraties; behandel dit per migratie, niet als algemene aanname.
+  2. Voer de migraties tegen de bedoelde database gecontroleerd uit via **Actions → Database migrations → production**. De workflow stopt bij een fout in `prisma migrate status`.
+  3. Controleer de migratiestatus en de bestaande productie-health. Merge pas daarna de compatibele code naar `main`, en controleer de nieuwe productie-health en kernflows direct na deploy.
+  4. Als een migratie niet achterwaarts compatibel is: maak eerst een afzonderlijke compatibiliteitsrelease. Merge de nieuwe code niet vooruitlopend op een ongeteste migratie.
 
-  Migraties zijn additief geschreven, zodat de oude code tijdens die paar minuten blijft werken.
+  Een Vercel-preview van deze branch kan falen zolang de previewdatabase niet bereikbaar en gemigreerd is. Dat is geen reden om de fout te omzeilen.
 
 ## Openstaande migraties voor de live database
 - `20260928090000_salon_pending_status` (nieuwe enumwaarde PENDING)
 - `20260928090100_trust_and_payments` (betaalmodus, refunds, meldingen, idempotente webhooks, analytics zonder persoonsgegevens, CHECK-constraints)
+- `20260929090000_enable_row_level_security` (RLS op publiek bereikbare tabellen; controleer database-eigenaar en eventuele externe Supabase-toegang)
+
+Controleer de werkelijk toegepaste migraties met `prisma migrate status`; deze lijst is geen bewijs dat ze al live staan.
 
 De backfill wist niets. Seedzaken worden gemarkeerd als demo en ratings worden herberekend uit echte reviews.
 
