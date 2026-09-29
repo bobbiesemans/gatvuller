@@ -6,6 +6,7 @@ import { retrieveCheckoutSession } from "@/lib/payments";
 import { confirmCheckoutSession } from "@/lib/bookings";
 import { ApiError } from "@/lib/errors";
 import { getCurrentUser } from "@/lib/session";
+import { hitRateLimit } from "@/lib/rate-limit";
 
 export const GET = route(async (req, ctx: { params: Promise<{ id: string }> }) => {
   const { id } = await ctx.params;
@@ -19,7 +20,8 @@ export const GET = route(async (req, ctx: { params: Promise<{ id: string }> }) =
   const allowed = (user && user.id === booking.customerId) || verifyBookingToken(booking.id, token);
   if (!allowed) throw new ApiError(404, "not_found");
 
-  if (booking.status === "PENDING" && booking.stripeSessionId) {
+  // Ask Stripe at most once every ten seconds per booking, however many tabs are polling.
+  if (booking.status === "PENDING" && booking.stripeSessionId && (await hitRateLimit(`status:${booking.id}`, 1, 10)).ok) {
     const session = await retrieveCheckoutSession(booking.stripeSessionId);
     if (session?.status === "complete" && session.payment_status === "paid") {
       await confirmCheckoutSession(session);

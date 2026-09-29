@@ -103,6 +103,15 @@
       "intro": "We hebben je zaak gecontroleerd. Je kan nu vrije uren publiceren.",
       "payouts": "Koppel nog je uitbetalingsaccount via Stripe, anders kunnen klanten niet boeken.",
       "cta": "Naar je dashboard"
+    },
+    "salonSuspended": {
+      "subject": "{salon} is geschorst op GatVuller",
+      "title": "Je zaak is geschorst",
+      "intro": "We hebben {salon} tijdelijk geschorst. Je aanbod staat niet meer online.",
+      "reason": "Reden",
+      "refunded": "{count, plural, one {# betaalde boeking is} other {# betaalde boekingen zijn}} terugbetaald en de klant{count, plural, one {} other {en}} zijn verwittigd.",
+      "next": "Denk je dat dit een vergissing is? Antwoord via het contactformulier, dan bekijken we het samen.",
+      "cta": "Contact opnemen"
     }
   },
   "ui": {
@@ -313,7 +322,9 @@
     "status": {
       "title": "Betaling controleren",
       "waiting": "We vragen Stripe of de betaling gelukt is. Dit scherm vernieuwt vanzelf.",
-      "hint": "Terugkeren van de betaalpagina is nog geen bevestiging."
+      "hint": "Terugkeren van de betaalpagina is nog geen bevestiging.",
+      "slow": "Dit duurt langer dan verwacht. Je hoeft niets te doen: zodra Stripe de betaling bevestigt, krijg je een e-mail met je bon.",
+      "toBookings": "Naar mijn boekingen"
     },
     "favorites": {
       "title": "Favoriete zaken",
@@ -498,7 +509,97 @@
       "demo_salon": "Dit is een demozaak.",
       "demo_disabled": "Gesimuleerde betalingen zijn hier niet toegestaan.",
       "upcoming_bookings": "Je hebt nog een betaalde afspraak die niet voorbij is.",
-      "owns_salon": "Je beheert nog een zaak. Neem contact op."
+      "owns_salon": "Je beheert nog een zaak. Neem contact op.",
+      "invalid_transition": "Die stap kan niet vanuit de huidige status van de zaak."
+    },
+    "cancelled": {
+      "kicker": "Betaling afgebroken",
+      "title": "Er is niets afgeschreven",
+      "body": "De plek is weer vrijgegeven. Wil je het toch doen? Probeer het opnieuw zolang het uur nog beschikbaar is.",
+      "retry": "Opnieuw proberen",
+      "browse": "Andere uren bekijken"
+    },
+    "copyCode": {
+      "copy": "Kopieer code",
+      "copied": "Gekopieerd"
+    },
+    "cancelBooking": {
+      "button": "Annuleren",
+      "loading": "Bezig…",
+      "confirm": "Boeking annuleren? Je krijgt het volledige bedrag terug en het uur komt weer vrij voor anderen."
+    },
+    "review": {
+      "title": "Hoe was het?",
+      "stars": "{n} van 5 sterren",
+      "commentLabel": "Je ervaring",
+      "placeholder": "Kort en eerlijk (optioneel)",
+      "pick": "Kies eerst het aantal sterren.",
+      "submit": "Beoordeling plaatsen",
+      "loading": "Bezig…",
+      "done": "Bedankt, je beoordeling staat online."
+    },
+    "voucher": {
+      "badge": {
+        "paid": "Betaald",
+        "checkedIn": "Bezocht",
+        "pending": "In afwachting",
+        "expired": "Verlopen",
+        "cancelled": "Geannuleerd",
+        "refunded": "Terugbetaald",
+        "noShow": "Niet opgedaagd"
+      },
+      "title": {
+        "paid": "Je afspraak is gereserveerd",
+        "checkedIn": "Bezoek bevestigd",
+        "pending": "We wachten op de betaalbevestiging",
+        "expired": "Deze reservering is verlopen",
+        "cancelled": "Deze boeking is geannuleerd",
+        "refunded": "Je terugbetaling is onderweg",
+        "noShow": "Je bent niet komen opdagen"
+      },
+      "lead": {
+        "paid": "Toon de code of de QR-code aan de balie.",
+        "checkedIn": "De zaak heeft je bezoek bevestigd. Bedankt!",
+        "pending": "Terugkeren van de betaalpagina is nog geen betaling. Zodra Stripe bevestigt, staat je bon hier.",
+        "expired": "De betaling is niet afgerond, dus er is niets afgeschreven. De plek is weer vrijgegeven.",
+        "cancelled": "Deze boeking telt niet meer.",
+        "refunded": "De boeking is geannuleerd en het volledige bedrag gaat terug naar je betaalmethode.",
+        "noShow": "De zaak heeft genoteerd dat je niet kwam. Het bedrag wordt niet terugbetaald."
+      },
+      "cancelledBy": {
+        "CUSTOMER": "Geannuleerd door jou.",
+        "SALON": "Geannuleerd door de zaak.",
+        "ADMIN": "Geannuleerd door GatVuller.",
+        "SYSTEM": "Automatisch geannuleerd."
+      },
+      "code": "Bevestigingscode",
+      "total": "Totaal betaald",
+      "saving": "{percent}% onder de normale prijs van {price}",
+      "testPayment": "Testomgeving: deze betaling is gesimuleerd. Er is niets afgeschreven.",
+      "stripeTest": "Stripe-testmodus: er is geen echt geld betaald.",
+      "where": "Locatie en aankomst",
+      "arrive": "Kom binnen het tijdvenster aan. Kom je niet, dan geldt de no-showregel.",
+      "policyTitle": "Annuleren",
+      "policyCancel": "Gratis annuleren kan tot {hours} uur voor de start. Je krijgt het volledige bedrag terug.",
+      "policyClosed": "De annuleringstermijn is voorbij.",
+      "policyNoShow": "Kom je niet opdagen, dan wordt het bedrag niet terugbetaald.",
+      "emailSent": "Een bevestiging is gestuurd naar {email}.",
+      "loginToManage": "Log in om te annuleren of na het bezoek een beoordeling te plaatsen.",
+      "login": "Inloggen",
+      "refundTitle": "Terugbetaling",
+      "refundAmount": "{amount} gaat terug naar je betaalmethode.",
+      "refundStatus": {
+        "PENDING": "Onderweg. Dat kan enkele werkdagen duren.",
+        "SUCCEEDED": "Uitgevoerd.",
+        "FAILED": "Niet gelukt. Neem contact met ons op en vermeld de code {code}."
+      },
+      "noCharge": "Er is niets aangerekend.",
+      "tryAgain": "Opnieuw kijken",
+      "moreOffers": "Meer last-minute afspraken",
+      "calendar": "Zet in agenda",
+      "openMap": "Open in kaart",
+      "salonNew": "Nieuw",
+      "demoSalon": "Demozaak (testdata)"
     }
   }
 }

@@ -64,7 +64,8 @@ export default async function BoekingenPage({ searchParams }: { searchParams: Pr
           {shown.map((b) => {
             const code = shortCode(b.confirmationCode);
             const open = b.status === "PAID" || b.status === "PENDING";
-            const canCancel = open && b.slot.startsAt.getTime() - Date.now() > b.slot.salon.cancellationHours * 60 * 60 * 1000;
+            const canCancel =
+              open && b.slot.startsAt.getTime() - Date.now() > (b.cancellationHours ?? b.slot.salon.cancellationHours) * 60 * 60 * 1000;
             const known = ["PAID", "PENDING", "CANCELLED", "REFUNDED", "EXPIRED", "NO_SHOW"] as const;
             const label = (known as readonly string[]).includes(b.status) ? t(b.status as (typeof known)[number]) : b.status;
             return (

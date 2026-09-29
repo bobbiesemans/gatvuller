@@ -691,3 +691,27 @@ export async function retryCancelledSlotRefunds(limit = 20) {
   }
   return done;
 }
+
+/**
+ * Suspension: the salon's upcoming offers are withdrawn, every paid customer is refunded and told,
+ * and open checkouts are closed, so nobody pays for something that will not happen.
+ */
+export async function withdrawSalonOffers(salonId: string, actor: Actor) {
+  const slots = await prisma.slot.findMany({
+    where: { salonId, status: { in: ["OPEN", "BOOKED", "PAUSED"] }, startsAt: { gt: new Date() } },
+    select: { id: true },
+  });
+  let refunded = 0;
+  let failed = 0;
+  for (const s of slots) {
+    try {
+      const r = await cancelSlot(s.id, actor);
+      refunded += r.refunded;
+      failed += r.failed;
+    } catch (error) {
+      failed++;
+      log.error("withdraw.slot_failed", { slotId: s.id, error });
+    }
+  }
+  return { slots: slots.length, refunded, failed };
+}

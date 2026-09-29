@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { expireEndedSlots, expireStaleHolds } from "@/lib/bookings";
+import { expireEndedSlots, expireStaleHolds, retryCancelledSlotRefunds } from "@/lib/bookings";
 import { sendReviewRequest } from "@/lib/email/notify";
 import { purgeRateLimits } from "@/lib/rate-limit";
 import { log } from "@/lib/log";
@@ -22,6 +22,8 @@ export async function GET(req: Request) {
   const now = Date.now();
   const expiredHolds = await expireStaleHolds();
   const endedSlots = await expireEndedSlots();
+  // Paid bookings left on a withdrawn offer (a refund failed earlier) are refunded now.
+  const retriedRefunds = await retryCancelledSlotRefunds();
 
   const due = await prisma.booking.findMany({
     where: {
@@ -46,7 +48,7 @@ export async function GET(req: Request) {
     prisma.passwordResetToken.deleteMany({ where: { expiresAt: { lt: new Date(now - 86_400_000) } } }),
     prisma.stripeEvent.deleteMany({ where: { processedAt: { lt: new Date(now - 90 * 86_400_000) } } }),
   ]);
-  const summary = { expiredHolds, endedSlots, reviewRequests: due.length, purged: { rateLimits, emails: emails.count, tokens: tokens.count, events: events.count } };
+  const summary = { expiredHolds, endedSlots, retriedRefunds, reviewRequests: due.length, purged: { rateLimits, emails: emails.count, tokens: tokens.count, events: events.count } };
   log.info("cron.done", summary);
   return NextResponse.json(summary);
 }

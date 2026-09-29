@@ -1,168 +1,214 @@
-import { getLocale } from "next-intl/server";
-import { formatInZone } from "@/lib/time";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
+import { Clock, Info, MapPin } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { verifyBookingToken } from "@/lib/tokens";
 import { appUrl } from "@/lib/config";
-import { formatEuro, shortCode, discountPercent } from "@/lib/utils";
+import { discountPercent, formatEuro } from "@/lib/money";
+import { spacedCode } from "@/lib/utils";
+import { formatInZone } from "@/lib/time";
+import { reviewEligibility } from "@/lib/bookings";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { BookingQr } from "@/components/booking-qr";
-import { MiniMap } from "@/components/map/mini-map";
-import { MapPin, Clock, Info } from "lucide-react";
+import { CancelBookingButton } from "@/components/cancel-booking-button";
 import { CopyCodeButton } from "@/components/copy-code-button";
-import { TrackOnMount } from "@/components/track-on-mount";
+import { MiniMap } from "@/components/map/mini-map";
+import { ReviewForm } from "@/components/review-form";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Boeking bevestigd" };
+export const metadata = { title: "Jouw boeking", robots: { index: false, follow: false } };
 
-export default async function SuccesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ bookingId?: string; demo?: string; t?: string }>;
-}) {
-  const lc = await getLocale();
+type Kind = "paid" | "checkedIn" | "pending" | "expired" | "cancelled" | "refunded" | "noShow";
+
+/** The voucher. A code and a QR code only exist for a booking that is really paid; every other status says what happened. */
+export default async function VoucherPage({ searchParams }: { searchParams: Promise<{ bookingId?: string; t?: string }> }) {
   const sp = await searchParams;
-  const me = await getCurrentUser();
-  const session = me ? { user: me } : null;
-  const booking = sp.bookingId
-    ? await prisma.booking.findUnique({
-        where: { id: sp.bookingId },
-        include: { slot: { include: { salon: true } }, review: true },
-      })
-    : null;
-  if (booking) {
-    const allowed =
-      session?.user?.id === booking.customerId ||
-      session?.user?.role === "ADMIN" ||
-      verifyBookingToken(booking.id, sp.t);
-    if (!allowed) redirect("/login?callbackUrl=/boekingen");
+  if (!sp.bookingId) redirect("/boekingen");
+  const [lc, t, me] = await Promise.all([getLocale(), getTranslations("ui.voucher"), getCurrentUser()]);
+  const booking = await prisma.booking.findUnique({
+    where: { id: sp.bookingId },
+    include: { slot: { include: { salon: true } }, review: true },
+  });
+  if (!booking) redirect("/boekingen");
+  const isCustomer = me?.id === booking.customerId;
+  if (!isCustomer && me?.role !== "ADMIN" && !verifyBookingToken(booking.id, sp.t)) {
+    redirect(`/login?callbackUrl=${encodeURIComponent(`/boekingen/${booking.id}`)}`);
   }
 
-  const code = booking ? shortCode(booking.confirmationCode) : null;
-  const paid = booking?.status === "PAID";
-  const pending = booking?.status === "PENDING";
-  // The salon scans with any phone camera and lands on its own check-in screen (login and ownership required there).
-  const qrValue = booking ? `${appUrl()}/dashboard/boekingen?code=${booking.confirmationCode}` : "";
+  const { slot } = booking;
+  const salon = slot.salon;
+  const now = new Date();
+  const kind: Kind =
+    booking.status === "PAID"
+      ? booking.checkedInAt
+        ? "checkedIn"
+        : "paid"
+      : booking.status === "PENDING"
+        ? booking.holdExpiresAt && booking.holdExpiresAt < now
+          ? "expired"
+          : "pending"
+        : booking.status === "EXPIRED"
+          ? "expired"
+          : booking.status === "CANCELLED"
+            ? "cancelled"
+            : booking.status === "REFUNDED"
+              ? "refunded"
+              : "noShow";
+
+  const hours = booking.cancellationHours ?? salon.cancellationHours;
+  const cancelOpen = kind === "paid" && now.getTime() <= slot.startsAt.getTime() - hours * 3_600_000;
+  const canReview = isCustomer && kind !== "pending" && reviewEligibility(booking, now) === "ok";
+  const token = sp.t ? `?t=${encodeURIComponent(sp.t)}` : "";
+  const notice =
+    booking.paymentMode === "DEMO" ? t("testPayment") : booking.paymentMode === "TEST" ? t("stripeTest") : null;
+  const refunded = kind === "refunded" || (kind === "cancelled" && (booking.refundAmount ?? 0) > 0);
+  const showPlace = kind === "paid" || kind === "checkedIn" || kind === "pending";
+  const pct = discountPercent(slot.originalPrice, booking.amount);
+  const cancelledBy = booking.cancelledBy && ["CUSTOMER", "SALON", "ADMIN", "SYSTEM"].includes(booking.cancelledBy) ? booking.cancelledBy : null;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12">
-      {paid && <TrackOnMount name="payment_completed" entityId={booking.id} />}
-      <div className="text-center mb-8">
-        <Badge variant={paid ? "success" : "default"} className="mb-3">
-          {paid ? "Betaald" : pending ? "Betaling nog niet bevestigd" : "Status onbekend"}
+    <div className="mx-auto max-w-2xl px-4 py-10 sm:py-12">
+      <header className="mb-8 text-center">
+        <Badge variant={kind === "paid" || kind === "checkedIn" ? "success" : kind === "pending" ? "warn" : "default"}>
+          {t(`badge.${kind}`)}
         </Badge>
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-          {paid ? "Je afspraak is gereserveerd" : pending ? "We wachten op de betaalbevestiging" : "Boeking"}
-        </h1>
-        <p className="mt-2 text-slate-500">
-          {paid ? "Toon de code bij aankomst." : "Een redirect alleen is geen betaling. Vernieuw deze pagina zodra Stripe bevestigt."}
-        </p>
-      </div>
+        <h1 className="mt-3 text-3xl text-ink sm:text-4xl">{t(`title.${kind}`)}</h1>
+        <p className="mt-2 text-stone-600">{t(`lead.${kind}`)}</p>
+        {cancelledBy && kind !== "refunded" && <p className="mt-1 text-sm text-stone-500">{t(`cancelledBy.${cancelledBy}`)}</p>}
+      </header>
 
-      {booking?.stripePaymentId === "demo" && (
-        <p className="mb-6 rounded-2xl bg-amber-50 border border-amber-100 p-4 text-sm text-amber-950">
-          Testmodus: deze betaling is gesimuleerd. In productie telt alleen een bevestiging van Stripe.
+      {notice && (
+        <p role="note" className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          {notice}
         </p>
       )}
 
-      {booking ? (
-        <div className="space-y-5">
-          <Card className="overflow-hidden">
-            <div className="bg-[#b4492b] px-6 py-5 text-white">
-              <p className="text-sm text-[#f8ebe5]">Bevestigingscode</p>
-              <p className="mt-1 text-3xl font-extrabold tracking-[0.2em]">{code}</p>
-              <p className="mt-1 text-xs text-[#f8ebe5]/90">Volledig: {booking.confirmationCode}</p>
-              <div className="mt-3"><CopyCodeButton code={booking.confirmationCode} /></div>
+      <Card className="overflow-hidden">
+        {kind === "paid" && (
+          <div className="bg-brand px-6 py-5 text-white">
+            <p className="text-sm text-brand-soft">{t("code")}</p>
+            <p className="mt-1 font-mono text-3xl font-bold tracking-[0.2em]">{spacedCode(booking.confirmationCode)}</p>
+            <div className="mt-3">
+              <CopyCodeButton code={booking.confirmationCode} />
             </div>
-            <CardContent className="p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
-              <BookingQr value={qrValue} />
-              <div className="space-y-2 text-sm text-slate-600 flex-1">
-                <p className="text-lg font-bold text-slate-900">{booking.slot.title}</p>
-                <p>
-                  {booking.slot.salon.name} · ★ {booking.slot.salon.ratingCount > 0 ? booking.slot.salon.ratingAvg.toFixed(1) : "Nieuw"}
-                </p>
-                <p className="flex items-start gap-2">
-                  <MapPin className="h-4 w-4 mt-0.5 text-[#b4492b] shrink-0" />
-                  {booking.slot.salon.address}
-                </p>
-                <p className="flex items-start gap-2">
-                  <Clock className="h-4 w-4 mt-0.5 text-[#b4492b] shrink-0" />
-                  {formatInZone(booking.slot.startsAt, lc, "dayMonth")} · {formatInZone(booking.slot.startsAt, lc, "time")} –{" "}
-                  {formatInZone(booking.slot.endsAt, lc, "time")}
-                </p>
-                <div className="pt-2 flex items-end gap-3">
-                  <div>
-                    <p className="text-2xl font-extrabold text-[#b4492b]">
-                      {formatEuro(booking.amount)}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      -{discountPercent(booking.slot.originalPrice, booking.slot.discountPrice)}% t.o.v.{" "}
-                      {formatEuro(booking.slot.originalPrice)}
-                    </p>
-                  </div>
-                  <p className="text-xs text-slate-500">Zaak betaalt {formatEuro(booking.feeAmount)} platformkosten. Jij betaalde {formatEuro(booking.amount)}.</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div>
-            <h2 className="font-bold text-slate-900 mb-2">Locatie & aankomstvenster</h2>
-            <MiniMap
-              lat={booking.slot.salon.lat}
-              lng={booking.slot.salon.lng}
-              label={booking.slot.salon.name}
-              className="h-56 w-full overflow-hidden rounded-2xl border border-slate-200"
-            />
-            <p className="mt-2 text-sm text-slate-500">
-              Kom aan binnen het tijdvenster. Te laat? Slot kan vrijgegeven worden.
+          </div>
+        )}
+        <CardContent className="flex flex-col items-center gap-6 p-6 sm:flex-row sm:items-start">
+          {kind === "paid" && <BookingQr value={`${appUrl()}/dashboard/boekingen?code=${booking.confirmationCode}`} />}
+          <div className="w-full flex-1 space-y-2 text-sm text-stone-700">
+            <h2 className="text-xl text-ink">{slot.title}</h2>
+            <p>
+              <Link href={`/salon/${salon.slug}`} className="font-semibold text-ink underline underline-offset-4">
+                {salon.name}
+              </Link>
+              {" · "}
+              {salon.ratingCount > 0 ? `★ ${salon.ratingAvg.toFixed(1)}` : t("salonNew")}
+              {salon.isDemo ? ` · ${t("demoSalon")}` : ""}
             </p>
+            <p className="flex items-start gap-2">
+              <MapPin aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
+              {salon.address}
+            </p>
+            <p className="flex items-start gap-2">
+              <Clock aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
+              <span>
+                {formatInZone(slot.startsAt, lc, "dayMonth")} · {formatInZone(slot.startsAt, lc, "time")}–{formatInZone(slot.endsAt, lc, "time")}
+              </span>
+            </p>
+            <div className="pt-2">
+              <p className="text-xs text-stone-500">{t("total")}</p>
+              <p className="text-2xl font-semibold text-brand">{formatEuro(booking.amount, lc)}</p>
+              {pct > 0 && <p className="text-xs text-stone-500">{t("saving", { percent: pct, price: formatEuro(slot.originalPrice, lc) })}</p>}
+            </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <Card>
-            <CardContent className="p-5 text-sm text-slate-600 space-y-2">
-              <p className="font-semibold text-slate-900 flex items-center gap-2">
-                <Info className="h-4 w-4 text-[#b4492b]" /> Annuleringsregels
-              </p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Annuleren kan tot {booking.slot.salon.cancellationHours} uur voor de start.</li>
-                <li>No-show: geen terugbetaling — het gat was voor jou gereserveerd.</li>
-                <li>Bevestiging gestuurd naar {booking.customerEmail}</li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <div className="flex flex-wrap gap-3">
-            <Button asChild>
-              <Link href="/slots">Meer last-minute afspraken</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <a href={`/api/bookings/${booking.id}/ics${sp.t ? `?t=${sp.t}` : ""}`}>Zet in agenda</a>
-            </Button>
-            <Button asChild variant="outline">
-              <a
-                href={`https://www.openstreetmap.org/?mlat=${booking.slot.salon.lat}&mlon=${booking.slot.salon.lng}#map=16/${booking.slot.salon.lat}/${booking.slot.salon.lng}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Open in kaart
-              </a>
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <Card>
-          <CardContent className="p-6 space-y-3 text-sm text-slate-600">
-            <p>Je boeking is verwerkt.</p>
-            <Button asChild>
-              <Link href="/slots">Meer slots</Link>
-            </Button>
+      {(refunded || kind === "expired" || kind === "pending") && (
+        <Card className="mt-5">
+          <CardContent className="space-y-1 p-5 text-sm text-stone-700">
+            <p className="font-semibold text-ink">{refunded ? t("refundTitle") : t("noCharge")}</p>
+            {refunded && (
+              <>
+                <p>{t("refundAmount", { amount: formatEuro(booking.refundAmount ?? booking.amount, lc) })}</p>
+                <p className={booking.refundStatus === "FAILED" ? "font-semibold text-red-700" : "text-stone-600"}>
+                  {t(`refundStatus.${booking.refundStatus ?? "PENDING"}`, { code: booking.confirmationCode })}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
+      )}
+
+      {showPlace && (
+        <section className="mt-6" aria-labelledby="where">
+          <h2 id="where" className="mb-2 text-lg text-ink">
+            {t("where")}
+          </h2>
+          <MiniMap lat={salon.lat} lng={salon.lng} label={salon.name} className="h-56 w-full overflow-hidden rounded-2xl border border-stone-200" />
+          <p className="mt-2 text-sm text-stone-600">{t("arrive")}</p>
+        </section>
+      )}
+
+      {kind === "paid" && (
+        <Card className="mt-6">
+          <CardContent className="space-y-2 p-5 text-sm text-stone-700">
+            <p className="flex items-center gap-2 font-semibold text-ink">
+              <Info aria-hidden="true" className="h-4 w-4 text-brand" /> {t("policyTitle")}
+            </p>
+            <ul className="list-disc space-y-1 pl-5">
+              <li>{cancelOpen ? t("policyCancel", { hours }) : t("policyClosed")}</li>
+              <li>{t("policyNoShow")}</li>
+              <li>{t("emailSent", { email: booking.customerEmail })}</li>
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="mt-6 flex flex-wrap items-start gap-3">
+        {kind === "paid" && isCustomer && cancelOpen && <CancelBookingButton bookingId={booking.id} />}
+        {(kind === "paid" || kind === "checkedIn") && !isCustomer && me?.role !== "ADMIN" && (
+          <Button asChild variant="outline">
+            <Link href={`/login?callbackUrl=${encodeURIComponent(`/boekingen/${booking.id}`)}`}>{t("login")}</Link>
+          </Button>
+        )}
+        {kind === "paid" && (
+          <Button asChild variant="outline">
+            <a href={`/api/bookings/${booking.id}/ics${token}`}>{t("calendar")}</a>
+          </Button>
+        )}
+        {showPlace && (
+          <Button asChild variant="outline">
+            <a
+              href={`https://www.openstreetmap.org/?mlat=${salon.lat}&mlon=${salon.lng}#map=16/${salon.lat}/${salon.lng}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t("openMap")}
+            </a>
+          </Button>
+        )}
+        {(kind === "expired" || kind === "cancelled") && (
+          <Button asChild>
+            <Link href={`/slots/${slot.id}`}>{t("tryAgain")}</Link>
+          </Button>
+        )}
+        <Button asChild variant={kind === "paid" ? "default" : "outline"}>
+          <Link href="/slots">{t("moreOffers")}</Link>
+        </Button>
+      </div>
+
+      {(kind === "paid" || kind === "checkedIn") && !isCustomer && me?.role !== "ADMIN" && (
+        <p className="mt-3 text-sm text-stone-600">{t("loginToManage")}</p>
+      )}
+      {canReview && (
+        <div className="mt-8" id="review">
+          <ReviewForm bookingId={booking.id} />
+        </div>
       )}
     </div>
   );

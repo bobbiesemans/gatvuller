@@ -103,6 +103,15 @@
       "intro": "Nous avons vérifié votre établissement. Vous pouvez publier des créneaux libres.",
       "payouts": "Connectez encore votre compte de versement via Stripe, sinon les clients ne peuvent pas réserver.",
       "cta": "Vers votre tableau de bord"
+    },
+    "salonSuspended": {
+      "subject": "{salon} est suspendu sur GatVuller",
+      "title": "Votre établissement est suspendu",
+      "intro": "Nous avons suspendu {salon} temporairement. Votre offre n'est plus en ligne.",
+      "reason": "Raison",
+      "refunded": "{count, plural, one {# réservation payée a été remboursée} other {# réservations payées ont été remboursées}} et les clients ont été prévenus.",
+      "next": "Vous pensez qu'il s'agit d'une erreur ? Répondez via le formulaire de contact et nous examinerons cela ensemble.",
+      "cta": "Nous contacter"
     }
   },
   "ui": {
@@ -313,7 +322,9 @@
     "status": {
       "title": "Vérification du paiement",
       "waiting": "Nous demandons à Stripe si le paiement a réussi. Cet écran se met à jour tout seul.",
-      "hint": "Revenir de la page de paiement n’est pas encore une confirmation."
+      "hint": "Revenir de la page de paiement n’est pas encore une confirmation.",
+      "slow": "Cela prend plus de temps que prévu. Vous n'avez rien à faire : dès que Stripe confirme le paiement, vous recevez un e-mail avec votre bon.",
+      "toBookings": "Vers mes réservations"
     },
     "favorites": {
       "title": "Commerces favoris",
@@ -498,7 +509,97 @@
       "demo_salon": "Ceci est un établissement de démonstration.",
       "demo_disabled": "Les paiements simulés ne sont pas autorisés ici.",
       "upcoming_bookings": "Vous avez encore un rendez-vous payé à venir.",
-      "owns_salon": "Vous gérez encore un établissement. Contactez-nous."
+      "owns_salon": "Vous gérez encore un établissement. Contactez-nous.",
+      "invalid_transition": "Cette étape n'est pas possible depuis le statut actuel de l'établissement."
+    },
+    "cancelled": {
+      "kicker": "Paiement interrompu",
+      "title": "Rien n'a été débité",
+      "body": "La place est de nouveau libre. Vous souhaitez quand même réserver ? Réessayez tant que le créneau est disponible.",
+      "retry": "Réessayer",
+      "browse": "Voir d'autres créneaux"
+    },
+    "copyCode": {
+      "copy": "Copier le code",
+      "copied": "Copié"
+    },
+    "cancelBooking": {
+      "button": "Annuler",
+      "loading": "En cours…",
+      "confirm": "Annuler la réservation ? Vous récupérez le montant total et le créneau redevient disponible."
+    },
+    "review": {
+      "title": "Comment c'était ?",
+      "stars": "{n} sur 5 étoiles",
+      "commentLabel": "Votre expérience",
+      "placeholder": "Bref et honnête (facultatif)",
+      "pick": "Choisissez d'abord un nombre d'étoiles.",
+      "submit": "Publier l'avis",
+      "loading": "En cours…",
+      "done": "Merci, votre avis est en ligne."
+    },
+    "voucher": {
+      "badge": {
+        "paid": "Payé",
+        "checkedIn": "Effectué",
+        "pending": "En attente",
+        "expired": "Expiré",
+        "cancelled": "Annulé",
+        "refunded": "Remboursé",
+        "noShow": "Absent"
+      },
+      "title": {
+        "paid": "Votre rendez-vous est réservé",
+        "checkedIn": "Visite confirmée",
+        "pending": "Nous attendons la confirmation du paiement",
+        "expired": "Cette réservation a expiré",
+        "cancelled": "Cette réservation est annulée",
+        "refunded": "Votre remboursement est en route",
+        "noShow": "Vous ne vous êtes pas présenté"
+      },
+      "lead": {
+        "paid": "Présentez le code ou le QR code au comptoir.",
+        "checkedIn": "L'établissement a confirmé votre visite. Merci !",
+        "pending": "Revenir de la page de paiement n'est pas encore un paiement. Dès que Stripe confirme, votre bon apparaît ici.",
+        "expired": "Le paiement n'a pas été finalisé : rien n'a été débité. La place est de nouveau libre.",
+        "cancelled": "Cette réservation n'est plus valable.",
+        "refunded": "La réservation est annulée et le montant total retourne sur votre moyen de paiement.",
+        "noShow": "L'établissement a noté que vous ne vous êtes pas présenté. Le montant n'est pas remboursé."
+      },
+      "cancelledBy": {
+        "CUSTOMER": "Annulé par vous.",
+        "SALON": "Annulé par l'établissement.",
+        "ADMIN": "Annulé par GatVuller.",
+        "SYSTEM": "Annulé automatiquement."
+      },
+      "code": "Code de confirmation",
+      "total": "Total payé",
+      "saving": "{percent} % sous le prix normal de {price}",
+      "testPayment": "Environnement de test : ce paiement est simulé. Rien n'a été débité.",
+      "stripeTest": "Mode test Stripe : aucun argent réel n'a été payé.",
+      "where": "Adresse et arrivée",
+      "arrive": "Arrivez pendant le créneau. Si vous ne venez pas, la règle d'absence s'applique.",
+      "policyTitle": "Annulation",
+      "policyCancel": "L'annulation est gratuite jusqu'à {hours} h avant le début. Vous récupérez le montant total.",
+      "policyClosed": "Le délai d'annulation est dépassé.",
+      "policyNoShow": "Si vous ne vous présentez pas, le montant n'est pas remboursé.",
+      "emailSent": "Une confirmation a été envoyée à {email}.",
+      "loginToManage": "Connectez-vous pour annuler ou laisser un avis après la visite.",
+      "login": "Se connecter",
+      "refundTitle": "Remboursement",
+      "refundAmount": "{amount} retournent sur votre moyen de paiement.",
+      "refundStatus": {
+        "PENDING": "En cours. Cela peut prendre quelques jours ouvrables.",
+        "SUCCEEDED": "Effectué.",
+        "FAILED": "Échec. Contactez-nous en indiquant le code {code}."
+      },
+      "noCharge": "Rien n'a été débité.",
+      "tryAgain": "Revoir l'offre",
+      "moreOffers": "Plus de rendez-vous de dernière minute",
+      "calendar": "Ajouter à l'agenda",
+      "openMap": "Ouvrir la carte",
+      "salonNew": "Nouveau",
+      "demoSalon": "Établissement de démonstration"
     }
   }
 }

@@ -103,6 +103,15 @@
       "intro": "We checked your business. You can now publish free slots.",
       "payouts": "Connect your payout account with Stripe, otherwise customers cannot book.",
       "cta": "Go to your dashboard"
+    },
+    "salonSuspended": {
+      "subject": "{salon} is suspended on GatVuller",
+      "title": "Your business is suspended",
+      "intro": "We have temporarily suspended {salon}. Your offers are no longer online.",
+      "reason": "Reason",
+      "refunded": "{count, plural, one {# paid booking was} other {# paid bookings were}} refunded and the customers have been told.",
+      "next": "Think this is a mistake? Reply through the contact form and we will look at it together.",
+      "cta": "Get in touch"
     }
   },
   "ui": {
@@ -313,7 +322,9 @@
     "status": {
       "title": "Checking payment",
       "waiting": "We are asking Stripe whether the payment succeeded. This screen updates on its own.",
-      "hint": "Returning from the payment page is not a confirmation yet."
+      "hint": "Returning from the payment page is not a confirmation yet.",
+      "slow": "This is taking longer than expected. You do not need to do anything: as soon as Stripe confirms the payment, you get an email with your voucher.",
+      "toBookings": "Go to my bookings"
     },
     "favorites": {
       "title": "Favourite businesses",
@@ -498,7 +509,97 @@
       "demo_salon": "This is a demo business.",
       "demo_disabled": "Simulated payments are not allowed here.",
       "upcoming_bookings": "You still have a paid appointment coming up.",
-      "owns_salon": "You still manage a business. Please contact us."
+      "owns_salon": "You still manage a business. Please contact us.",
+      "invalid_transition": "That step is not possible from the business's current status."
+    },
+    "cancelled": {
+      "kicker": "Payment interrupted",
+      "title": "Nothing was charged",
+      "body": "The spot is free again. Still want it? Try again while the slot is available.",
+      "retry": "Try again",
+      "browse": "Browse other slots"
+    },
+    "copyCode": {
+      "copy": "Copy code",
+      "copied": "Copied"
+    },
+    "cancelBooking": {
+      "button": "Cancel",
+      "loading": "Working…",
+      "confirm": "Cancel this booking? You get the full amount back and the slot becomes available again."
+    },
+    "review": {
+      "title": "How was it?",
+      "stars": "{n} out of 5 stars",
+      "commentLabel": "Your experience",
+      "placeholder": "Short and honest (optional)",
+      "pick": "Choose a number of stars first.",
+      "submit": "Post review",
+      "loading": "Working…",
+      "done": "Thank you, your review is online."
+    },
+    "voucher": {
+      "badge": {
+        "paid": "Paid",
+        "checkedIn": "Attended",
+        "pending": "Pending",
+        "expired": "Expired",
+        "cancelled": "Cancelled",
+        "refunded": "Refunded",
+        "noShow": "No-show"
+      },
+      "title": {
+        "paid": "Your appointment is booked",
+        "checkedIn": "Visit confirmed",
+        "pending": "Waiting for the payment confirmation",
+        "expired": "This reservation has expired",
+        "cancelled": "This booking is cancelled",
+        "refunded": "Your refund is on its way",
+        "noShow": "You did not show up"
+      },
+      "lead": {
+        "paid": "Show the code or the QR code at the desk.",
+        "checkedIn": "The business confirmed your visit. Thank you!",
+        "pending": "Coming back from the payment page is not a payment yet. As soon as Stripe confirms, your voucher appears here.",
+        "expired": "The payment was not completed, so nothing was charged. The spot is free again.",
+        "cancelled": "This booking no longer counts.",
+        "refunded": "The booking is cancelled and the full amount goes back to your payment method.",
+        "noShow": "The business noted that you did not come. The amount is not refunded."
+      },
+      "cancelledBy": {
+        "CUSTOMER": "Cancelled by you.",
+        "SALON": "Cancelled by the business.",
+        "ADMIN": "Cancelled by GatVuller.",
+        "SYSTEM": "Cancelled automatically."
+      },
+      "code": "Confirmation code",
+      "total": "Total paid",
+      "saving": "{percent}% below the normal price of {price}",
+      "testPayment": "Test environment: this payment is simulated. Nothing was charged.",
+      "stripeTest": "Stripe test mode: no real money was paid.",
+      "where": "Location and arrival",
+      "arrive": "Arrive within the time slot. If you do not come, the no-show rule applies.",
+      "policyTitle": "Cancelling",
+      "policyCancel": "You can cancel free of charge up to {hours} hours before the start. You get the full amount back.",
+      "policyClosed": "The cancellation window has passed.",
+      "policyNoShow": "If you do not show up, the amount is not refunded.",
+      "emailSent": "A confirmation was sent to {email}.",
+      "loginToManage": "Sign in to cancel, or to leave a review after the visit.",
+      "login": "Sign in",
+      "refundTitle": "Refund",
+      "refundAmount": "{amount} goes back to your payment method.",
+      "refundStatus": {
+        "PENDING": "On its way. This can take a few working days.",
+        "SUCCEEDED": "Completed.",
+        "FAILED": "It failed. Please contact us and quote the code {code}."
+      },
+      "noCharge": "Nothing was charged.",
+      "tryAgain": "Look again",
+      "moreOffers": "More last-minute appointments",
+      "calendar": "Add to calendar",
+      "openMap": "Open in maps",
+      "salonNew": "New",
+      "demoSalon": "Demo business (test data)"
     }
   }
 }

@@ -330,3 +330,24 @@ export function contactEmail(input: { name: string; email: string; topic: string
     text: plainText([...lines, input.message]),
   };
 }
+
+export function salonSuspendedEmail(locale: string, name: string, salonName: string, reason: string, contactUrl: string, refunded: number): Rendered {
+  const t = translator(locale, "emails");
+  return {
+    subject: t("salonSuspended.subject", { salon: salonName }),
+    html: emailLayout({
+      lang: locale,
+      preheader: t("salonSuspended.intro", { salon: salonName }),
+      title: t("salonSuspended.title"),
+      bodyHtml:
+        paragraph(t("greeting", { name: firstName(name) })) +
+        paragraph(t("salonSuspended.intro", { salon: salonName })) +
+        detailsTable([[t("salonSuspended.reason"), reason]]) +
+        (refunded > 0 ? paragraph(t("salonSuspended.refunded", { count: refunded })) : "") +
+        paragraph(t("salonSuspended.next"), true),
+      cta: { label: t("salonSuspended.cta"), href: contactUrl },
+      footer: t("footer"),
+    }),
+    text: plainText([t("salonSuspended.intro", { salon: salonName }), `${t("salonSuspended.reason")}: ${reason}`, refunded > 0 && t("salonSuspended.refunded", { count: refunded }), t("salonSuspended.next"), contactUrl]),
+  };
+}
