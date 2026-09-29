@@ -1,6 +1,8 @@
-# Open punten GatVuller (stand 28-09-2026, 23:50)
+# Open punten GatVuller (bijgewerkt 29-09-2026)
 
-Branch `feat/mvp-afwerking`, PR #4. Gepusht en de CI is groen; niet gemerged naar `main`. Productie draait nog de oude `main`.
+Branch `feat/mvp-afwerking`, PR #4. Niet gemerged naar `main`; productie draait nog de oude versie. De featurebranch is gepusht. Controleer de CI- en Vercel-status van de laatste commit afzonderlijk voordat je een release overweegt.
+
+Laatste controle: zowel preview als productie antwoorden met HTTP 503 op `/api/health`. Daarom is productie nog niet veilig vrij te geven. De lokale TypeScript-, lint- en 52 unit-/integratietests slagen; daarnaast slagen 32 desktop-/mobiele browser-smoketests. Deze rooktests controleren publieke pagina's, taal, SEO-respons en headers, maar bewijzen niet dat de productieboekingsflow werkt. De Next-productiebuild slaagde lokaal; `prisma generate` kon op Windows eenmaal de vergrendelde engine niet vervangen. CI gebruikt een schone Linux-runner.
 
 ## Blokkade productie (gecontroleerd, alleen lezend)
 1. **De database is onbereikbaar.** `DATABASE_URL` in Vercel (production, preview en development, dezelfde waarde) wijst naar Prisma Postgres `db.prisma.io:5432`.
@@ -14,16 +16,11 @@ Zolang punt 1 open is, zou een merge naar `main` niets herstellen. De nieuwe cod
 
 ## Wat Bob moet doen, in deze volgorde
 1. **Database.** Herstel de Prisma Postgres-database, of maak een nieuwe aan (Supabase EU: pooler op poort 6543 met `?pgbouncer=true&connection_limit=1` als `DATABASE_URL`, session/direct op poort 5432 als `DIRECT_URL`). Zet beide in Vercel (production), en een aparte database voor preview.
-2. **Migraties**, vanaf je eigen machine:
-   ```bash
-   vercel env pull .env.production.local --environment=production
-   npx dotenv -e .env.production.local -- npx prisma migrate deploy
-   ```
-   Of via Actions → Database migrations, zodra de workflow op `main` staat. Op een lege database komen dan alle migraties erop. Seed nooit productie; de seed weigert dat ook.
+2. **Migraties.** Controleer eerst een backup en `prisma migrate status` met de productie-`DIRECT_URL`, zonder secrets te tonen. Gebruik daarna de handmatige GitHub Action **Database migrations** (met het juiste production-secret en goedkeuring), of voer `prisma migrate deploy` gecontroleerd uit in een vertrouwde omgeving. Test of de oude productiecode de migraties verdraagt voordat de nieuwe code naar `main` gaat. Seed nooit productie.
 3. **Stripe:** Connect Express aanzetten, de sleutels in Vercel zetten en de webhooks aanmaken volgens `DEPLOY.md`. Zet geen vertraagde betaalmethoden aan (SEPA). Optioneel: `STRIPE_PAYMENT_METHODS=card,bancontact`.
 4. **E-mail:** een Resend-account, het domein verifiëren (SPF/DKIM) en `RESEND_API_KEY` plus `EMAIL_FROM` instellen.
 5. **Domein:** in Vercel toevoegen, daarna `AUTH_URL` en `NEXT_PUBLIC_APP_URL` op het nieuwe domein zetten.
-6. **Vrijgeven:** `CRON_SECRET`, de bedrijfsgegevens (`NEXT_PUBLIC_COMPANY_*`), en daarna PR #4 mergen. Rooktest:
+6. **Vrijgeven:** `CRON_SECRET`, de bedrijfsgegevens (`NEXT_PUBLIC_COMPANY_*`), werkende healthcheck, groene CI en geslaagde kernflows. Volg de releasevolgorde in `DEPLOY.md` en merge daarna pas PR #4. Rooktest:
    - `/api/health` geeft `ok`;
    - een zaak registreert, wordt goedgekeurd en koppelt Stripe;
    - een kleine live betaling, die je daarna terugbetaalt.
@@ -54,10 +51,12 @@ Zolang punt 1 open is, zou een merge naar `main` niets herstellen. De nieuwe cod
   - een verborgen review telt niet meer mee;
   - een bevestiging voor het intrekken van een aanbod;
   - merk-icoon en PWA-manifest.
-- **Controles:** tsc, lint, 12 van 12 vitest-tests en de productiebuild zijn groen. De boekingsflow is echt doorlopen in een headless browser: publiceren, vinden op de kaart, boeken en de QR-bon.
+- **Controles (laatste lokale run):** TypeScript, lint, 52 vitest-tests en 32 publieke desktop-/mobiele browser-smoketests groen. De Next-productiebuild slaagde; een volledige verse Windows-build inclusief `prisma generate` moet nog opnieuw na het vrijmaken van de vergrendelde engine. De eerdere boekingsflow-test is geen vervanging voor een herhaling tegen de uiteindelijke productieconfiguratie.
 - **Lanceervideo:** `brag-output/brag.mp4` met poster en deeltekst. Die map staat niet in git.
 
-## Nog open uit de audit (prioriteit)
+## Historische auditpunten om opnieuw te verifiëren
+
+De lijst hieronder komt uit een eerdere audit en is niet opnieuw punt voor punt gevalideerd na de latere commits. Sommige punten kunnen al opgelost zijn. Controleer de actuele code en voeg gerichte tests toe voordat je ze als open of gesloten markeert.
 1. **Voucherpagina:** toon de juiste weergave per status. Nu staan er code en QR bij onbetaalde of terugbetaalde boekingen, en een afgebroken betaling heeft geen eigen melding.
 2. **Stripe-annulering:** de statuspagina geeft bij `afgebroken=1` de plek nog niet direct vrij. Dat gebeurt nu pas via de webhook of de hold van 37 minuten. De poller moet ook afbouwen en stoppen.
 3. **Mobiele `/slots`:** de filters vullen het hele eerste scherm. Maak ze inklapbaar. Er ontbreekt ook navigatie tussen 768 en 1023 px, en account en dashboard zijn niet bereikbaar op een telefoon.
