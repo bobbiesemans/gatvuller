@@ -4,6 +4,7 @@ import { z, type ZodType } from "zod";
 import type { Role } from "@prisma/client";
 import { getCurrentUser, type CurrentUser } from "./session";
 import { ApiError } from "./errors";
+import { appUrl } from "./config";
 import { log } from "./log";
 
 export { ApiError };
@@ -14,9 +15,32 @@ export function jsonError(status: number, code: string, details?: unknown) {
 
 type Handler<C> = (req: Request, ctx: C) => Promise<Response>;
 
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+/**
+ * CSRF safety net on top of SameSite=Lax cookies: a browser always sends Origin on a cross-site POST,
+ * so a state-changing request that names another site is refused. Requests without Origin (server
+ * calls, curl, tests) carry no cookies from a victim's browser and pass.
+ */
+export function assertSameOrigin(req: Request) {
+  if (SAFE_METHODS.has(req.method)) return;
+  const origin = req.headers.get("origin");
+  if (!origin) return;
+  const allowed = new Set<string>();
+  for (const candidate of [req.url, appUrl()]) {
+    try {
+      allowed.add(new URL(candidate).origin);
+    } catch {
+      /* ignore an unparsable candidate */
+    }
+  }
+  if (!allowed.has(origin)) throw new ApiError(403, "bad_origin");
+}
+
 export function route<C = unknown>(handler: Handler<C>): Handler<C> {
   return async (req, ctx) => {
     try {
+      assertSameOrigin(req);
       return await handler(req, ctx);
     } catch (err) {
       if (err instanceof ApiError) return jsonError(err.status, err.code, err.details);

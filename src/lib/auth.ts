@@ -44,6 +44,9 @@ class RateLimitedSignin extends CredentialsSignin {
   code = "rate_limited";
 }
 
+/** Compared against when no account matches, so a wrong e-mail takes as long as a wrong password. */
+const NO_ACCOUNT_HASH = "$2b$10$Eby4RqNElD.aYTNB5Ksxb.nqAVNvIQPQ.KLk2f1hEcagA4xyGCc3C";
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   useSecureCookies: process.env.NODE_ENV === "production",
@@ -73,14 +76,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await prisma.user.findFirst({
           where: { email: { equals: email, mode: "insensitive" } },
         });
-        if (!user?.passwordHash || user.anonymizedAt) return null;
+        // Always spend the same time on a password check, whether or not the account exists.
+        const usable = Boolean(user?.passwordHash) && !user?.anonymizedAt;
+        const ok = await compare(password, usable ? user!.passwordHash! : NO_ACCOUNT_HASH);
+        if (!user || !usable || !ok) return null;
         // Seed accounts have a published password: only in test mode, and the seed admin never in a production build.
         if (isDemoAccount(user.email) && (!isDemoMode() || (user.role === "ADMIN" && process.env.NODE_ENV === "production"))) {
           return null;
         }
-
-        const ok = await compare(password, user.passwordHash);
-        if (!ok) return null;
 
         return { id: user.id, email: user.email, name: user.name, role: user.role, sv: sessionVersion(user.passwordHash) };
       },
