@@ -49,8 +49,9 @@ test.describe("public pages", () => {
     expect(health.ok()).toBeTruthy();
     expect((await health.json()).ok).toBe(true);
     const robots = await (await request.get("/robots.txt")).text();
-    expect(robots).toMatch(/Disallow: \/dashboard/);
-    expect(robots).toMatch(/Sitemap:/);
+    // The e2e server always runs in explicit demo mode. Demo data must never be indexed.
+    expect(robots).toMatch(/Disallow: \/(?:\s|$)/);
+    expect(robots).not.toMatch(/Sitemap:/);
     const sitemap = await (await request.get("/sitemap.xml")).text();
     expect(sitemap).toContain("/stad/antwerpen");
     expect(sitemap).not.toContain("/impact");
