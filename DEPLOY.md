@@ -5,7 +5,7 @@
 - Migraties draaien apart en gecontroleerd via de GitHub Action **Database migrations** (`.github/workflows/migrate.yml`). Die start je handmatig en ze vraagt goedkeuring via de GitHub-environment `production`.
 - Volgorde bij een release met een nieuwe migratie:
   1. Controleer eerst een databasebackup, de juiste `DIRECT_URL` en `DATABASE_URL`, de migratiegeschiedenis en een groene CI/preview. Controleer dat de bestaande productieversie compatibel blijft met de geplande migraties; behandel dit per migratie, niet als algemene aanname.
-  2. Voer de migraties tegen de bedoelde database gecontroleerd uit via **Actions → Database migrations → production**. De workflow stopt bij een fout in `prisma migrate status`.
+  2. Voer de migraties tegen de bedoelde database gecontroleerd uit via **Actions → Database migrations → production**. De workflow controleert `prisma migrate status` na `migrate deploy` en stopt bij een fout.
   3. Controleer de migratiestatus en de bestaande productie-health. Merge pas daarna de compatibele code naar `main`, en controleer de nieuwe productie-health en kernflows direct na deploy.
   4. Als een migratie niet achterwaarts compatibel is: maak eerst een afzonderlijke compatibiliteitsrelease. Merge de nieuwe code niet vooruitlopend op een ongeteste migratie.
 

@@ -23,13 +23,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Validate database connection and migration history
-        run: npx prisma migrate status
+      - name: Apply
+        run: npx prisma migrate deploy
         env:
           DATABASE_URL: ${{ secrets.DIRECT_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
-      - name: Apply
-        run: npx prisma migrate deploy
+      - name: Verify migration status
+        run: npx prisma migrate status
         env:
           DATABASE_URL: ${{ secrets.DIRECT_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
