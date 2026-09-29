@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
+
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // A second dev server (end-to-end tests) can use its own build folder: NEXT_DIST_DIR=.next-e2e
+  distDir: process.env.NEXT_DIST_DIR || ".next",
+  poweredByHeader: false,
   async headers() {
     return [
       {
@@ -16,10 +22,12 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "img-src 'self' data: blob: https:",
-              "script-src 'self' 'unsafe-inline'",
-              "style-src 'self' 'unsafe-inline' https://unpkg.com",
-              "connect-src 'self' https://*.tile.openstreetmap.org https://nominatim.openstreetmap.org",
+              "img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://*.public.blob.vercel-storage.com",
+              `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
+              "style-src 'self' 'unsafe-inline'",
+              "connect-src 'self'",
+              "object-src 'none'",
+              "upgrade-insecure-requests",
               "font-src 'self' data:",
               "frame-ancestors 'none'",
               "base-uri 'self'",
@@ -33,4 +41,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

@@ -10,7 +10,7 @@ export function ShareButton({ title, url }: { title: string; url?: string }) {
     const href = url || (typeof window !== "undefined" ? window.location.href : "");
     try {
       if (navigator.share) {
-        await navigator.share({ title, url: href, text: `${title} — Surprise slot op GatVuller` });
+        await navigator.share({ title, url: href, text: `${title} — last-minute afspraak op GatVuller` });
         return;
       }
       await navigator.clipboard.writeText(href);

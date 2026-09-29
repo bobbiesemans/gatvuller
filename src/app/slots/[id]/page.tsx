@@ -1,8 +1,10 @@
+import { getLocale } from "next-intl/server";
+import { formatInZone } from "@/lib/time";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { format } from "date-fns";
-import { nlBE } from "date-fns/locale";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/session";
 import { ShareButton } from "@/components/share-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,27 +19,46 @@ import { BookForm } from "./book-form";
 import { TrackOnMount } from "@/components/track-on-mount";
 import { isDemoMode, PLATFORM_FEE_PERCENT } from "@/lib/config";
 import Link from "next/link";
+import { bookingLeadCutoff, isSalonBookable } from "@/lib/marketplace";
 import { Countdown } from "@/components/countdown";
 import { FavoriteButton } from "@/components/favorite-button";
+import { ReportOffer } from "@/components/report-offer";
 import { MiniMap } from "@/components/map/mini-map";
 import { MapPin, Star, Clock } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  return {
+    title: "Afspraak",
+    robots: { index: false, follow: false },
+    alternates: { canonical: `/slots/${id}` },
+  };
+}
+
 export default async function SlotDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const lc = await getLocale();
+  const t = await getTranslations("ui.book");
+  const trust = await getTranslations("ui.common");
   const { id } = await params;
   const slot = await prisma.slot.findUnique({
     where: { id },
     include: { salon: { include: { reviews: { where: { hidden: false }, orderBy: { createdAt: "desc" }, take: 6, include: { customer: { select: { name: true } } } } } } },
   });
   if (!slot) notFound();
-  const session = await auth();
+  const me = await getCurrentUser();
+  const session = me ? { user: me } : null;
+  const favorite = session?.user
+    ? await prisma.favoriteSalon.findUnique({ where: { userId_salonId: { userId: session.user.id, salonId: slot.salonId } } })
+    : null;
   const pct = discountPercent(slot.originalPrice, slot.discountPrice);
   const save = saveAmount(slot.originalPrice, slot.discountPrice);
-  const open = slot.status === "OPEN" && slot.spotsLeft > 0 && slot.startsAt > new Date() && slot.salon.status === "ACTIVE";
+  const open = slot.status === "OPEN" && slot.spotsLeft > 0 && slot.startsAt > bookingLeadCutoff() && isSalonBookable(slot.salon);
+  if (slot.salon.status !== "ACTIVE" || (slot.salon.isDemo && !isDemoMode())) notFound();
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
+    <div className="mx-auto max-w-5xl px-4 py-10 pb-28 md:pb-10">
       <TrackOnMount name="offer_viewed" entityId={slot.id} />
       <div className="grid gap-6 md:grid-cols-5">
         <div className="md:col-span-3 space-y-4">
@@ -45,9 +66,9 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
             <Badge variant="violet">
               {CATEGORY_EMOJI[slot.salon.category]} {CATEGORY_LABELS[slot.salon.category]}
             </Badge>
-            <Badge variant="success">-{pct}% Surprise</Badge>
-            <Badge>Nog {slot.spotsLeft} beschikbaar</Badge>
-            <FavoriteButton slotId={slot.id} />
+            <Badge variant="success">-{pct}%</Badge>
+            <Badge>{t("spots", { count: slot.spotsLeft })}</Badge>
+            <FavoriteButton salonId={slot.salonId} initial={Boolean(favorite)} loggedIn={Boolean(session?.user)} />
             <ShareButton title={slot.title} />
           </div>
           <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
@@ -55,39 +76,39 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
           </h1>
           <p className="text-slate-600 flex flex-wrap items-center gap-x-3 gap-y-1">
             <Link href={`/salon/${slot.salon.slug}`} className="font-semibold text-slate-800 underline underline-offset-2">{slot.salon.name}</Link>
-            <span>{slot.salon.verified ? "Geverifieerd" : "Nog niet geverifieerd"}</span>
+            <span>{slot.salon.isDemo ? trust("demo") : slot.salon.verified ? trust("verified") : trust("unverified")}</span>
             <span className="inline-flex items-center gap-1">
               <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
               {slot.salon.ratingCount > 0 ? slot.salon.ratingAvg.toFixed(1) : "Nieuw"}
             </span>
             <span className="inline-flex items-center gap-1">
-              <MapPin className="h-4 w-4 text-violet-600" />
+              <MapPin className="h-4 w-4 text-[#b4492b]" />
               {slot.salon.address}
             </span>
           </p>
 
           <Card>
             <CardHeader>
-              <CardTitle>Tijdvenster & details</CardTitle>
+              <CardTitle>{t("details")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-slate-600">
               <p className="flex items-center gap-2 text-base text-slate-800 font-medium">
-                <Clock className="h-4 w-4 text-violet-600" />
-                {format(slot.startsAt, "EEEE d MMMM yyyy · HH:mm", { locale: nlBE })} –{" "}
-                {format(slot.endsAt, "HH:mm", { locale: nlBE })}
+                <Clock className="h-4 w-4 text-[#b4492b]" />
+                {formatInZone(slot.startsAt, lc, "full")} –{" "}
+                {formatInZone(slot.endsAt, lc, "time")}
               </p>
               <p>
-                <Countdown to={slot.startsAt} label="Start over" />
+                <Countdown to={slot.startsAt} label={t("startIn")} />
               </p>
               {slot.description && <p>{slot.description}</p>}
               <p className="text-slate-500">{slot.salon.description}</p>
-              <p className="font-semibold text-emerald-800">Je bespaart {formatEuro(save)} tegenover de normale prijs.</p>
-              <p>Annuleren kan tot {slot.salon.cancellationHours} uur voor de start. No-show wordt niet terugbetaald.</p>
+              <p className="font-semibold text-emerald-800">{t("save", { amount: formatEuro(save) })}</p>
+              <p>{t("cancelPolicy", { hours: slot.salon.cancellationHours })}</p>
             </CardContent>
           </Card>
 
           <div>
-            <h2 className="font-bold mb-2">Locatie</h2>
+            <h2 className="mb-2 font-semibold">{t("location")}</h2>
             <MiniMap
               lat={slot.salon.lat}
               lng={slot.salon.lng}
@@ -98,7 +119,7 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
 
           {slot.salon.reviews.length > 0 && (
             <div>
-              <h2 className="font-bold mb-2">Reviews</h2>
+              <h2 className="mb-2 font-semibold">{t("reviews")}</h2>
               <ul className="space-y-2">
                 {slot.salon.reviews.map((review) => (
                   <li key={review.id} className="rounded-2xl border border-slate-200 bg-white p-4 text-sm">
@@ -112,24 +133,25 @@ export default async function SlotDetailPage({ params }: { params: Promise<{ id:
               </ul>
             </div>
           )}
+          <ReportOffer slotId={slot.id} salonId={slot.salonId} />
         </div>
 
         <div className="md:col-span-2">
           <Card className="sticky top-24 overflow-hidden">
-            <div className="bg-gradient-to-br from-violet-600 to-fuchsia-600 px-5 py-4 text-white">
-              <p className="text-sm text-violet-100">Surprise prijs</p>
+            <div className="bg-[#b4492b] px-5 py-4 text-white">
+              <p className="text-sm text-[#f8ebe5]">{t("lastMinute")}</p>
               <div className="flex items-end justify-between gap-3 mt-1">
                 <p className="text-3xl font-extrabold">{formatEuro(slot.discountPrice)}</p>
                 <div className="text-right">
-                  <p className="text-sm line-through text-violet-200">{formatEuro(slot.originalPrice)}</p>
-                  <Badge className="bg-white text-violet-800 border-0">-{pct}%</Badge>
+                  <p className="text-sm line-through text-[#f8ebe5]">{formatEuro(slot.originalPrice)}</p>
+                  <Badge className="bg-white text-[#8f3820] border-0">-{pct}%</Badge>
                 </div>
               </div>
             </div>
             <CardContent className="p-5 space-y-4">
               {!open ? (
                 <p className="rounded-xl bg-slate-100 p-3 text-sm text-slate-600">
-                  Dit slot is niet meer beschikbaar ({slot.status.toLowerCase()}).
+                  {t("unavailable")}
                 </p>
               ) : (
                 <BookForm

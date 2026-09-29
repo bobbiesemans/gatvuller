@@ -1,24 +1,31 @@
+import { formatInZone } from "@/lib/time";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { format } from "date-fns";
-import { nlBE } from "date-fns/locale";
-import { auth } from "@/lib/auth";
+import { getLocale, getTranslations } from "next-intl/server";
+import { getCurrentUser } from "@/lib/session";
+import { appUrl } from "@/lib/config";
 import { prisma } from "@/lib/prisma";
 import { formatEuro, shortCode, discountPercent } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatusPill } from "@/components/ui/status-pill";
 import { BookingQr } from "@/components/booking-qr";
 import { CancelBookingButton } from "@/components/cancel-booking-button";
 import { ReviewForm } from "@/components/review-form";
-import { MapPin, Clock, Ticket } from "lucide-react";
+import { MapPin, Clock } from "lucide-react";
+import { toLocale } from "@/i18n/config";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Mijn boekingen" };
 
-export default async function BoekingenPage() {
-  const session = await auth();
+
+export default async function BoekingenPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const me = await getCurrentUser();
+  const session = me ? { user: me } : null;
   if (!session?.user) redirect("/login?callbackUrl=/boekingen");
+  const t = await getTranslations("ui.bookings");
+  const tab = (await searchParams).tab === "voorbij" ? "past" : "upcoming";
+  const lc = toLocale(await getLocale());
 
   const bookings = await prisma.booking.findMany({
     where: { customerId: session.user.id },
@@ -26,89 +33,73 @@ export default async function BoekingenPage() {
     orderBy: { createdAt: "desc" },
     take: 50,
   });
+  const now = new Date();
+  const upcoming = bookings.filter((b) => b.slot.startsAt > now && (b.status === "PAID" || b.status === "PENDING"));
+  const past = bookings.filter((b) => !upcoming.includes(b));
+  const shown = tab === "past" ? past : upcoming;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-10">
       <div>
-        <Badge variant="violet" className="mb-2">
-          <Ticket className="h-3.5 w-3.5 mr-1" /> Orders
-        </Badge>
-        <h1 className="text-3xl font-extrabold tracking-tight">Mijn boekingen</h1>
-        <p className="text-slate-500 mt-1">
-          Je Surprise-slot bevestigingen — QR, tijdvenster & annuleren (tot 2u voor start).
-        </p>
+        <h1 className="text-3xl text-ink">{t("title")}</h1>
+        <p className="mt-1 text-stone-500">{t("lead")}</p>
+      </div>
+      <div className="flex gap-2" role="tablist">
+        <Button asChild size="sm" variant={tab === "upcoming" ? "default" : "outline"}>
+          <Link href="/boekingen" role="tab" aria-selected={tab === "upcoming"}>{t("upcoming")}</Link>
+        </Button>
+        <Button asChild size="sm" variant={tab === "past" ? "default" : "outline"}>
+          <Link href="/boekingen?tab=voorbij" role="tab" aria-selected={tab === "past"}>{t("past")}</Link>
+        </Button>
       </div>
 
-      {bookings.length === 0 ? (
-        <Card>
-          <CardContent className="p-10 text-center space-y-3">
-            <p className="text-lg font-bold text-slate-900">Nog geen boekingen</p>
-            <p className="text-sm text-slate-500">
-              Reserveer een Surprise slot op de kaart — net als een TGTG magic bag, maar voor afspraken.
-            </p>
-            <Button asChild>
-              <Link href="/slots">Bekijk Surprise slots</Link>
-            </Button>
-          </CardContent>
-        </Card>
+      {shown.length === 0 ? (
+        <EmptyState
+          title={t("emptyTitle")}
+          body={t("emptyBody")}
+          action={<Button asChild><Link href="/slots">{t("cta")}</Link></Button>}
+        />
       ) : (
         <div className="space-y-4">
-          {bookings.map((b) => {
+          {shown.map((b) => {
             const code = shortCode(b.confirmationCode);
             const open = b.status === "PAID" || b.status === "PENDING";
             const canCancel =
-              open && b.slot.startsAt.getTime() - Date.now() > 2 * 60 * 60 * 1000;
+              open && b.slot.startsAt.getTime() - Date.now() > (b.cancellationHours ?? b.slot.salon.cancellationHours) * 60 * 60 * 1000;
+            const known = ["PAID", "PENDING", "CANCELLED", "REFUNDED", "EXPIRED", "NO_SHOW"] as const;
+            const label = (known as readonly string[]).includes(b.status) ? t(b.status as (typeof known)[number]) : b.status;
             return (
               <Card key={b.id} className="overflow-hidden">
-                <div
-                  className={`px-5 py-3 flex flex-wrap items-center justify-between gap-2 text-white ${
-                    b.status === "PAID"
-                      ? "bg-gradient-to-r from-violet-600 to-fuchsia-600"
-                      : b.status === "CANCELLED"
-                        ? "bg-slate-500"
-                        : "bg-amber-500"
-                  }`}
-                >
+                <div className="flex flex-wrap items-center justify-between gap-2 bg-brand px-5 py-3 text-white">
                   <div>
-                    <p className="text-xs opacity-90">Bevestiging</p>
+                    <p className="text-xs opacity-90">{t("confirmation")}</p>
                     <p className="text-xl font-extrabold tracking-[0.15em]">{code}</p>
                   </div>
-                  <Badge className="bg-white/20 text-white border-0">{b.status}</Badge>
+                  <StatusPill status={b.status} label={label} />
                 </div>
-                <CardContent className="p-5 flex flex-col sm:flex-row gap-5">
-                  {(b.status === "PAID" || b.status === "PENDING") && (
-                    <BookingQr value={`GATVULLER:${b.confirmationCode}`} size={120} />
-                  )}
-                  <div className="flex-1 space-y-2 text-sm text-slate-600">
-                    <p className="text-lg font-bold text-slate-900">{b.slot.title}</p>
-                    <p>
-                      {b.slot.salon.name} · ★ {b.slot.salon.ratingCount > 0 ? b.slot.salon.ratingAvg.toFixed(1) : "Nieuw"}
-                    </p>
+                <CardContent className="flex flex-col gap-5 p-5 sm:flex-row">
+                  {open && <BookingQr value={`${appUrl()}/dashboard/boekingen?code=${b.confirmationCode}`} size={120} />}
+                  <div className="flex-1 space-y-2 text-sm text-stone-600">
+                    <p className="text-lg font-bold text-ink">{b.slot.title}</p>
+                    <p>{b.slot.salon.name}</p>
                     <p className="flex items-start gap-2">
-                      <MapPin className="h-4 w-4 mt-0.5 text-violet-600 shrink-0" />
+                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
                       {b.slot.salon.address}
                     </p>
                     <p className="flex items-start gap-2">
-                      <Clock className="h-4 w-4 mt-0.5 text-violet-600 shrink-0" />
-                      {format(b.slot.startsAt, "EEEE d MMMM · HH:mm", { locale: nlBE })} –{" "}
-                      {format(b.slot.endsAt, "HH:mm", { locale: nlBE })}
+                      <Clock className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
+                      {formatInZone(b.slot.startsAt, lc, "dayMonth")} · {formatInZone(b.slot.startsAt, lc, "time")} – {formatInZone(b.slot.endsAt, lc, "time")}
                     </p>
                     <p className="pt-1">
-                      <span className="text-xl font-extrabold text-violet-700">
-                        {formatEuro(b.amount)}
-                      </span>{" "}
-                      <span className="text-xs text-slate-400">
-                        -{discountPercent(b.slot.originalPrice, b.slot.discountPrice)}%
-                      </span>
+                      <span className="text-xl font-extrabold text-brand">{formatEuro(b.amount)}</span>{" "}
+                      <span className="text-xs text-stone-400">-{discountPercent(b.slot.originalPrice, b.slot.discountPrice)}%</span>
                     </p>
                     <div className="flex flex-wrap gap-2 pt-2">
                       <Button asChild size="sm" variant="outline">
-                        <Link href={`/boeking/succes?bookingId=${b.id}`}>Bon bekijken</Link>
+                        <Link href={`/boekingen/${b.id}`}>{t("voucher")}</Link>
                       </Button>
                       {canCancel && <CancelBookingButton bookingId={b.id} />}
-                      {b.status === "PAID" && b.slot.endsAt < new Date() && !b.review && (
-                        <ReviewForm bookingId={b.id} />
-                      )}
+                      {b.status === "PAID" && b.slot.endsAt < now && !b.review && <ReviewForm bookingId={b.id} />}
                     </div>
                   </div>
                 </CardContent>

@@ -8,20 +8,26 @@ export type City = {
   lat: number;
   lng: number;
   zoom: number;
+  /** Salons can register and customers see listings. Other cities show a waiting list. */
+  launched: boolean;
 };
 
 export const CITIES: readonly City[] = [
-  { slug: "antwerpen", name: "Antwerpen", country: "BE", lat: 51.2194, lng: 4.4025, zoom: 13 },
-  { slug: "brussel", name: "Brussel", country: "BE", lat: 50.8467, lng: 4.3525, zoom: 13 },
-  { slug: "gent", name: "Gent", country: "BE", lat: 51.0543, lng: 3.7174, zoom: 13 },
-  { slug: "leuven", name: "Leuven", country: "BE", lat: 50.8798, lng: 4.7005, zoom: 14 },
-  { slug: "brugge", name: "Brugge", country: "BE", lat: 51.2093, lng: 3.2247, zoom: 14 },
-  { slug: "amsterdam", name: "Amsterdam", country: "NL", lat: 52.3676, lng: 4.9041, zoom: 12 },
-  { slug: "rotterdam", name: "Rotterdam", country: "NL", lat: 51.9225, lng: 4.4792, zoom: 13 },
-  { slug: "utrecht", name: "Utrecht", country: "NL", lat: 52.0907, lng: 5.1214, zoom: 13 },
+  { slug: "antwerpen", name: "Antwerpen", country: "BE", lat: 51.2194, lng: 4.4025, zoom: 13, launched: true },
+  { slug: "gent", name: "Gent", country: "BE", lat: 51.0543, lng: 3.7174, zoom: 13, launched: false },
+  { slug: "brussel", name: "Brussel", country: "BE", lat: 50.8467, lng: 4.3525, zoom: 13, launched: false },
+  { slug: "leuven", name: "Leuven", country: "BE", lat: 50.8798, lng: 4.7005, zoom: 14, launched: false },
+  { slug: "mechelen", name: "Mechelen", country: "BE", lat: 51.0259, lng: 4.4776, zoom: 14, launched: false },
+  { slug: "amsterdam", name: "Amsterdam", country: "NL", lat: 52.3676, lng: 4.9041, zoom: 12, launched: false },
+  { slug: "rotterdam", name: "Rotterdam", country: "NL", lat: 51.9225, lng: 4.4792, zoom: 13, launched: false },
+  { slug: "utrecht", name: "Utrecht", country: "NL", lat: 52.0907, lng: 5.1214, zoom: 13, launched: false },
 ];
 
-export const DEFAULT_CENTER = { lat: 51.05, lng: 4.4, zoom: 8 };
+export const LAUNCH_CITY = CITIES[0];
+
+export const DEFAULT_CENTER = { lat: LAUNCH_CITY.lat, lng: LAUNCH_CITY.lng, zoom: LAUNCH_CITY.zoom };
+
+export const LAUNCHED_CITIES = CITIES.filter((c) => c.launched);
 
 export function cityBySlug(slug?: string | null) {
   if (!slug) return undefined;
@@ -36,23 +42,27 @@ export function cityByName(name?: string | null) {
 
 export type CategoryMeta = {
   key: Category;
+  /** Public URL segment. */
   slug: string;
-  emoji: string;
-  /** Tailwind gradient stops for cards and covers. */
-  gradient: string;
-  color: string;
+  /** Older URL segments that redirect to `slug`. */
+  aliases: string[];
+  /** Offered at registration and in the public filters. */
+  launched: boolean;
 };
 
+/** Beauty and personal care first. The rest stays in the enum for expansion and legacy rows. */
 export const CATEGORIES: readonly CategoryMeta[] = [
-  { key: "KAPPER", slug: "kapper", emoji: "✂️", gradient: "from-violet-600 via-fuchsia-500 to-pink-400", color: "#7c3aed" },
-  { key: "SCHOONHEID", slug: "schoonheid", emoji: "✨", gradient: "from-pink-500 via-rose-400 to-amber-300", color: "#db2777" },
-  { key: "NAGELS", slug: "nagels", emoji: "💅", gradient: "from-rose-500 via-pink-500 to-fuchsia-400", color: "#e11d48" },
-  { key: "MASSAGE", slug: "massage", emoji: "🧘", gradient: "from-teal-500 via-emerald-400 to-lime-300", color: "#0d9488" },
-  { key: "FYSIO", slug: "fysio", emoji: "💪", gradient: "from-sky-500 via-cyan-400 to-emerald-300", color: "#0284c7" },
-  { key: "TANDARTS", slug: "tandarts", emoji: "🦷", gradient: "from-blue-600 via-sky-500 to-cyan-300", color: "#2563eb" },
-  { key: "AUTODIENST", slug: "autodienst", emoji: "🔧", gradient: "from-slate-700 via-slate-500 to-amber-400", color: "#475569" },
-  { key: "ANDERS", slug: "anders", emoji: "⭐", gradient: "from-amber-500 via-orange-400 to-rose-400", color: "#d97706" },
+  { key: "KAPPER", slug: "kapper", aliases: [], launched: true },
+  { key: "SCHOONHEID", slug: "schoonheidssalon", aliases: ["schoonheid"], launched: true },
+  { key: "NAGELS", slug: "nagelstudio", aliases: ["nagels"], launched: true },
+  { key: "MASSAGE", slug: "massage", aliases: [], launched: true },
+  { key: "FYSIO", slug: "fysiotherapie", aliases: ["fysio"], launched: false },
+  { key: "TANDARTS", slug: "tandarts", aliases: [], launched: false },
+  { key: "AUTODIENST", slug: "autodienst", aliases: [], launched: false },
+  { key: "ANDERS", slug: "anders", aliases: [], launched: false },
 ];
+
+export const LAUNCHED_CATEGORIES = CATEGORIES.filter((c) => c.launched);
 
 export const CATEGORY_KEYS = CATEGORIES.map((c) => c.key) as Category[];
 
@@ -63,9 +73,13 @@ export function categoryMeta(key?: string | null): CategoryMeta {
 export function categoryBySlug(slug?: string | null) {
   if (!slug) return undefined;
   const s = slug.toLowerCase();
-  return CATEGORIES.find((c) => c.slug === s || c.key.toLowerCase() === s);
+  return CATEGORIES.find((c) => c.slug === s || c.aliases.includes(s) || c.key.toLowerCase() === s);
 }
 
 export function isCategory(value: unknown): value is Category {
   return typeof value === "string" && (CATEGORY_KEYS as string[]).includes(value);
+}
+
+export function isLaunchedCategory(value: unknown): value is Category {
+  return typeof value === "string" && LAUNCHED_CATEGORIES.some((c) => c.key === value);
 }

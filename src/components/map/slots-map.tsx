@@ -1,12 +1,12 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocale } from "next-intl";
+import { formatInZone } from "@/lib/time";
+import { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import Link from "next/link";
 import { formatEuro, discountPercent, CATEGORY_EMOJI, formatDistance, CITY_CENTERS } from "@/lib/utils";
-import { format } from "date-fns";
-import { nlBE } from "date-fns/locale";
 export type MapSlot = {
   id: string;
   title: string;
@@ -16,6 +16,7 @@ export type MapSlot = {
   discountPrice: number;
   spotsLeft: number;
   salon: {
+    id?: string;
     name: string;
     city: string;
     category: string;
@@ -40,7 +41,7 @@ function clusterIcon(count: number) {
     className: "",
     iconSize: [40, 40],
     iconAnchor: [20, 20],
-    html: `<div style="width:40px;height:40px;border-radius:999px;background:#5b21b6;color:white;display:flex;align-items:center;justify-content:center;font-weight:800;border:3px solid white;box-shadow:0 8px 20px rgba(0,0,0,.25)">${count}</div>`,
+    html: `<div style="width:40px;height:40px;border-radius:999px;background:#b4492b;color:white;display:flex;align-items:center;justify-content:center;font-weight:800;border:3px solid white;box-shadow:0 8px 20px rgba(0,0,0,.25)">${count}</div>`,
   });
 }
 function FitBounds({ points, user }: { points: { lat: number; lng: number }[]; user?: { lat: number; lng: number } | null }) {
@@ -103,6 +104,7 @@ function clusterSlots(slots: MapSlot[], zoom: number) {
   return out;
 }
 function Markers({ slots, selectedId, onSelect }: { slots: MapSlot[]; selectedId?: string | null; onSelect?: (id: string) => void }) {
+  const lc = useLocale();
   const map = useMap();
   const zoom = useMapZoom();
   const items = useMemo(() => clusterSlots(slots, zoom), [slots, zoom]);
@@ -129,15 +131,15 @@ function Markers({ slots, selectedId, onSelect }: { slots: MapSlot[]; selectedId
                   {CATEGORY_EMOJI[s.salon.category]} {s.title}
                 </p>
                 <p style={{ color: "#64748b", margin: "2px 0 6px" }}>{s.salon.name}</p>
-                <p style={{ fontWeight: 800, color: "#6d28d9", margin: 0 }}>
+                <p style={{ fontWeight: 800, color: "#b4492b", margin: 0 }}>
                   {formatEuro(s.discountPrice)}{" "}
                   <span style={{ fontWeight: 400, color: "#94a3b8", textDecoration: "line-through", fontSize: 12 }}>{formatEuro(s.originalPrice)}</span>
                 </p>
                 <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
-                  {format(new Date(s.startsAt), "EEE HH:mm", { locale: nlBE })}
+                  {formatInZone(s.startsAt, lc, "dayTime")}
                   {s.distanceKm != null ? ` · ${formatDistance(s.distanceKm)}` : ""}
                 </p>
-                <Link href={`/slots/${s.id}`} style={{ display: "inline-block", marginTop: 8, background: "#6d28d9", color: "white", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
+                <Link href={`/slots/${s.id}`} style={{ display: "inline-block", marginTop: 8, background: "#b4492b", color: "white", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
                   Bekijk slot →
                 </Link>
               </div>
@@ -171,20 +173,10 @@ export function SlotsMap({
       ? { lat: slots[0].salon.lat, lng: slots[0].salon.lng }
       : userLocation || cityCenter || { lat: 51.2, lng: 4.4 };
   const points = slots.map((s) => ({ lat: s.salon.lat, lng: s.salon.lng }));
-  const fixed = useRef(false);
-  if (!fixed.current && typeof window !== "undefined") {
-    delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-      shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-    });
-    fixed.current = true;
-  }
   return (
     <div className={className || "h-full w-full min-h-[320px] rounded-2xl overflow-hidden border border-slate-200"}>
       <MapContainer center={[center.lat, center.lng]} zoom={12} className="h-full w-full z-0" scrollWheelZoom>
-        <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <FitBounds points={points} user={userLocation} />
         <FlyToSelected slot={selected} />
         {userLocation && (

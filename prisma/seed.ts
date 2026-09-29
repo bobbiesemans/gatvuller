@@ -314,6 +314,12 @@ const salonsSeed: {
 ];
 
 async function main() {
+  // The seed wipes tables. It only ever runs against a local database.
+  const url = process.env.DATABASE_URL || "";
+  if (process.env.NODE_ENV === "production" || process.env.VERCEL || !/@(127\.0\.0\.1|localhost)[:/]/.test(url)) {
+    throw new Error("Seed refused: only for a local development database.");
+  }
+  await prisma.review.deleteMany();
   await prisma.booking.deleteMany();
   await prisma.slot.deleteMany();
   await prisma.salon.deleteMany();
@@ -374,9 +380,9 @@ async function main() {
         category: s.category,
         description: s.description,
         address: s.address,
-        ratingAvg: s.rating,
-        ratingCount: 8,
-        verified: true,
+        status: "ACTIVE",
+        isDemo: true,
+        verified: false,
         country: s.city === "Amsterdam" ? "NL" : "BE",
         lat: s.lat,
         lng: s.lng,
@@ -447,13 +453,10 @@ async function main() {
         salonId: first.id,
         customerId: customer.id,
         rating: 5,
-        comment: "Snel binnen en een nette knip. Zo werkt een Surprise slot.",
+        comment: "Demobeoordeling bij een demoboeking.",
       },
     });
-    await prisma.salon.update({
-      where: { id: first.id },
-      data: { ratingAvg: 4.9, ratingCount: 9 },
-    });
+    await prisma.salon.update({ where: { id: first.id }, data: { ratingAvg: 5, ratingCount: 1 } });
   }
 
   console.log({

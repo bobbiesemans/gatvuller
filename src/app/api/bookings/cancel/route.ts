@@ -1,19 +1,16 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { route, requireUser, parseBody } from "@/lib/api";
+import { route, requireUser, parseBody, clientIp } from "@/lib/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { cancelBooking } from "@/lib/bookings";
 
-const schema = z.object({ bookingId: z.string().min(1) });
+const schema = z.object({ bookingId: z.string().min(1).max(40) });
 
 export const POST = route(async (req) => {
   const user = await requireUser();
+  await enforceRateLimit(`cancel:${user.id}`, 20, 60 * 60);
   const body = await parseBody(req, schema);
-  const reason = user.role === "ADMIN" ? "ADMIN" : user.role === "SALON_OWNER" ? "SALON" : "CUSTOMER";
-  const result = await cancelBooking({
-    bookingId: body.bookingId,
-    actorId: user.id,
-    actorRole: user.role,
-    reason,
-  });
-  return NextResponse.json({ ok: true, refundAmount: result.refundAmount });
+  const result = await cancelBooking(body.bookingId, user);
+  void clientIp;
+  return NextResponse.json({ ok: true, ...result });
 });

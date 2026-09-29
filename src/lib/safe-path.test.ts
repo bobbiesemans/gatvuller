@@ -11,5 +11,9 @@ describe("safeCallbackPath", () => {
     expect(safeCallbackPath("//evil.example")).toBe("/");
     expect(safeCallbackPath("/\\evil.example")).toBe("/");
     expect(safeCallbackPath(null)).toBe("/");
+    expect(safeCallbackPath("/\t/evil.example")).toBe("/");
+    expect(safeCallbackPath("/\n/evil.example")).toBe("/");
+    expect(safeCallbackPath(" //evil.example")).toBe("/");
+    expect(safeCallbackPath("/%2F%2Fevil.example")).toBe("/%2F%2Fevil.example");
   });
 });

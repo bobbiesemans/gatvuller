@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { route, requireUser, parseBody } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/errors";
@@ -22,6 +23,7 @@ async function ownedSalon(userId: string, role: string, salonId: string) {
 
 export const PUT = route(async (req) => {
   const user = await requireUser(["SALON_OWNER", "ADMIN"]);
+  await enforceRateLimit(`salon-hours:${user.id}`, 60, 60 * 60);
   const body = await parseBody(req, schema);
   await ownedSalon(user.id, user.role, body.salonId);
   await prisma.$transaction(

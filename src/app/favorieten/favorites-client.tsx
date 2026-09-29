@@ -73,7 +73,7 @@ export function FavoritesClient() {
       <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center">
         <Heart className="mx-auto h-10 w-10 text-slate-300" />
         <p className="mt-4 text-lg font-semibold text-slate-800">Nog geen favorieten</p>
-        <p className="mt-2 text-slate-500">Tik op het hartje op een Surprise card om hem hier te bewaren.</p>
+        <p className="mt-2 text-slate-500">Tik op het hartje op een card om hem hier te bewaren.</p>
         <Button asChild className="mt-6">
           <Link href="/slots">Ontdek slots op de kaart</Link>
         </Button>
@@ -91,7 +91,7 @@ export function FavoritesClient() {
         Opgeslagen slots zijn niet meer beschikbaar (al geboekt of verlopen).
         <div className="mt-4">
           <Button asChild variant="secondary">
-            <Link href="/slots">Nieuwe Surprise slots</Link>
+            <Link href="/slots">Nieuwe last-minute afspraken</Link>
           </Button>
         </div>
       </div>

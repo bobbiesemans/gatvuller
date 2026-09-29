@@ -1,17 +1,19 @@
+import { visibleSalonWhere } from "@/lib/marketplace";
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
-import { CITIES, CATEGORIES } from "@/lib/catalog";
+import { CITIES, CATEGORIES, LAUNCHED_CATEGORIES, LAUNCHED_CITIES } from "@/lib/catalog";
 import { appUrl } from "@/lib/config";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = appUrl();
-  const staticPaths = ["", "/slots", "/voorwaarden", "/privacy", "/contact", "/register", "/login"];
+  const staticPaths = ["", "/slots", "/voorwaarden", "/privacy", "/contact", "/voor-zaken", "/register", "/login"];
   const cities = CITIES.map((city) => `/stad/${city.slug}`);
   const categories = CATEGORIES.map((category) => `/categorie/${category.slug}`);
+  const cityCategories = LAUNCHED_CITIES.flatMap((city) => LAUNCHED_CATEGORIES.map((category) => `/stad/${city.slug}/${category.slug}`));
   let salons: { slug: string; updatedAt: Date }[] = [];
   try {
     salons = await prisma.salon.findMany({
-      where: { status: "ACTIVE" },
+      where: visibleSalonWhere(),
       select: { slug: true, updatedAt: true },
     });
   } catch {
@@ -19,7 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   return [
-    ...[...staticPaths, ...cities, ...categories].map((path) => ({
+    ...[...staticPaths, ...cities, ...categories, ...cityCategories].map((path) => ({
       url: `${base}${path}`,
       lastModified: new Date(),
       changeFrequency: path === "/slots" ? "hourly" as const : "weekly" as const,

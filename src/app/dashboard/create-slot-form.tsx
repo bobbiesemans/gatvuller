@@ -1,5 +1,7 @@
 "use client";
 
+import { useErrorText } from "@/lib/i18n/use-error-text";
+
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -7,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { discountPercent, formatEuro } from "@/lib/utils";
 import { toBrusselsLocalInput } from "@/lib/time";
-import { track } from "@/lib/track";
 
 function addHours(h: number, durMin = 45) {
   const start = new Date();
@@ -48,6 +49,7 @@ export function CreateSlotForm({
   salons: { id: string; name: string }[];
   templates: SlotTemplate[];
 }) {
+  const errorText = useErrorText();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,13 +97,12 @@ export function CreateSlotForm({
         capacity,
       }),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Mislukt");
+      setError(errorText(data.error));
       return;
     }
-    track("slot_published", data.slot?.id);
     setOk(true);
     setTitle("");
     router.refresh();

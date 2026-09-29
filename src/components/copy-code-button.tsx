@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Check, Copy } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
 
 export function CopyCodeButton({ code }: { code: string }) {
+  const t = useTranslations("ui.copyCode");
   const [ok, setOk] = useState(false);
   return (
     <Button
@@ -18,12 +20,12 @@ export function CopyCodeButton({ code }: { code: string }) {
           setOk(true);
           setTimeout(() => setOk(false), 2000);
         } catch {
-          /* ignore */
+          /* clipboard not available: the code is on screen anyway */
         }
       }}
     >
-      {ok ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-      {ok ? "Gekopieerd" : "Kopieer code"}
+      {ok ? <Check aria-hidden="true" className="h-4 w-4" /> : <Copy aria-hidden="true" className="h-4 w-4" />}
+      <span aria-live="polite">{ok ? t("copied") : t("copy")}</span>
     </Button>
   );
 }

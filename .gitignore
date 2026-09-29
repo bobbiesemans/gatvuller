@@ -38,3 +38,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local database and tooling (never committed)
+/.devdb
+/test-results
+/playwright-report
+/.claude
+
+# launch video output (/brag)
+/brag-output*
+/.next-*/

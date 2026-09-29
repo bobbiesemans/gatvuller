@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function CheckInForm() {
+/** `initialCode` comes from a scanned voucher QR; the owner still confirms with one tap. */
+export function CheckInForm({ initialCode = "" }: { initialCode?: string }) {
   const router = useRouter();
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(initialCode);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -34,7 +35,7 @@ export function CheckInForm() {
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-wrap gap-2 rounded-2xl border border-violet-100 bg-violet-50 p-4">
+    <form onSubmit={submit} className="flex flex-wrap gap-2 rounded-2xl border border-[#f8ebe5] bg-[#f8ebe5] p-4">
       <Input
         value={code}
         onChange={(e) => setCode(e.target.value.toUpperCase())}

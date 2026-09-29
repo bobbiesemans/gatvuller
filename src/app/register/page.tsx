@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CATEGORY_LABELS } from "@/lib/utils";
 import { CITIES } from "@/lib/catalog";
-import { track } from "@/lib/track";
 
 export default function RegisterPage() {
   return (
@@ -41,7 +40,7 @@ function RegisterForm() {
     const res = await fetch("/api/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     const data = await res.json();
     if (!res.ok) { setError(data.error || "Registratie mislukt"); setLoading(false); return; }
-    if (role === "SALON_OWNER") track("salon_registered");
+
     await signIn("credentials", { email: payload.email as string, password: payload.password as string, redirect: false });
     router.push(role === "SALON_OWNER" ? "/dashboard" : "/slots");
     router.refresh();
@@ -85,7 +84,7 @@ function RegisterForm() {
             {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>{loading ? "Bezig…" : "Account aanmaken"}</Button>
           </form>
-          <p className="mt-4 text-center text-sm text-slate-500">Al een account? <Link href="/login" className="font-semibold text-violet-700">Inloggen</Link></p>
+          <p className="mt-4 text-center text-sm text-slate-500">Al een account? <Link href="/login" className="font-semibold text-[#b4492b]">Inloggen</Link></p>
         </CardContent>
       </Card>
     </div>

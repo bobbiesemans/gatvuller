@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { COMPANY } from "@/lib/config";
+import { COMPANY, isDemoMode } from "@/lib/config";
+import { log } from "@/lib/log";
 
 export type OutgoingEmail = {
   to: string;
@@ -7,6 +8,7 @@ export type OutgoingEmail = {
   html: string;
   text: string;
   template: string;
+  replyTo?: string;
 };
 
 export function emailProviderConfigured() {
@@ -14,27 +16,46 @@ export function emailProviderConfigured() {
 }
 
 /**
- * Sends through Resend when configured; otherwise stores the rendered mail in the outbox
- * (EmailLog, visible in /admin/emails) so flows stay testable without a provider.
- * Never throws: a mail failure must not roll back a booking.
+ * Sends through Resend when configured.
+ * Without a provider in test mode the rendered mail goes to the outbox (EmailLog, visible to admins).
+ * Without a provider in production nothing is sent, the failure is logged and shown in the admin
+ * health check, and the HTML (which can hold voucher links) is not stored.
+ * Never throws: a mail failure must not undo a booking.
  */
 export async function sendEmail(mail: OutgoingEmail) {
   const key = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM || `${COMPANY.brand} <noreply@gatvuller.be>`;
 
   if (!key) {
+    const demo = isDemoMode();
     await prisma.emailLog
-      .create({ data: { to: mail.to, subject: mail.subject, template: mail.template, status: "LOGGED", html: mail.html } })
+      .create({
+        data: {
+          to: mail.to,
+          subject: mail.subject,
+          template: mail.template,
+          status: demo ? "LOGGED" : "FAILED",
+          error: demo ? null : "no_provider",
+          html: demo ? mail.html : null,
+        },
+      })
       .catch(() => undefined);
-    if (process.env.NODE_ENV === "development") console.info(`[email:outbox] ${mail.template} → ${mail.to}: ${mail.subject}`);
-    return { ok: true as const, logged: true };
+    if (!demo) log.error("email.no_provider", { template: mail.template });
+    return { ok: demo, logged: true };
   }
 
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to: [mail.to], subject: mail.subject, html: mail.html, text: mail.text, reply_to: COMPANY.email }),
+      body: JSON.stringify({
+        from,
+        to: [mail.to],
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+        reply_to: mail.replyTo || COMPANY.email,
+      }),
       signal: AbortSignal.timeout(8000),
     });
     const data = (await res.json().catch(() => ({}))) as { id?: string; message?: string };
@@ -42,13 +63,20 @@ export async function sendEmail(mail: OutgoingEmail) {
     await prisma.emailLog
       .create({ data: { to: mail.to, subject: mail.subject, template: mail.template, status: "SENT", providerId: data.id ?? null } })
       .catch(() => undefined);
-    return { ok: true as const, logged: false };
-  } catch (err) {
-    const error = err instanceof Error ? err.message : String(err);
-    console.error(`[email] ${mail.template} → ${mail.to} failed: ${error}`);
+    return { ok: true, logged: false };
+  } catch (error) {
+    log.error("email.send_failed", { template: mail.template, error });
     await prisma.emailLog
-      .create({ data: { to: mail.to, subject: mail.subject, template: mail.template, status: "FAILED", error: error.slice(0, 500) } })
+      .create({
+        data: {
+          to: mail.to,
+          subject: mail.subject,
+          template: mail.template,
+          status: "FAILED",
+          error: (error instanceof Error ? error.message : String(error)).slice(0, 300),
+        },
+      })
       .catch(() => undefined);
-    return { ok: false as const, logged: false };
+    return { ok: false, logged: false };
   }
 }

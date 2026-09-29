@@ -1,8 +1,8 @@
 "use client";
+import { useLocale } from "next-intl";
+import { formatInZone } from "@/lib/time";
 
 import Link from "next/link";
-import { format } from "date-fns";
-import { nlBE } from "date-fns/locale";
 import { discountPercent, formatDistance, formatEuro, CATEGORY_EMOJI } from "@/lib/utils";
 import type { MapSlot } from "@/components/map/slots-map-dynamic";
 import { X } from "lucide-react";
@@ -14,12 +14,13 @@ export function FloatingSlotCard({
   slot: MapSlot & { distanceKm?: number | null };
   onClose: () => void;
 }) {
+  const lc = useLocale();
   const pct = discountPercent(slot.originalPrice, slot.discountPrice);
   const dist = formatDistance(slot.distanceKm ?? null);
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
       <div className="flex items-start gap-3 p-3.5">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-500 text-xl text-white shadow">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#b4492b] to-[#b4492b] text-xl text-white shadow">
           {CATEGORY_EMOJI[slot.salon.category] || "⭐"}
         </div>
         <div className="min-w-0 flex-1">
@@ -42,7 +43,7 @@ export function FloatingSlotCard({
           </div>
           <div className="mt-2 flex items-end justify-between gap-2">
             <div>
-              <p className="text-lg font-extrabold text-violet-700 leading-none">
+              <p className="text-lg font-extrabold text-[#b4492b] leading-none">
                 {formatEuro(slot.discountPrice)}
               </p>
               <p className="text-[11px] text-slate-400 line-through">{formatEuro(slot.originalPrice)}</p>
@@ -52,14 +53,14 @@ export function FloatingSlotCard({
             </span>
           </div>
           <p className="mt-1.5 text-[11px] text-slate-500">
-            {format(new Date(slot.startsAt), "EEE d MMM · HH:mm", { locale: nlBE })}–
-            {format(new Date(slot.endsAt), "HH:mm", { locale: nlBE })}
+            {formatInZone(slot.startsAt, lc, "dayTime")}–
+            {formatInZone(slot.endsAt, lc, "time")}
           </p>
           <Link
             href={`/slots/${slot.id}`}
-            className="mt-3 flex w-full items-center justify-center rounded-xl bg-violet-600 px-3 py-2.5 text-sm font-bold text-white hover:bg-violet-700"
+            className="mt-3 flex w-full items-center justify-center rounded-xl bg-[#b4492b] px-3 py-2.5 text-sm font-bold text-white hover:bg-[#b4492b]"
           >
-            Reserveer Surprise slot
+            Reserveer last-minute afspraak
           </Link>
         </div>
       </div>

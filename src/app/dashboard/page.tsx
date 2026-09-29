@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { nlBE } from "date-fns/locale";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { formatEuro } from "@/lib/utils";
 import { isDemoMode, PLATFORM_FEE_PERCENT } from "@/lib/config";
@@ -12,6 +12,7 @@ import { CreateSlotForm } from "./create-slot-form";
 import { HoursForm } from "./hours-form";
 import { CancellationForm, PayoutButton, TemplateForm } from "./salon-tools";
 import { SlotActions } from "./slot-actions";
+import { LocationForm, PhotoForm, ProfileForm, TemplateEdit } from "./manage-forms";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Zaakbeheer" };
@@ -25,7 +26,8 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default async function DashboardPage() {
-  const session = await auth();
+  const me = await getCurrentUser();
+  const session = me ? { user: me } : null;
   if (!session?.user) redirect("/login?callbackUrl=/dashboard");
   if (session.user.role !== "SALON_OWNER" && session.user.role !== "ADMIN") redirect("/");
 
@@ -33,6 +35,7 @@ export default async function DashboardPage() {
     where: session.user.role === "ADMIN" ? {} : { ownerId: session.user.id },
     include: {
       hours: true,
+      photos: { orderBy: { sortOrder: "asc" }, take: 8 },
       templates: { where: { active: true }, orderBy: { createdAt: "desc" } },
       slots: {
         include: {
@@ -64,10 +67,17 @@ export default async function DashboardPage() {
     }
   }
 
-  const paid = salons.flatMap((s) => s.slots.flatMap((slot) => slot.bookings.filter((b) => b.status === "PAID").map((b) => ({ ...b, slot }))));
-  const revenue = paid.reduce((sum, b) => sum + b.amount, 0);
-  const fees = paid.reduce((sum, b) => sum + b.feeAmount, 0);
-  const savedMinutes = paid.reduce((sum, b) => sum + Math.max(0, (b.slot.endsAt.getTime() - b.slot.startsAt.getTime()) / 60000), 0);
+  const kpiRows = salons.length === 0 ? [] : await prisma.booking.findMany({
+    where: { status: "PAID", slot: { salonId: { in: salons.map((salon) => salon.id) } } },
+    select: { amount: true, feeAmount: true, paymentMode: true, slot: { select: { startsAt: true, endsAt: true } } },
+  });
+  const summarize = (rows: typeof kpiRows) => ({
+    revenue: rows.reduce((sum, row) => sum + row.amount, 0),
+    net: rows.reduce((sum, row) => sum + Math.max(0, row.amount - row.feeAmount), 0),
+    hours: rows.reduce((sum, row) => sum + Math.max(0, (row.slot.endsAt.getTime() - row.slot.startsAt.getTime()) / 3_600_000), 0),
+  });
+  const liveKpi = summarize(kpiRows.filter((row) => row.paymentMode === "LIVE"));
+  const testKpi = summarize(kpiRows.filter((row) => row.paymentMode !== "LIVE"));
   const upcoming = salons.flatMap((s) => s.slots.filter((slot) => slot.startsAt > new Date() && slot.status !== "CANCELLED"));
   const capacitySpots = upcoming.reduce((sum, slot) => sum + slot.capacity, 0);
   const takenSpots = upcoming.reduce((sum, slot) => sum + Math.max(0, slot.capacity - slot.spotsLeft), 0);
@@ -91,23 +101,31 @@ export default async function DashboardPage() {
         </p>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          ["Extra omzet", formatEuro(revenue)],
-          ["Na platformkosten", formatEuro(Math.max(0, revenue - fees))],
-          ["Geredde uren", `${(savedMinutes / 60).toFixed(1)} u`],
-          ["Bezetting komende slots", `${occupancy}%`],
-        ].map(([label, value]) => (
-          <Card key={label}>
-            <CardContent className="p-5">
-              <p className="text-sm text-stone-500">{label}</p>
-              <p className="mt-1 text-2xl font-extrabold text-stone-950">{value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {(["LIVE", "TEST"] as const).map((mode) => {
+        const kpi = mode === "LIVE" ? liveKpi : testKpi;
+        return (
+          <section key={mode} className="space-y-3">
+            <h2 className="text-lg text-ink">{mode === "LIVE" ? "Live betalingen" : "Test en demo"}</h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                ["Extra omzet", formatEuro(kpi.revenue)],
+                ["Netto na commissie", formatEuro(kpi.net)],
+                ["Geredde uren", `${kpi.hours.toFixed(1)} u`],
+                ["Bezetting", `${occupancy}%`],
+              ].map(([label, value]) => (
+                <Card key={`${mode}-${label}`}>
+                  <CardContent className="p-5">
+                    <p className="text-sm text-stone-500">{label}</p>
+                    <p className="mt-1 font-display text-2xl text-ink">{value}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        );
+      })}
       <p className="text-sm text-stone-500">
-        Platformkosten zijn {PLATFORM_FEE_PERCENT}% van de last-minute prijs, berekend op de server. De klant betaalt geen extra fee.
+        Platformkosten zijn {PLATFORM_FEE_PERCENT}% van de last-minute prijs, inclusief de Stripe-kosten die GatVuller draagt. De klant betaalt geen extra fee.
       </p>
 
       {salons.length === 0 ? (
@@ -144,6 +162,37 @@ export default async function DashboardPage() {
               </div>
 
               <Card>
+                <CardHeader><CardTitle>Zaakprofiel</CardTitle></CardHeader>
+                <CardContent>
+                  <ProfileForm salon={salon} />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader><CardTitle>Foto’s</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  {salon.photos.length > 0 && (
+                    <ul className="flex flex-wrap gap-2">
+                      {salon.photos.map((photo) => (
+                        <li key={photo.id}>
+                          <div role="img" aria-label={photo.alt || salon.name} className="h-16 w-16 rounded-lg bg-cover bg-center" style={{ backgroundImage: `url(${photo.url})` }} />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <PhotoForm salonId={salon.id} enabled={Boolean(process.env.BLOB_READ_WRITE_TOKEN)} />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader><CardTitle>Extra locatie</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-stone-600">Een tweede adres wordt een aparte zaak en wacht op goedkeuring.</p>
+                  <LocationForm />
+                </CardContent>
+              </Card>
+
+              <Card>
                 <CardHeader><CardTitle>Uitbetalingen</CardTitle></CardHeader>
                 <CardContent className="space-y-3 text-sm text-stone-700">
                   <p>
@@ -170,8 +219,11 @@ export default async function DashboardPage() {
                 <CardContent className="space-y-4">
                   <ul className="text-sm text-stone-700">
                     {salon.templates.length === 0 && <li>Nog geen sjablonen.</li>}
-                    {salon.templates.map((t) => (
-                      <li key={t.id}>{t.title} · {t.durationMin} min · {formatEuro(t.discountPrice)}</li>
+                    {salon.templates.map((template) => (
+                      <li key={template.id} className="border-b border-stone-100 py-2 last:border-0">
+                        <p>{template.title} · {template.durationMin} min · {formatEuro(template.discountPrice)}</p>
+                        <TemplateEdit template={template} />
+                      </li>
                     ))}
                   </ul>
                   <TemplateForm salonId={salon.id} />

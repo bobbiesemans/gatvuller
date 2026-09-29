@@ -1,7 +1,7 @@
 import type { Category } from "@prisma/client";
 import { prisma } from "./prisma";
 import { appUrl } from "./config";
-import { localePath } from "@/i18n/config";
+import { localizedPath } from "@/i18n/config";
 import { sendEmail } from "./email/send";
 import { slotAlertEmail } from "./email/templates";
 
@@ -13,9 +13,12 @@ export async function notifySlotAlerts(slotId: string) {
   const alerts = await prisma.slotAlert.findMany({
     where: {
       active: true,
+      confirmedAt: { not: null },
+      // At most one mail per alert every three hours.
+      OR: [{ lastSentAt: null }, { lastSentAt: { lt: new Date(Date.now() - 3 * 3_600_000) } }],
       AND: [
-        { OR: [{ city: null }, { city: slot.salon.city }] },
-        { OR: [{ category: null }, { category: slot.salon.category as Category }] },
+        { OR: [{ salonId: slot.salon.id }, { salonId: null, OR: [{ city: null }, { city: slot.salon.city }] }] },
+        { OR: [{ salonId: slot.salon.id }, { category: null }, { category: slot.salon.category as Category }] },
       ],
     },
     take: 40,
@@ -36,7 +39,7 @@ export async function notifySlotAlerts(slotId: string) {
           originalPrice: slot.originalPrice,
           discountPrice: slot.discountPrice,
         },
-        `${appUrl()}${localePath(locale, `/slots/${slot.id}`)}`,
+        `${appUrl()}${localizedPath(locale, `/slots/${slot.id}`)}`,
         `${appUrl()}/api/alerts/unsubscribe?token=${alert.token}`
       ),
     });

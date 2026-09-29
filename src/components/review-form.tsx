@@ -2,11 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useErrorText } from "@/lib/i18n/use-error-text";
 
+/** A score has to be chosen on purpose: nothing is pre-selected. */
 export function ReviewForm({ bookingId }: { bookingId: string }) {
+  const t = useTranslations("ui.review");
+  const errorText = useErrorText();
   const router = useRouter();
-  const [rating, setRating] = useState(5);
+  const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -14,6 +20,10 @@ export function ReviewForm({ bookingId }: { bookingId: string }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (rating < 1) {
+      setError(t("pick"));
+      return;
+    }
     setLoading(true);
     setError(null);
     const res = await fetch("/api/reviews", {
@@ -24,41 +34,56 @@ export function ReviewForm({ bookingId }: { bookingId: string }) {
     const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Review mislukt");
+      setError(errorText(data.error));
       return;
     }
     setDone(true);
     router.refresh();
   }
 
-  if (done) return <p className="text-sm font-medium text-emerald-700">Bedankt, je review staat online.</p>;
+  if (done) return <p className="text-sm font-medium text-emerald-800" role="status">{t("done")}</p>;
 
   return (
-    <form onSubmit={submit} className="space-y-2 rounded-xl bg-slate-50 p-3">
-      <p className="text-sm font-semibold text-slate-800">Hoe was het?</p>
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button
-            key={n}
-            type="button"
-            onClick={() => setRating(n)}
-            className={`h-9 w-9 rounded-lg text-sm font-bold ${n <= rating ? "bg-amber-400 text-white" : "bg-white text-slate-400 border border-slate-200"}`}
-          >
-            {n}
-          </button>
-        ))}
+    <form onSubmit={submit} className="space-y-3 rounded-2xl border border-stone-200 bg-white p-4">
+      <fieldset>
+        <legend className="text-sm font-semibold text-ink">{t("title")}</legend>
+        <div className="mt-2 flex gap-1" role="radiogroup" aria-label={t("title")}>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              type="button"
+              role="radio"
+              aria-checked={rating === n}
+              aria-label={t("stars", { n })}
+              onClick={() => setRating(n)}
+              className="rounded-lg p-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            >
+              <Star aria-hidden="true" className={`h-7 w-7 ${n <= rating ? "fill-amber-400 text-amber-400" : "text-stone-300"}`} />
+            </button>
+          ))}
+        </div>
+      </fieldset>
+      <div>
+        <label htmlFor={`review-${bookingId}`} className="sr-only">
+          {t("commentLabel")}
+        </label>
+        <textarea
+          id={`review-${bookingId}`}
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          maxLength={800}
+          placeholder={t("placeholder")}
+          className="w-full rounded-xl border border-stone-200 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          rows={3}
+        />
       </div>
-      <textarea
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-        maxLength={800}
-        placeholder="Kort en eerlijk (optioneel)"
-        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-        rows={2}
-      />
-      {error && <p className="text-xs text-rose-600">{error}</p>}
+      {error && (
+        <p className="text-xs text-red-700" role="alert">
+          {error}
+        </p>
+      )}
       <Button type="submit" size="sm" disabled={loading}>
-        {loading ? "Bezig…" : "Plaats review"}
+        {loading ? t("loading") : t("submit")}
       </Button>
     </form>
   );

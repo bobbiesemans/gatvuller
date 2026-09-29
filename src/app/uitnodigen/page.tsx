@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { randomCode } from "@/lib/codes";
 import { appUrl } from "@/lib/config";
@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Nodig iemand uit", robots: { index: false } };
 
 export default async function InvitePage() {
-  const session = await auth();
+  const me = await getCurrentUser();
+  const session = me ? { user: me } : null;
   if (!session?.user) redirect("/login?callbackUrl=/uitnodigen");
   let user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { referralCode: true } });
   if (!user) redirect("/login");

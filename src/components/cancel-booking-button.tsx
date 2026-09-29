@@ -1,8 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { useErrorText } from "@/lib/i18n/use-error-text";
 
 export function CancelBookingButton({
   bookingId,
@@ -11,12 +13,14 @@ export function CancelBookingButton({
   bookingId: string;
   variant?: "outline" | "danger" | "ghost";
 }) {
+  const t = useTranslations("ui.cancelBooking");
+  const errorText = useErrorText();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function cancel() {
-    if (!confirm("Boeking annuleren? Het Surprise slot komt weer vrij voor anderen.")) return;
+    if (!window.confirm(t("confirm"))) return;
     setLoading(true);
     setError(null);
     const res = await fetch("/api/bookings/cancel", {
@@ -27,7 +31,7 @@ export function CancelBookingButton({
     const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Annuleren mislukt");
+      setError(errorText(data.error));
       return;
     }
     router.refresh();
@@ -36,9 +40,13 @@ export function CancelBookingButton({
   return (
     <div className="space-y-1">
       <Button type="button" size="sm" variant={variant} onClick={cancel} disabled={loading}>
-        {loading ? "Annuleren…" : "Annuleren"}
+        {loading ? t("loading") : t("button")}
       </Button>
-      {error && <p className="text-xs text-rose-600">{error}</p>}
+      {error && (
+        <p className="text-xs text-red-700" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

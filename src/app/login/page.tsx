@@ -58,14 +58,14 @@ function LoginForm() {
             {loading ? "Bezig…" : "Inloggen"}
           </Button>
           <p className="text-right text-sm">
-            <Link href="/wachtwoord-vergeten" className="text-violet-700">
+            <Link href="/wachtwoord-vergeten" className="text-[#b4492b]">
               Wachtwoord vergeten
             </Link>
           </p>
         </form>
         <p className="mt-4 text-center text-sm text-slate-500">
           Nog geen account?{" "}
-          <Link href="/register" className="font-semibold text-violet-700">Registreren</Link>
+          <Link href="/register" className="font-semibold text-[#b4492b]">Registreren</Link>
         </p>
         {demo && (
           <div className="mt-4 rounded-xl bg-amber-50 p-3 text-xs text-amber-950">
