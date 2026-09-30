@@ -16,6 +16,7 @@ import { ReviewForm } from "@/components/review-form";
 import { MapPin, Clock } from "lucide-react";
 import { toLocale } from "@/i18n/config";
 import { DeskTabs } from "@/components/desk-tabs";
+import { CustomerLinks } from "@/components/customer-links";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,7 @@ export default async function BoekingenPage({ searchParams }: { searchParams: Pr
         <h1 className="font-display text-3xl text-ink">{t("title")}</h1>
         <p className="mt-1 text-stone-500">{t("lead")}</p>
       </div>
+      <CustomerLinks current="boekingen" />
       <DeskTabs
         base="/boekingen"
         param="tab"

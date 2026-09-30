@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeleteAccount, ProfileForm } from "./account-forms";
+import { CustomerLinks } from "@/components/customer-links";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Account", robots: { index: false } };
@@ -15,6 +16,7 @@ export default async function AccountPage() {
         <h1 className="text-3xl font-extrabold tracking-tight text-stone-950">Account</h1>
         <p className="mt-1 text-sm text-stone-600">{user.email}</p>
       </div>
+      <CustomerLinks current="account" />
       <Card>
         <CardHeader><CardTitle>Gegevens</CardTitle></CardHeader>
         <CardContent><ProfileForm name={user.name} phone={user.phone ?? ""} locale={user.locale} /></CardContent>

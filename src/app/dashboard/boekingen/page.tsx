@@ -1,10 +1,11 @@
 import { formatInZone } from "@/lib/time";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { formatEuro } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/ui/status-pill";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckInForm } from "./check-in-form";
 import { BookingActions } from "./booking-actions";
@@ -28,10 +29,13 @@ export default async function SalonBoekingenPage({ searchParams }: { searchParam
     orderBy: { slot: { startsAt: "asc" } },
     take: 80,
   });
+  const t = await getTranslations("ui.bookings");
+  const desk = await getTranslations("ui.desk");
   const now = new Date();
   const coming = bookings.filter((booking) => booking.slot.endsAt > now && (booking.status === "PAID" || booking.status === "PENDING"));
   const earlier = bookings.filter((booking) => !coming.includes(booking)).reverse();
-  const ordered = [...coming, ...earlier];
+  const known = ["PAID", "PENDING", "CANCELLED", "REFUNDED", "EXPIRED", "NO_SHOW"] as const;
+  const label = (status: string) => ((known as readonly string[]).includes(status) ? t(status as (typeof known)[number]) : status);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 space-y-6">
@@ -50,8 +54,12 @@ export default async function SalonBoekingenPage({ searchParams }: { searchParam
           <CardContent className="p-8 text-sm text-slate-500">Nog geen boekingen.</CardContent>
         </Card>
       ) : (
-        <ul className="space-y-3">
-          {ordered.map((b) => (
+        <div className="space-y-8">
+          {[{ title: desk("coming"), rows: coming }, { title: desk("earlier"), rows: earlier }].filter((group) => group.rows.length > 0).map((group) => (
+            <section key={group.title} className="space-y-3">
+              <h2 className="font-display text-xl text-ink">{group.title}</h2>
+              <ul className="space-y-3">
+          {group.rows.map((b) => (
             <li key={b.id} className="rounded-2xl border border-slate-200 bg-white p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
@@ -64,7 +72,7 @@ export default async function SalonBoekingenPage({ searchParams }: { searchParam
                   </p>
                 </div>
                 <div className="text-right">
-                  <Badge variant={b.status === "PAID" ? "success" : "default"}>{b.status}</Badge>
+                  <StatusPill status={b.status} label={label(b.status)} />
                   <p className="mt-1 text-sm font-semibold">{formatEuro(b.amount)}</p>
                   {b.checkedInAt && <p className="text-xs text-emerald-700">Aanwezig</p>}
                 </div>
@@ -76,7 +84,10 @@ export default async function SalonBoekingenPage({ searchParams }: { searchParam
               />
             </li>
           ))}
-        </ul>
+              </ul>
+            </section>
+          ))}
+        </div>
       )}
     </div>
   );
