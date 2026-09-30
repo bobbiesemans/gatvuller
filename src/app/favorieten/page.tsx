@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FavoriteSalonCard } from "./favorite-salon-card";
+import { CustomerLinks } from "@/components/customer-links";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,7 @@ export default async function FavorietenPage() {
     <div className="mx-auto max-w-3xl px-4 py-10">
       <h1 className="text-3xl text-ink">{t("title")}</h1>
       <p className="mt-2 max-w-xl text-stone-600">{t("lead")}</p>
+      <div className="mt-4"><CustomerLinks current="favorieten" /></div>
       {favorites.length === 0 ? (
         <EmptyState className="mt-8" title={t("empty")} action={<Button asChild><Link href="/slots">{t("saved")}</Link></Button>} />
       ) : (
