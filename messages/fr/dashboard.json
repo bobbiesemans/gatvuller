@@ -1,1 +1,35 @@
-{}
+{
+  "ui": {
+    "desk": {
+      "today": "Aujourd’hui",
+      "publish": "Publier",
+      "offers": "Offres",
+      "business": "Commerce",
+      "customer": "Mes réservations",
+      "favorites": "Favoris",
+      "account": "Compte",
+      "checkin": "Pointer",
+      "noGuests": "Personne n’est encore prévu aujourd’hui ni dans les prochains jours.",
+      "publishLead": "Choisissez un modèle ou saisissez le prix et l’heure. L’heure est en ligne en moins d’une minute.",
+      "offersLead": "Mettez en pause, modifiez ou retirez. Retirer rembourse toutes les personnes qui ont déjà payé.",
+      "businessLead": "Profil, photos, horaires et versement. Cela change rarement.",
+      "visibility": {
+        "visible": "Visible",
+        "paused": "En pause",
+        "full": "Complet",
+        "closing": "Trop tard pour réserver",
+        "ended": "Terminé",
+        "salon_pending": "En attente d’approbation",
+        "salon_suspended": "Commerce suspendu",
+        "demo_hidden": "Démo, non publique",
+        "payments_off": "Paiements désactivés",
+        "payouts_missing": "Stripe pas encore relié"
+      },
+      "edit": "Modifier",
+      "saveOffer": "Enregistrer l’heure",
+      "filters": "Filtres",
+      "coming": "À venir",
+      "earlier": "Plus tôt"
+    }
+  }
+}

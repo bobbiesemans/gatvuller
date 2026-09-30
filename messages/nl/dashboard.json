@@ -1,1 +1,35 @@
-{}
+{
+  "ui": {
+    "desk": {
+      "today": "Vandaag",
+      "publish": "Publiceren",
+      "offers": "Aanbod",
+      "business": "Zaak",
+      "customer": "Mijn boekingen",
+      "favorites": "Favorieten",
+      "account": "Account",
+      "checkin": "Inchecken",
+      "noGuests": "Vandaag en de komende dagen staat er nog niemand ingepland.",
+      "publishLead": "Kies een sjabloon of vul prijs en tijd in. Het uur staat in minder dan een minuut online.",
+      "offersLead": "Pauzeer, pas aan of trek in. Intrekken betaalt iedereen terug die al betaald heeft.",
+      "businessLead": "Profiel, foto’s, openingstijden en uitbetaling. Dit verandert zelden.",
+      "visibility": {
+        "visible": "Zichtbaar",
+        "paused": "Gepauzeerd",
+        "full": "Volzet",
+        "closing": "Te kort dag om nog te boeken",
+        "ended": "Afgelopen",
+        "salon_pending": "Wacht op goedkeuring",
+        "salon_suspended": "Zaak geschorst",
+        "demo_hidden": "Demo, niet openbaar",
+        "payments_off": "Betalingen staan uit",
+        "payouts_missing": "Stripe nog niet gekoppeld"
+      },
+      "edit": "Aanpassen",
+      "saveOffer": "Uur opslaan",
+      "filters": "Filters",
+      "coming": "Eerstkomend",
+      "earlier": "Eerder"
+    }
+  }
+}

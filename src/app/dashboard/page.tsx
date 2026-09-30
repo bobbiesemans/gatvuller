@@ -1,31 +1,33 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { format } from "date-fns";
-import { nlBE } from "date-fns/locale";
+import { getTranslations } from "next-intl/server";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { formatEuro } from "@/lib/utils";
 import { isDemoMode, PLATFORM_FEE_PERCENT } from "@/lib/config";
 import { getStripe, stripeConfigured } from "@/lib/stripe";
+import { formatInZone, toBrusselsLocalInput } from "@/lib/time";
+import { slotVisibility } from "@/lib/marketplace";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DeskTabs } from "@/components/desk-tabs";
+import { EmptyState } from "@/components/ui/empty-state";
 import { CreateSlotForm } from "./create-slot-form";
 import { HoursForm } from "./hours-form";
 import { CancellationForm, PayoutButton, TemplateForm } from "./salon-tools";
 import { SlotActions } from "./slot-actions";
+import { SlotEdit } from "./slot-edit";
 import { LocationForm, PhotoForm, ProfileForm, TemplateEdit } from "./manage-forms";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Zaakbeheer" };
 
-const STATUS_LABEL: Record<string, string> = {
-  OPEN: "Online",
-  PAUSED: "Gepauzeerd",
-  BOOKED: "Volzet",
-  CANCELLED: "Verwijderd",
-  EXPIRED: "Afgelopen",
-};
+const PARTS = ["vandaag", "publiceren", "aanbod", "zaak"] as const;
+type Part = (typeof PARTS)[number];
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ deel?: string }> }) {
+  const requested = (await searchParams).deel;
+  const part: Part = PARTS.includes(requested as Part) ? (requested as Part) : "vandaag";
+  const t = await getTranslations("ui.desk");
   const me = await getCurrentUser();
   const session = me ? { user: me } : null;
   if (!session?.user) redirect("/login?callbackUrl=/dashboard");
@@ -82,18 +84,37 @@ export default async function DashboardPage() {
   const capacitySpots = upcoming.reduce((sum, slot) => sum + slot.capacity, 0);
   const takenSpots = upcoming.reduce((sum, slot) => sum + Math.max(0, slot.capacity - slot.spotsLeft), 0);
   const occupancy = capacitySpots === 0 ? 0 : Math.round((takenSpots / capacitySpots) * 100);
+  const guests = salons.length === 0 ? [] : await prisma.booking.findMany({
+    where: {
+      status: { in: ["PAID", "PENDING"] },
+      slot: { endsAt: { gt: new Date() }, salonId: { in: salons.map((salon) => salon.id) } },
+    },
+    include: { slot: { include: { salon: { select: { name: true } } } } },
+    orderBy: { slot: { startsAt: "asc" } },
+    take: 24,
+  });
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-stone-950">Zaakbeheer</h1>
-          <p className="mt-1 text-stone-600">Publiceer een vrij uur, volg reserveringen en zie wat GatVuller oplevert.</p>
+          <h1 className="font-display text-3xl text-ink">Zaakbeheer</h1>
+          <p className="mt-1 text-stone-600">Eerst wie er komt. Daarna een uur online, of een uur weg.</p>
         </div>
-        <Link href="/dashboard/boekingen" className="text-sm font-semibold text-stone-900 underline underline-offset-4">
-          QR-code controleren
+        <Link href="/dashboard/boekingen" className="text-sm font-semibold text-ink underline underline-offset-4">
+          {t("checkin")}
         </Link>
       </div>
+      <DeskTabs
+        base="/dashboard"
+        current={part}
+        tabs={[
+          { id: "vandaag", label: t("today") },
+          { id: "publiceren", label: t("publish") },
+          { id: "aanbod", label: t("offers") },
+          { id: "zaak", label: t("business") },
+        ]}
+      />
 
       {isDemoMode() && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
@@ -134,20 +155,84 @@ export default async function DashboardPage() {
             Nog geen zaak gekoppeld. <Link href="/register" className="font-semibold underline">Registreer je zaak</Link>.
           </CardContent>
         </Card>
+      ) : part === "publiceren" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Vrij uur publiceren</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-stone-600">{t("publishLead")}</p>
+            <CreateSlotForm
+              salons={salons.map((s) => ({ id: s.id, name: s.name }))}
+              templates={salons.flatMap((s) => s.templates)}
+            />
+          </CardContent>
+        </Card>
+      ) : part === "vandaag" ? (
+        guests.length === 0 ? (
+          <EmptyState title={t("noGuests")} action={<Link href="/dashboard?deel=publiceren" className="text-sm font-semibold underline">{t("publish")}</Link>} />
+        ) : (
+          <ul className="space-y-3">
+            {guests.map((booking) => (
+              <li key={booking.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#e7dfd6] bg-white px-4 py-4">
+                <div>
+                  <p className="font-display text-lg text-ink">{booking.customerName}</p>
+                  <p className="text-sm text-stone-600">{booking.slot.title} · {booking.slot.salon.name}</p>
+                  <p className="text-sm text-stone-500">{formatInZone(booking.slot.startsAt, "nl", "dayTime")}</p>
+                </div>
+                <Link href={`/dashboard/boekingen?code=${booking.confirmationCode}`} className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white">
+                  {t("checkin")}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )
+      ) : part === "aanbod" ? (
+        <div className="space-y-6">
+          <p className="text-sm text-stone-600">{t("offersLead")}</p>
+          {salons.map((salon) => (
+            <Card key={salon.id}>
+              <CardHeader><CardTitle>{salon.name}</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                {salon.slots.length === 0 && <p className="text-sm text-stone-500">Nog geen uren gepubliceerd.</p>}
+                {salon.slots.map((slot) => {
+                  const visibility = slotVisibility(slot, salon);
+                  return (
+                    <div key={slot.id} className="border-b border-stone-100 py-3 text-sm last:border-0">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-ink">{slot.title}</p>
+                          <p className="text-stone-500">
+                            {formatInZone(slot.startsAt, "nl", "dayTime")} · {formatEuro(slot.discountPrice)} · {slot.spotsLeft}/{slot.capacity} vrij
+                          </p>
+                          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-brand">{t(`visibility.${visibility}`)}</p>
+                        </div>
+                        <SlotActions slotId={slot.id} status={slot.status} />
+                      </div>
+                      {slot.status !== "CANCELLED" && slot.status !== "EXPIRED" && (
+                        <SlotEdit
+                          slot={{
+                            id: slot.id,
+                            title: slot.title,
+                            description: slot.description,
+                            startsLocal: toBrusselsLocalInput(slot.startsAt),
+                            endsLocal: toBrusselsLocalInput(slot.endsAt),
+                            originalPrice: slot.originalPrice,
+                            discountPrice: slot.discountPrice,
+                            capacity: slot.capacity,
+                          }}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       ) : (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle>Vrij uur publiceren</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CreateSlotForm
-                salons={salons.map((s) => ({ id: s.id, name: s.name }))}
-                templates={salons.flatMap((s) => s.templates)}
-              />
-            </CardContent>
-          </Card>
-
+        <div className="space-y-8">
+          <p className="text-sm text-stone-600">{t("businessLead")}</p>
           {salons.map((salon) => (
             <section key={salon.id} className="space-y-4">
               <div>
@@ -229,32 +314,9 @@ export default async function DashboardPage() {
                   <TemplateForm salonId={salon.id} />
                 </CardContent>
               </Card>
-
-              <Card>
-                <CardHeader><CardTitle>Aanbiedingen</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  {salon.slots.length === 0 && <p className="text-sm text-stone-500">Nog geen uren gepubliceerd.</p>}
-                  {salon.slots.map((slot) => (
-                    <div key={slot.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 py-3 text-sm last:border-0">
-                      <div>
-                        <p className="font-semibold text-stone-900">{slot.title}</p>
-                        <p className="text-stone-500">
-                          {format(slot.startsAt, "EEE d MMM HH:mm", { locale: nlBE })} · {formatEuro(slot.discountPrice)} · {slot.spotsLeft}/{slot.capacity} vrij · {STATUS_LABEL[slot.status] || slot.status}
-                        </p>
-                        {slot.bookings.filter((b) => b.status === "PAID").length > 0 && (
-                          <p className="text-xs text-stone-500">
-                            {slot.bookings.filter((b) => b.status === "PAID").map((b) => b.customerName).join(", ")}
-                          </p>
-                        )}
-                      </div>
-                      <SlotActions slotId={slot.id} status={slot.status} />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
             </section>
           ))}
-        </>
+        </div>
       )}
     </div>
   );

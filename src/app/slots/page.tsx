@@ -8,6 +8,7 @@ import { brusselsDayStart, brusselsHour } from "@/lib/time";
 import { Button } from "@/components/ui/button";
 import { bookableSalonWhere, bookingLeadCutoff } from "@/lib/marketplace";
 import { SlotsBrowse } from "@/components/slots/slots-browse";
+import { FilterDrawer } from "@/components/slots/filter-drawer";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -104,7 +105,8 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
       <h1 className="text-3xl text-ink">{t("title")}</h1>
       <p className="mt-1 text-stone-600">{t("lead")}</p>
 
-      <form className="mt-6 grid gap-2 sm:grid-cols-3 lg:grid-cols-6" action="/slots">
+      <FilterDrawer label="Filters" active={Boolean(sp.stad || sp.categorie || sp.wanneer || sp.dagdeel || sp.max || sp.korting || sp.q)}>
+      <form className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6" action="/slots">
         <input name="q" defaultValue={sp.q || ""} placeholder={t("search")} aria-label={t("search")} className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm sm:col-span-2" />
         <select name="stad" defaultValue={sp.stad || ""} aria-label={t("city")} className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm">
           <option value="">{t("allCities")}</option>
@@ -139,6 +141,7 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
         </select>
         <Button type="submit" className="lg:col-span-2">{t("apply")}</Button>
       </form>
+      </FilterDrawer>
       <p className="mt-3 text-sm">
         <Link href="/slots" className="underline">{t("clear")}</Link>
       </p>
