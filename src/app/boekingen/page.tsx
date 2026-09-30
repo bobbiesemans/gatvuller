@@ -15,6 +15,7 @@ import { CancelBookingButton } from "@/components/cancel-booking-button";
 import { ReviewForm } from "@/components/review-form";
 import { MapPin, Clock } from "lucide-react";
 import { toLocale } from "@/i18n/config";
+import { DeskTabs } from "@/components/desk-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -41,17 +42,18 @@ export default async function BoekingenPage({ searchParams }: { searchParams: Pr
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-10">
       <div>
-        <h1 className="text-3xl text-ink">{t("title")}</h1>
+        <h1 className="font-display text-3xl text-ink">{t("title")}</h1>
         <p className="mt-1 text-stone-500">{t("lead")}</p>
       </div>
-      <div className="flex gap-2" role="tablist">
-        <Button asChild size="sm" variant={tab === "upcoming" ? "default" : "outline"}>
-          <Link href="/boekingen" role="tab" aria-selected={tab === "upcoming"}>{t("upcoming")}</Link>
-        </Button>
-        <Button asChild size="sm" variant={tab === "past" ? "default" : "outline"}>
-          <Link href="/boekingen?tab=voorbij" role="tab" aria-selected={tab === "past"}>{t("past")}</Link>
-        </Button>
-      </div>
+      <DeskTabs
+        base="/boekingen"
+        param="tab"
+        current={tab === "past" ? "voorbij" : ""}
+        tabs={[
+          { id: "", label: t("upcoming") },
+          { id: "voorbij", label: t("past") },
+        ]}
+      />
 
       {shown.length === 0 ? (
         <EmptyState

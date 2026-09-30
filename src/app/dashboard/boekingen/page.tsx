@@ -28,6 +28,10 @@ export default async function SalonBoekingenPage({ searchParams }: { searchParam
     orderBy: { slot: { startsAt: "asc" } },
     take: 80,
   });
+  const now = new Date();
+  const coming = bookings.filter((booking) => booking.slot.endsAt > now && (booking.status === "PAID" || booking.status === "PENDING"));
+  const earlier = bookings.filter((booking) => !coming.includes(booking)).reverse();
+  const ordered = [...coming, ...earlier];
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 space-y-6">
@@ -47,7 +51,7 @@ export default async function SalonBoekingenPage({ searchParams }: { searchParam
         </Card>
       ) : (
         <ul className="space-y-3">
-          {bookings.map((b) => (
+          {ordered.map((b) => (
             <li key={b.id} className="rounded-2xl border border-slate-200 bg-white p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>

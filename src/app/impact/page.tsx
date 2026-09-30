@@ -11,7 +11,7 @@ export default async function ImpactPage() {
     prisma.salon.count().catch(() => 0),
     prisma.slot.count({ where: { status: "OPEN", spotsLeft: { gt: 0 }, startsAt: { gte: now } } }).catch(() => 0),
     prisma.booking
-      .findMany({ where: { status: "PAID" }, select: { amount: true, slot: { select: { originalPrice: true } } } })
+      .findMany({ where: { status: "PAID", paymentMode: "LIVE" }, select: { amount: true, slot: { select: { originalPrice: true } } } })
       .catch(() => []),
   ]);
   const filled = paidBookings.length;
@@ -28,9 +28,9 @@ export default async function ImpactPage() {
       </p>
       <div className="mt-10 grid gap-4 sm:grid-cols-3">
         {[
-          { k: `${salons}+`, v: "salons aangesloten" },
-          { k: `${filled}+`, v: "slots gevuld" },
-          { k: `€${saved.toLocaleString("nl-BE")}+`, v: "bespaard door klanten" },
+          { k: String(salons), v: "zaken actief in de telling" },
+          { k: String(filled), v: "live boekingen betaald" },
+          { k: `€${saved.toLocaleString("nl-BE")}`, v: "bespaard op live boekingen" },
         ].map((s) => (
           <div key={s.v} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-3xl font-extrabold text-[#b4492b]">{s.k}</p>

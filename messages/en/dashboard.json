@@ -1,1 +1,35 @@
-{}
+{
+  "ui": {
+    "desk": {
+      "today": "Today",
+      "publish": "Publish",
+      "offers": "Offers",
+      "business": "Business",
+      "customer": "My bookings",
+      "favorites": "Favourites",
+      "account": "Account",
+      "checkin": "Check in",
+      "noGuests": "Nobody is booked for today or the coming days yet.",
+      "publishLead": "Pick a template or enter the price and time. The hour is online in under a minute.",
+      "offersLead": "Pause, edit or withdraw. Withdrawing refunds everyone who has already paid.",
+      "businessLead": "Profile, photos, opening hours and payouts. This rarely changes.",
+      "visibility": {
+        "visible": "Visible",
+        "paused": "Paused",
+        "full": "Full",
+        "closing": "Too soon to book",
+        "ended": "Finished",
+        "salon_pending": "Waiting for approval",
+        "salon_suspended": "Business suspended",
+        "demo_hidden": "Demo, not public",
+        "payments_off": "Payments are off",
+        "payouts_missing": "Stripe is not connected yet"
+      },
+      "edit": "Edit",
+      "saveOffer": "Save hour",
+      "filters": "Filters",
+      "coming": "Coming up",
+      "earlier": "Earlier"
+    }
+  }
+}

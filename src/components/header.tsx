@@ -19,11 +19,11 @@ export async function Header() {
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-white"><CalendarDays aria-hidden="true" className="h-5 w-5" /></span>
           <span>GatVuller</span>
         </Link>
-        <nav className="hidden items-center gap-6 text-sm font-medium text-stone-600 lg:flex">
+        <nav className="hidden items-center gap-5 text-sm font-medium text-stone-600 md:flex">
           <Link href="/slots" className="hover:text-brand">{t("slots")}</Link>
           <Link href="/favorieten" className="hover:text-brand">{t("favorites")}</Link>
           {session?.user && <Link href="/boekingen" className="hover:text-brand">{t("bookings")}</Link>}
-          <Link href="/#hoe" className="hover:text-brand">{t("how")}</Link>
+          <Link href="/#hoe" className="hidden hover:text-brand lg:inline">{t("how")}</Link>
           {(session?.user?.role === "SALON_OWNER" || session?.user?.role === "ADMIN") && (
             <Link href="/dashboard" className="hover:text-brand">{t("dashboard")}</Link>
           )}
