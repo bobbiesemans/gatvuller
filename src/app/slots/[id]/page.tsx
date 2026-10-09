@@ -30,8 +30,19 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
+  const found = await prisma.slot
+    .findUnique({ where: { id }, select: { title: true, discountPrice: true, originalPrice: true, salon: { select: { name: true, city: true, status: true, isDemo: true } } } })
+    .catch(() => null);
+  // Never describe an offer the page itself would hide.
+  const slot = found && found.salon.status === "ACTIVE" && (!found.salon.isDemo || isDemoMode()) ? found : null;
+  const title = slot ? `${slot.title} bij ${slot.salon.name}` : "Afspraak";
+  const description = slot
+    ? `Last-minute in ${slot.salon.city}: ${formatEuro(slot.discountPrice)} in plaats van ${formatEuro(slot.originalPrice)}. Reserveer op GatVuller.`
+    : undefined;
   return {
-    title: "Afspraak",
+    title,
+    description,
+    openGraph: { title, description, type: "website" },
     robots: { index: false, follow: false },
     alternates: { canonical: `/slots/${id}` },
   };

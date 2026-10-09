@@ -1,39 +1,32 @@
 import { ImageResponse } from "next/og";
 import { prisma } from "@/lib/prisma";
+import { OgCard, OG_SIZE } from "@/lib/og-card";
+import { discountPercent, formatEuro } from "@/lib/money";
+import { formatInZone } from "@/lib/time";
+import { isDemoMode } from "@/lib/config";
 
-export const alt = "GatVuller";
-export const size = { width: 1200, height: 630 };
+export const alt = "Last-minute afspraak op GatVuller";
+export const size = OG_SIZE;
 export const contentType = "image/png";
+export const revalidate = 300;
 
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const slot = await prisma.slot.findUnique({
-    where: { id },
-    select: { title: true, salon: { select: { name: true, city: true } } },
-  });
-  const title = slot?.title || "GatVuller";
-  const sub = slot ? `${slot.salon.name} · ${slot.salon.city}` : "Last-minute";
+  const slot = await prisma.slot
+    .findUnique({ where: { id }, select: { title: true, startsAt: true, originalPrice: true, discountPrice: true, salon: { select: { name: true, city: true, status: true, isDemo: true } } } })
+    .catch(() => null);
+  if (!slot || slot.salon.status !== "ACTIVE" || (slot.salon.isDemo && !isDemoMode())) {
+    return new ImageResponse(<OgCard eyebrow="Last-minute" title="Vrije afspraken met korting" />, size);
+  }
   return new ImageResponse(
-    (
-      <div
-        style={{
-          display: "flex",
-          height: "100%",
-          width: "100%",
-          background: "#faf7f2",
-          color: "#1d1b18",
-          padding: 72,
-          flexDirection: "column",
-          justifyContent: "space-between",
-        }}
-      >
-        <div style={{ fontSize: 28, color: "#b4492b" }}>GatVuller</div>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ fontSize: 64, lineHeight: 1.05 }}>{title}</div>
-          <div style={{ fontSize: 28, marginTop: 20 }}>{sub}</div>
-        </div>
-      </div>
-    ),
-    { ...size }
+    <OgCard
+      eyebrow={`${slot.salon.name} · ${slot.salon.city}`}
+      title={slot.title}
+      subtitle={formatInZone(slot.startsAt, "nl")}
+      price={formatEuro(slot.discountPrice)}
+      was={formatEuro(slot.originalPrice)}
+      badge={`−${discountPercent(slot.originalPrice, slot.discountPrice)}%`}
+    />,
+    size,
   );
 }
