@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { after } from "next/server";
+import { maybeRefreshDemoSlots } from "@/lib/demo-refresh";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
@@ -33,6 +35,7 @@ export default async function SlotsPage({ searchParams }: { searchParams: Search
   const me = await getCurrentUser();
   const session = me ? { user: me } : null;
   await expireStaleHolds();
+  after(() => maybeRefreshDemoSlots());
   const now = new Date();
   const tomorrow = brusselsDayStart(1);
   const dayAfter = brusselsDayStart(2);

@@ -57,3 +57,12 @@ export async function refreshDemoSlots(now: Date = new Date()) {
   }
   return { created };
 }
+
+let lastRun = 0;
+
+/** Browsing trigger: at most every 10 minutes per server instance, never blocks the response. */
+export async function maybeRefreshDemoSlots() {
+  if (!isDemoMode() || Date.now() - lastRun < 10 * 60_000) return;
+  lastRun = Date.now();
+  await refreshDemoSlots().catch(() => undefined);
+}
