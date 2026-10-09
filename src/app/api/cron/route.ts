@@ -5,6 +5,7 @@ import { expireEndedSlots, expireStaleHolds, retryCancelledSlotRefunds } from "@
 import { sendReviewRequest } from "@/lib/email/notify";
 import { purgeRateLimits } from "@/lib/rate-limit";
 import { log } from "@/lib/log";
+import { refreshDemoSlots } from "@/lib/demo-refresh";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -24,6 +25,8 @@ export async function GET(req: Request) {
   const endedSlots = await expireEndedSlots();
   // Paid bookings left on a withdrawn offer (a refund failed earlier) are refunded now.
   const retriedRefunds = await retryCancelledSlotRefunds();
+  // Test mode: keep the showcase map filled with upcoming demo offers.
+  const demo = await refreshDemoSlots();
 
   const due = await prisma.booking.findMany({
     where: {
@@ -48,7 +51,7 @@ export async function GET(req: Request) {
     prisma.passwordResetToken.deleteMany({ where: { expiresAt: { lt: new Date(now - 86_400_000) } } }),
     prisma.stripeEvent.deleteMany({ where: { processedAt: { lt: new Date(now - 90 * 86_400_000) } } }),
   ]);
-  const summary = { expiredHolds, endedSlots, retriedRefunds, reviewRequests: due.length, purged: { rateLimits, emails: emails.count, tokens: tokens.count, events: events.count } };
+  const summary = { demoSlots: demo.created, expiredHolds, endedSlots, retriedRefunds, reviewRequests: due.length, purged: { rateLimits, emails: emails.count, tokens: tokens.count, events: events.count } };
   log.info("cron.done", summary);
   return NextResponse.json(summary);
 }
